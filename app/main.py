@@ -13,7 +13,7 @@ from app import auth, intro, pwa, web
 from app.api import books, me, social
 from app.core.config import Settings, get_settings
 
-USER_AGENT = "saipr/0.1 (+https://github.com/hsK10x2/Saipr_project)"  # Wikimedia는 UA 명시 요구
+USER_AGENT = "haedok/0.1 (+https://github.com/10x4hs/haedok)"  # Wikimedia는 UA 명시 요구
 
 
 @asynccontextmanager
