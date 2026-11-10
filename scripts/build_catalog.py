@@ -20,7 +20,7 @@ import httpx
 WIKI_API = "https://ko.wikisource.org/w/api.php"
 GUTENBERG_TOP = "https://www.gutenberg.org/browse/scores/top"
 OUT = Path(__file__).resolve().parent.parent / "app" / "data" / "catalog.json"
-UA = {"User-Agent": "saipr-catalog/0.1 (+https://github.com/hsK10x2/Saipr_project)"}
+UA = {"User-Agent": "haedok-catalog/0.1 (+https://github.com/10x4hs/haedok)"}
 
 GENRES = [
     "단편소설",

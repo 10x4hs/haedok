@@ -8,8 +8,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    app_name: str = "saipr"
-    database_url: str = "postgresql+asyncpg://saipr:saipr@localhost:5432/saipr"
+    app_name: str = "haedok"
+    database_url: str = "postgresql+asyncpg://haedok:haedok@localhost:5432/haedok"
 
     @field_validator("database_url")
     @classmethod

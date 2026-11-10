@@ -2,15 +2,15 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: saipr
-      POSTGRES_PASSWORD: saipr
-      POSTGRES_DB: saipr
+      POSTGRES_USER: haedok
+      POSTGRES_PASSWORD: haedok
+      POSTGRES_DB: haedok
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U saipr"]
+      test: ["CMD-SHELL", "pg_isready -U haedok"]
       interval: 5s
       retries: 10
 
@@ -20,7 +20,7 @@ services:
       - path: .env
         required: false
     environment:
-      DATABASE_URL: postgresql+asyncpg://saipr:saipr@db:5432/saipr
+      DATABASE_URL: postgresql+asyncpg://haedok:haedok@db:5432/haedok
     depends_on:
       db:
         condition: service_healthy

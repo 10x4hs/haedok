@@ -23,14 +23,14 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: saipr
-          POSTGRES_PASSWORD: saipr
-          POSTGRES_DB: saipr
+          POSTGRES_USER: haedok
+          POSTGRES_PASSWORD: haedok
+          POSTGRES_DB: haedok
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U saipr" --health-interval 5s --health-retries 10
+          --health-cmd "pg_isready -U haedok" --health-interval 5s --health-retries 10
     env:
-      DATABASE_URL: postgresql+asyncpg://saipr:saipr@localhost:5432/saipr
+      DATABASE_URL: postgresql+asyncpg://haedok:haedok@localhost:5432/haedok
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

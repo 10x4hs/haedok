@@ -1,5 +1,5 @@
 [project]
-name = "saipr"
+name = "haedok"
 version = "0.1.0"
 description = "해독(偕讀) — 소셜 독서 웹앱"
 requires-python = ">=3.12"
