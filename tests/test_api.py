@@ -34,7 +34,7 @@ def upstream(req: httpx.Request) -> httpx.Response:
 async def test_health(api):
     async with api(upstream) as c:
         r = await c.get("/health")
-    assert r.json() == {"status": "ok"}
+    assert r.json() == {"status": "ok", "db": "ok", "version": "0.1.0"}
 
 
 async def test_search_reports_partial_errors(api):

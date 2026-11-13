@@ -132,11 +132,11 @@ async def test_login_pauses_after_repeated_wrong_passwords(api):
         await signup(c, email="brute@example.com")
         c.cookies.clear()
         token = await csrf_of(c, "/login")
-        for _ in range(5):
+        for _ in range(10):  # 10분에 10번 (이메일+IP, DB 고정창)
             await c.post(
                 "/login", data={"email": "brute@example.com", "password": "wrongpass1", "csrf": token}
             )
         blocked = await c.post(
             "/login", data={"email": "brute@example.com", "password": "password123", "csrf": token}
         )
-    assert blocked.status_code == 200 and "10분 뒤에" in blocked.text  # 맞는 비밀번호여도 잠시 멈춘다
+    assert blocked.status_code == 429 and "10분 뒤에" in blocked.text  # 맞는 비밀번호여도 잠시 멈춘다

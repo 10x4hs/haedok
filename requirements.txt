@@ -1,16 +1,118 @@
-# Vercel 배포용 — pyproject.toml의 dependencies와 같게 유지
-fastapi>=0.115
-uvicorn[standard]>=0.30
-sqlalchemy[asyncio]>=2.0.30
-asyncpg>=0.29
-alembic>=1.13
-httpx>=0.27
-pydantic-settings>=2.3
-beautifulsoup4>=4.12
-jinja2>=3.1
-python-multipart>=0.0.9
-pypdf>=4.0
-lxml>=5.0
-bcrypt>=4.1
-itsdangerous>=2.1
-aiosqlite>=0.20
+# Vercel·Docker 배포용 고정 버전 — 손으로 고치지 말고 uv.lock에서 다시 내보낸다:
+#   uv lock && uv export --no-dev --no-hashes --no-emit-project -o requirements.txt
+# (pyproject.toml의 dependencies를 바꾼 뒤에도 같은 명령을 돌린다)
+aiosqlite==0.22.1
+    # via haedok
+alembic==1.20.1
+    # via haedok
+annotated-doc==0.0.6
+    # via fastapi
+annotated-types==0.8.0
+    # via pydantic
+anyio==4.16.0
+    # via
+    #   fastapi
+    #   httpx
+    #   starlette
+    #   watchfiles
+asyncpg==0.32.0
+    # via haedok
+bcrypt==5.0.0
+    # via haedok
+beautifulsoup4==4.15.0
+    # via haedok
+certifi==2026.10.23
+    # via
+    #   httpcore
+    #   httpx
+    #   sentry-sdk
+click==8.5.1
+    # via uvicorn
+fastapi==0.162.5
+    # via haedok
+greenlet==3.5.6
+    # via sqlalchemy
+h11==0.16.0
+    # via
+    #   httpcore
+    #   uvicorn
+httpcore==1.0.9
+    # via httpx
+httptools==0.9.0
+    # via uvicorn
+httpx==0.28.1
+    # via haedok
+idna==3.20
+    # via
+    #   anyio
+    #   httpx
+itsdangerous==2.2.0
+    # via haedok
+jinja2==3.1.6
+    # via haedok
+lxml==6.1.3
+    # via haedok
+mako==1.4.3
+    # via alembic
+markupsafe==3.0.4
+    # via
+    #   jinja2
+    #   mako
+opentelemetry-api==1.45.2
+    # via fastapi
+pydantic==2.14.3
+    # via
+    #   fastapi
+    #   pydantic-settings
+pydantic-core==2.50.4
+    # via pydantic
+pydantic-settings==2.16.2
+    # via haedok
+pypdf==7.0.1
+    # via haedok
+python-dotenv==1.2.4
+    # via
+    #   pydantic-settings
+    #   uvicorn
+python-multipart==0.0.33
+    # via haedok
+pyyaml==6.0.3
+    # via uvicorn
+sentry-sdk==2.75.0
+    # via haedok
+soupsieve==4.1
+    # via beautifulsoup4
+sqlalchemy==2.1.8
+    # via
+    #   alembic
+    #   haedok
+starlette==1.10.0
+    # via fastapi
+typing-extensions==4.16.0
+    # via
+    #   alembic
+    #   anyio
+    #   beautifulsoup4
+    #   fastapi
+    #   opentelemetry-api
+    #   pydantic
+    #   pydantic-core
+    #   pydantic-settings
+    #   sqlalchemy
+    #   starlette
+    #   typing-inspection
+typing-inspection==0.4.5
+    # via
+    #   fastapi
+    #   pydantic
+    #   pydantic-settings
+urllib3==2.8.0
+    # via sentry-sdk
+uvicorn==0.54.0
+    # via haedok
+uvloop==0.23.0 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'
+    # via uvicorn
+watchfiles==1.3.0
+    # via uvicorn
+websockets==17.4
+    # via uvicorn
