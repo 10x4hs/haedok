@@ -1,4 +1,3 @@
-
 """메일 전송 수단: SMTP 465 → 587 → Resend 순서, 배포에서는 Resend 우선, 시도마다 mail_logs 한 줄."""
 
 import json
