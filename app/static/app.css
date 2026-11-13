@@ -38,7 +38,7 @@ h1,h2{text-wrap:balance}
 
 /* glass */
 .glass{background:var(--glass);border:1px solid var(--glass-line);backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
-.pill-btn{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:999px;background:var(--glass);border:1px solid var(--glass-line);backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%);color:var(--text);font-weight:600;font-size:14px;transition:transform .4s var(--ease)}
+.pill-btn{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:999px;background:var(--glass);border:1px solid var(--glass-line);backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%);color:var(--text);font-weight:600;font-size:14px;transition:transform .4s var(--ease)}
 .pill-btn:active{transform:scale(.92)}
 .pill{display:inline-flex;align-items:center;height:36px;padding:0 16px;border-radius:999px;background:var(--glass);border:1px solid var(--glass-line);backdrop-filter:blur(20px);font-size:14px;font-weight:500}
 
@@ -310,7 +310,7 @@ a:hover .bk,a:focus-visible .bk,.now:hover .bk,.pick:hover .bk{transform:rotateY
 .r-sheet{position:fixed;z-index:20;left:50%;transform:translateX(-50%);top:calc(70px + env(safe-area-inset-top));width:min(calc(100% - 24px),360px);display:grid;gap:12px;padding:14px;border-radius:20px}
 .r-row{display:flex;justify-content:space-between;align-items:center;font-size:14px}
 .seg.mini button{height:32px;padding:0 12px;font-size:13px}
-.r-stage{position:fixed;left:50%;transform:translateX(-50%);top:calc(72px + env(safe-area-inset-top));bottom:calc(98px + env(safe-area-inset-bottom));width:min(calc(100% - 24px),calc(var(--app) - 24px))}
+.r-stage{position:fixed;left:50%;transform:translateX(-50%);top:calc(72px + env(safe-area-inset-top));bottom:calc(106px + env(safe-area-inset-bottom));width:min(calc(100% - 24px),calc(var(--app) - 24px))}
 .flip{width:100%;height:100%}
 .pg{background:var(--paper);color:var(--ink);padding:30px 26px;overflow:hidden;border-radius:4px 14px 14px 4px;
   box-shadow:inset 18px 0 24px -20px rgba(0,0,0,.6)}
@@ -322,7 +322,8 @@ a:hover .bk,a:focus-visible .bk,.now:hover .bk,.pick:hover .bk{transform:rotateY
 .fin{display:grid;justify-items:center;gap:8px;color:var(--pdim)}
 .fin b{font:700 30px var(--f-serif);color:var(--ink)}
 .fin .btn{margin-top:14px;height:44px}
-.r-err{color:var(--dim);text-align:center;margin-top:40%}
+.r-err{display:grid;justify-items:center;gap:14px;color:var(--dim);text-align:center;margin-top:40%;line-height:1.6}
+.r-err .btn{height:44px}
 .r-foot{position:fixed;z-index:20;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));width:min(calc(100% - 24px),440px);display:grid;gap:7px;padding:8px 16px 10px;border-radius:24px;font-size:13px;color:var(--dim);white-space:nowrap;
   --rf-trk:color-mix(in srgb,var(--text) 16%,transparent);--rf-fill:var(--accent);--rf-ok:var(--ok)}
 .rf-row{display:flex;align-items:center;gap:10px;min-height:34px}
@@ -349,7 +350,9 @@ a:hover .bk,a:focus-visible .bk,.now:hover .bk,.pick:hover .bk{transform:rotateY
 #state.ok{color:var(--ok)}
 .dwell{display:none}
 
-@media (prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
+/* 움직임 줄이기: 이동·회전·흔들림은 끄고, 상태가 바뀌는 건 짧은 페이드로만 남긴다 */
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  .toast,.menu,.sheet,.stepped .step.on,.auth-card{animation:fade .2s ease!important}}
 
 
 /* ---------- glass surfaces ---------- */
@@ -456,7 +459,7 @@ h3.sub,.sheet h3{font-size:14px;font-weight:600;color:var(--dim);margin:22px 0 1
 @keyframes sheetup{from{transform:translateY(60px);opacity:0}}
 .sheet-h{display:flex;justify-content:space-between;align-items:center}
 .sheet-h h2{margin:0;font-size:22px;letter-spacing:-.03em;min-width:0}
-.sheet .x{font-size:26px;color:var(--dim);width:40px;height:40px}
+.sheet .x{font-size:26px;color:var(--dim);width:44px;height:44px;border-radius:50%}
 .look-preview{position:relative;isolation:isolate;height:150px;margin-top:16px;border-radius:20px;overflow:hidden;border:1px solid var(--glass-line)}
 .look-preview .fx{position:absolute}
 .lp-card{position:absolute;left:16px;top:16px;bottom:16px;width:min(58%,260px);min-width:0;display:grid;align-content:space-between;gap:6px;padding:14px;border-radius:16px}
@@ -691,7 +694,7 @@ html,body{overflow-x:clip;max-width:100%}
 .side-friends li.here{padding:6px;margin:-6px;border-radius:14px;background:color-mix(in srgb,var(--pc) 14%,transparent)}
 
 /* 화면 전환: 페이지가 바뀌어도 끊기지 않고 이어진다. 누른 책 표지는 다음 화면의 책(리더 무대·서점 표지)으로 커진다 */
-@view-transition{navigation:auto}
+@media (prefers-reduced-motion:no-preference){@view-transition{navigation:auto}}
 .tabbar{view-transition-name:tabbar}
 .top .menu-pill{view-transition-name:menu}
 .r-stage,.store-cover{view-transition-name:book}
@@ -701,7 +704,6 @@ html,body{overflow-x:clip;max-width:100%}
 ::view-transition-old(book),::view-transition-new(book){height:100%;object-fit:cover}
 @keyframes vt-out{to{opacity:0}}
 @keyframes vt-in{from{opacity:0;transform:translateY(14px)}}
-@media (prefers-reduced-motion:reduce){@view-transition{navigation:none}}
 
 /* 기울기: motion.js가 --tx·--ty만 바꾸고, 움직임은 transition이 부드럽게 잇는다 */
 [data-tilt]{transform:perspective(900px) rotateX(var(--ty,0deg)) rotateY(var(--tx,0deg));transition:transform .6s var(--ease)}
@@ -940,3 +942,83 @@ html:root[data-bg-tone="light"]{
 .tag.ok{color:var(--ok)}.tag.bad{color:var(--bad)}
 .checks .dot{width:12px;height:12px;border-radius:50%;flex:none}
 .checks .dot.ok{background:var(--ok)}.checks .dot.warn{background:var(--bad)}
+
+
+/* ---------- 품질·접근성 보강 (ux pass) ---------- */
+/* 2.4.11 가려지지 않는 초점: 아래 탭바·리더 하단바가 포커스된 칸을 덮지 않게 스크롤 여백 */
+html{scroll-padding-top:calc(72px + env(safe-area-inset-top));scroll-padding-bottom:calc(var(--tab) + 32px + env(safe-area-inset-bottom))}
+.reading .pg,.scroll-col{scroll-padding-bottom:calc(120px + env(safe-area-inset-bottom))}
+/* 입력칸 포커스: 테두리색만 바뀌면 약해서 바깥 고리를 함께 */
+.filter:focus-visible,.big-search input:focus-visible,.code-row input:focus-visible,.react-form input:focus-visible,.profile-fields input:focus-visible,.r-jump input:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent)}
+.tabbar a:focus-visible{outline-offset:-4px;border-radius:999px}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+/* 24px 이상 만져지게: 쪽 이동 글자 버튼, 작은 세그먼트, 한 줄 링크 */
+.pos-btn{min-height:28px;padding:4px 6px!important;border-radius:6px}
+.seg.mini button{min-height:36px}
+.step-back,.resend{min-height:36px}
+.menu-list a,.menu-list button{min-height:44px}
+.set-row{min-height:48px}
+
+/* 빈 상태: 아이콘·제목·힌트·CTA 하나. 목록 격자 안에서는 전체 폭을 차지한다 */
+.empty{grid-column:1/-1;display:grid;justify-items:center;gap:6px;padding:36px 20px;text-align:center;color:var(--dim);border-radius:24px;background:var(--sunken);border:1px dashed var(--line)}
+.empty.compact{padding:22px 18px;margin:4px 0 20px}
+.empty-ic{display:grid;place-items:center;width:52px;height:52px;margin-bottom:6px;border-radius:18px;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent-strong)}
+.empty-ic .ic{width:24px;height:24px}
+.empty b{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.02em}
+.empty p{margin:0;max-width:34ch;font-size:14px;line-height:1.55;text-wrap:pretty}
+.empty .btn{margin-top:12px;height:44px;padding:0 20px;font-size:14px}
+.quote-feed li.empty-li{padding:0;background:none;border:0}
+.quote-feed li.empty-li .empty{margin:0}
+
+/* 토스트: 위쪽 가운데에 쌓인다(최대 3개). 종류별로 왼쪽 점 색만 다르다 */
+.toasts{position:fixed;z-index:60;left:50%;top:calc(76px + env(safe-area-inset-top));transform:translateX(-50%);display:grid;gap:8px;width:max-content;max-width:calc(100% - 32px);pointer-events:none}
+.toast{display:flex;align-items:center;gap:10px;padding:10px 16px 10px 14px;border-radius:999px;font-size:13px;line-height:1.35;color:var(--text);pointer-events:auto;cursor:pointer;
+  background:color-mix(in srgb,var(--surface) 88%,var(--bg));border:1px solid var(--glass-line);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);
+  box-shadow:0 12px 30px -12px rgba(0,0,0,.55);animation:toast-in .4s var(--ease)}
+.toast::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.toast.success::before{background:var(--ok)}
+.toast.error{border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
+.toast.error::before{background:var(--bad)}
+.toast.out{animation:toast-out .26s var(--ease) forwards}
+@keyframes toast-in{from{opacity:0;transform:translateY(-10px) scale(.96)}}
+@keyframes toast-out{to{opacity:0;transform:translateY(-6px)}}
+@media (prefers-reduced-motion:reduce){.toast{animation:fade .2s ease}.toast.out{animation:none;opacity:0}}
+@keyframes fade{from{opacity:0}}
+
+/* 폼 보내는 중: 버튼은 잠기고 글자 자리에 도는 고리. aria-busy라 낭독기도 안다 */
+form.sending .btn{pointer-events:none}
+.btn[aria-busy="true"]{position:relative;color:transparent!important;pointer-events:none}
+.btn[aria-busy="true"]::after{content:"";position:absolute;inset:0;margin:auto;width:18px;height:18px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;color:var(--accent-ink);animation:spin .8s linear infinite}
+.btn.ghost[aria-busy="true"]::after,.set-row[aria-busy="true"]::after{color:var(--text)}
+.sending .go,.go[aria-busy="true"]{color:transparent;position:relative;animation:none}
+.sending .go::after,.go[aria-busy="true"]::after{content:"";position:absolute;inset:0;margin:auto;width:20px;height:20px;border-radius:50%;border:2px solid #fff;border-right-color:transparent;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.btn[aria-busy="true"]::after,.sending .go::after,.go[aria-busy="true"]::after{animation:none;border-right-color:currentColor;opacity:.5}}
+
+/* 리더 하단: 앞·다음 쪽 버튼(스와이프·가장자리 탭·← → 와 같은 일) */
+.rf-row{min-height:44px;gap:8px}
+.r-nav{width:44px;height:44px;background:transparent;border:0;color:var(--text)}
+.r-nav .ic{width:22px;height:22px}
+.r-nav:disabled{opacity:.3;pointer-events:none}
+.rf-row .friends{margin-left:auto}
+.rf-row #nextPg{margin-left:0}
+
+/* 표지 이미지 자리: 불러오기 전에도 2:3 칸을 잡아 흔들리지 않게 */
+.cover.real img,.flatbook img,.list img.thumb{aspect-ratio:2/3;height:auto}
+.cover.real img{height:100%}
+.videos img{aspect-ratio:4/3;height:auto}
+
+/* 대비 측정(390px, 실제 픽셀)에서 4.5:1 아래로 나온 곳 */
+/* 어두운 테마 탭바: 표지 격자 위에 뜨면 유리가 밝아져 --dim 글자가 1.2:1까지 떨어진다 → 바탕을 더 채운다 */
+@media (prefers-color-scheme:dark){html:root:not([data-theme="light"]) .tabbar{background:color-mix(in srgb,var(--bg) 84%,var(--surface))}}
+html:root[data-theme="dark"] .tabbar,html:root[data-bg-tone="dark"] .tabbar{background:color-mix(in srgb,var(--bg) 84%,var(--surface))}
+/* 밝은 테마의 '읽음' 초록(#16a06b, 3.2:1) → 더 짙게 */
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--ok:#0f7f52}}
+:root[data-theme="light"],html:root[data-bg-tone="light"]{--ok:#0f7f52}
+/* 로그인·가입 입력칸: 밝은 사진 위 흰 글자(2.7:1) → 칸 유리를 어둡게 */
+.auth-card .pill-field{background:rgba(24,12,12,.34);border-color:rgba(255,255,255,.34)}
+.auth-card .pill-field:focus-within{background:rgba(24,12,12,.42)}
+.code-boxes i{background:rgba(24,12,12,.30)}
+.code-boxes i.filled{background:rgba(24,12,12,.42)}
+/* 인증 화면 '다른 이메일로 받기' 링크(3.0:1) → 뒤로 링크와 같은 어두운 알약 */
+.auth-switch a{display:inline-block;padding:6px 14px;border-radius:999px;background:rgba(0,0,0,.42);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff}

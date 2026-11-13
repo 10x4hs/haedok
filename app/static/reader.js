@@ -18,7 +18,9 @@ let step = 1;
 const spreadFits = () => innerWidth >= 900 && innerHeight >= 560;
 const cache = new Map();
 let lastOpened = -1, sentVerify = false;
-let mode = local.get('flip', '3d');   // '3d' = 책장 넘김, 'scroll' = 넘김 효과 끄기
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// '3d' = 책장 넘김, 'scroll' = 넘김 효과 끄기. 움직임 줄이기 설정이면 처음엔 스크롤로(직접 고르면 그 선택을 기억)
+let mode = local.get('flip', reduced ? 'scroll' : '3d');
 
 function fetchChunk(i) {
   // 지금 쪽 근처만 기억한다 — 긴 책을 끝까지 넘겨도 메모리가 쌓이지 않게
@@ -100,7 +102,11 @@ async function open(i, { atEnd = false } = {}) {
   chunk = Math.max(0, Math.min(total - 1, i));
   document.dispatchEvent(new CustomEvent('haedok:page', { detail: { chunk } }));
   try { chunkData = await fetchChunk(chunk); }
-  catch (e) { stage.innerHTML = '<p class="r-err">이 쪽을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</p>'; return; }
+  catch (e) {
+    stage.innerHTML = '<div class="r-err"><p>이 쪽을 불러오지 못했어요.<br>연결을 확인하고 다시 시도해 주세요.</p><button type="button" class="btn ghost" id="retryPg">다시 시도</button></div>';
+    $('retryPg').onclick = () => open(chunk);
+    return;
+  }
   await document.fonts.ready;
   minMs = chunkData.min_dwell_ms; dwellMs = 0; sentVerify = false;
 
@@ -126,7 +132,7 @@ async function open(i, { atEnd = false } = {}) {
   pageFlip = new St.PageFlip(book, {
     width: pw, height: stage.clientHeight, size: 'fixed',
     usePortrait: true, showCover: false, mobileScrollSupport: true,
-    maxShadowOpacity: .45, flippingTime: 650, swipeDistance: 24, drawShadow: true, disableFlipByClick: true,
+    maxShadowOpacity: reduced ? 0 : .45, flippingTime: reduced ? 120 : 650, swipeDistance: 24, drawShadow: !reduced, disableFlipByClick: true,
   });
   pageFlip.loadFromHTML(book.querySelectorAll('.pg'));
   const startAt = atEnd ? pageCount - 2 * step : lead;
@@ -143,6 +149,7 @@ function onPage(idx) {
   if (idx >= pageCount - step && chunk < total - 1) return open(chunk + 1);
   const inChunk = Math.floor((idx - lead) / step) + 1, pagesInChunk = (pageCount - lead - step) / step;
   $('pos').textContent = `${chunk + 1}/${total}쪽 · ${Math.min(inChunk, pagesInChunk)}/${pagesInChunk}`;
+  paintNav();
   paintDwell();
 }
 
@@ -181,16 +188,30 @@ setInterval(() => {
   paintDwell();
 }, 250);
 
-addEventListener('keydown', e => {
-  if (e.target.closest && e.target.closest('input, textarea')) return;   // 쪽 번호·반응 입력 중에는 넘기지 않는다
-  if (mode === 'scroll' && chunkData) {
-    if (e.key === 'ArrowRight' && chunk < total - 1) open(chunk + 1);
-    if (e.key === 'ArrowLeft' && chunk > 0) open(chunk - 1);
+// 넘기기: 스와이프·가장자리 탭·← → 키·하단 버튼이 모두 같은 함수를 부른다 (손가락 하나로도, 키보드로도)
+function turn(dir) {
+  if (mode === 'scroll') {
+    if (!chunkData) return;
+    if (dir > 0 && chunk < total - 1) open(chunk + 1);
+    if (dir < 0 && chunk > 0) open(chunk - 1);
     return;
   }
   if (!pageFlip) return;
-  if (e.key === 'ArrowRight') pageFlip.flipNext();
-  if (e.key === 'ArrowLeft') pageFlip.flipPrev();
+  if (dir > 0) pageFlip.flipNext(); else pageFlip.flipPrev();
+}
+const paintNav = () => {
+  const prev = $('prevPg'), next = $('nextPg');
+  if (!prev || !next) return;
+  const atFirst = chunk === 0 && (mode === 'scroll' || !pageFlip || pageFlip.getCurrentPageIndex() <= lead);
+  const atLast = chunk === total - 1 && (mode === 'scroll' || !pageFlip || pageFlip.getCurrentPageIndex() >= pageCount - 2 * step);
+  prev.disabled = atFirst; next.disabled = atLast;
+};
+$('prevPg')?.addEventListener('click', () => turn(-1));
+$('nextPg')?.addEventListener('click', () => turn(1));
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input, textarea')) return;   // 쪽 번호·반응 입력 중에는 넘기지 않는다
+  if (e.key === 'ArrowRight') turn(1);
+  if (e.key === 'ArrowLeft') turn(-1);
 });
 
 // --- 보기 설정 ---
@@ -356,8 +377,8 @@ stage.addEventListener('click', e => {
   if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8) return;
   if (pageFlip) {                                     // 3D 넘김일 때만 가장자리 탭으로 넘긴다
     const r = stage.getBoundingClientRect(), x = (e.clientX - r.left) / r.width;
-    if (x > .82) return pageFlip.flipNext();
-    if (x < .18) return pageFlip.flipPrev();
+    if (x > .82) return turn(1);
+    if (x < .18) return turn(-1);
   }
   const p = e.target.closest('p[data-a]');
   if (p) openSheet(+p.dataset.a, p.textContent.replace(/[❤️😂😮😢👏💬\d\s]+$/u, ''));
@@ -446,11 +467,10 @@ function paintFriends() {
   paintSide();
 }
 
-let toastTimer = 0;
-function toast(text) {
-  const t = $('toast'); t.textContent = text; t.hidden = false;
-  t.classList.remove('in'); void t.offsetWidth; t.classList.add('in');
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3200);
+function toast(text, kind = 'info') {
+  if (window.haedokToast) return window.haedokToast(text, { kind });   // app.js 공통 토스트(aria-live)
+  const t = $('toasts'); if (!t) return;
+  t.textContent = text; clearTimeout(toast.t); toast.t = setTimeout(() => { t.textContent = ''; }, 3200);
 }
 
 async function social() {
@@ -507,6 +527,7 @@ function openScroll() {
   col.scrollTop = 0;
   col.querySelectorAll('[data-go]').forEach(b => b.onclick = () => open(chunk + +b.dataset.go));
   $('pos').textContent = `${chunk + 1}/${total}쪽`;
+  paintNav();
   paintDwell();
   if (lastOpened !== chunk) { lastOpened = chunk; save(false); }
   loadReactions(chunk);

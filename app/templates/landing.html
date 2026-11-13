@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_ui.html" import book_cover, brand %}
+{% from "_ui.html" import book_cover, brand, icon %}
 {% block body_class %}landing{% endblock %}
 {% block description %}고전 {{ total }}권을 무료로, 내 EPUB·PDF도 같은 리더로. 친구와 같은 책을 각자의 속도로 함께 읽는 소셜 독서 앱 해독(偕讀).{% endblock %}
 {% block og_title %}偕讀 해독 — 같은 책을 각자의 속도로 함께 읽어요{% endblock %}
@@ -31,6 +31,7 @@
     {%- if b.readable %}</a>{% else %}</button>{% endif %}
     {%- endfor %}
   </div></div>
+  <div class="sc-nav"><button type="button" data-sc-step="-1" aria-label="책 띠 앞으로">{{ icon('prev') }}</button><button type="button" data-sc-step="1" aria-label="책 띠 다음으로">{{ icon('next') }}</button></div>
   <div class="sc-toast" id="scToast" role="status" aria-live="polite" hidden>아직 해독에서 읽을 수 없는 책이에요</div>
   <script>
   (() => {
@@ -76,6 +77,11 @@
       if (moved) { strip.scrollLeft = drag.left - dx; wrap(); drag.left = strip.scrollLeft + dx; }
     });
     addEventListener('pointerup', () => { if (!drag) return; drag = null; strip.classList.remove('dragging'); rest(); });
+    ['pointercancel', 'blur', 'lostpointercapture'].forEach(ev => addEventListener(ev, () => { if (!drag) return; drag = null; strip.classList.remove('dragging'); rest(); }));
+    // 버튼으로도 넘긴다(끌기 대신 한 번 누르기): 보이는 폭의 2/3만큼
+    document.querySelectorAll('[data-sc-step]').forEach(b => b.addEventListener('click', () => {
+      rest(); strip.scrollBy({ left: +b.dataset.scStep * strip.clientWidth * .66, behavior: reduce ? 'auto' : 'smooth' }); setTimeout(wrap, reduce ? 0 : 500);
+    }));
     strip.addEventListener('click', (e) => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
     requestAnimationFrame(() => { strip.scrollLeft = 1; requestAnimationFrame(tick); });
     strip.addEventListener('click', (e) => {

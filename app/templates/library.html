@@ -1,24 +1,36 @@
 {% extends "app.html" %}
-{% from "_ui.html" import book_card %}
+{% from "_ui.html" import book_card, empty_state %}
 {% block title %}서재 — 偕讀 해독{% endblock %}
 {% block content_class %}wide{% endblock %}
 {% block heading %}내 서재{% endblock %}
 {% block main %}
-<div class="seg" role="tablist">
-  <button role="tab" data-tab="reading" aria-selected="true">읽는 중 <span>{{ tabs.reading|length }}</span></button>
-  <button role="tab" data-tab="done">다 읽음 <span>{{ tabs.done|length }}</span></button>
-  <button role="tab" data-tab="mine">내 파일 <span>{{ uploaded|length }}</span></button>
+<div class="seg" role="tablist" aria-label="서재 분류">
+  <button role="tab" id="tab-reading" aria-controls="panel-reading" data-tab="reading" aria-selected="true">읽는 중 <span>{{ tabs.reading|length }}</span></button>
+  <button role="tab" id="tab-done" aria-controls="panel-done" data-tab="done" aria-selected="false" tabindex="-1">다 읽음 <span>{{ tabs.done|length }}</span></button>
+  <button role="tab" id="tab-mine" aria-controls="panel-mine" data-tab="mine" aria-selected="false" tabindex="-1">내 파일 <span>{{ uploaded|length }}</span></button>
 </div>
-<div class="grid" data-panel="reading">{% for e, b in tabs.reading %}{{ book_card(b, e) }}{% else %}<p class="empty-note">아직 읽는 책이 없어요. <a href="/discover">탐색</a>에서 골라 보세요.</p>{% endfor %}</div>
-<div class="grid" data-panel="done" hidden>{% for e, b in tabs.done %}{{ book_card(b, e) }}{% else %}<p class="empty-note">끝까지 읽은 책이 여기에 모여요.</p>{% endfor %}</div>
-<div class="grid" data-panel="mine" hidden>
+<div class="grid" role="tabpanel" id="panel-reading" aria-labelledby="tab-reading" data-panel="reading">{% for e, b in tabs.reading %}{{ book_card(b, e, eager=loop.first) }}{% else %}{{ empty_state('book', '아직 읽는 책이 없어요', '탐색에서 고르거나 내 파일을 올리면 여기서 이어 읽어요.', '/discover', '책 찾아보기') }}{% endfor %}</div>
+<div class="grid" role="tabpanel" id="panel-done" aria-labelledby="tab-done" data-panel="done" hidden>{% for e, b in tabs.done %}{{ book_card(b, e) }}{% else %}{{ empty_state('book', '다 읽은 책이 아직 없어요', '마지막 쪽까지 읽으면 여기에 모여요.') }}{% endfor %}</div>
+<div class="grid" role="tabpanel" id="panel-mine" aria-labelledby="tab-mine" data-panel="mine" hidden>
   <a class="card add" href="/upload"><div class="cover add-cover">＋</div><b>파일 올리기</b><span>EPUB · PDF · TXT</span></a>
   {% for b in uploaded %}{{ book_card(b) }}{% endfor %}
 </div>
 <script>
-document.querySelectorAll('.seg button').forEach(btn => btn.onclick = () => {
-  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-selected', b === btn));
-  document.querySelectorAll('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== btn.dataset.tab);
-});
+(() => {
+  const tabs = [...document.querySelectorAll('.seg [role=tab]')];
+  const pick = (btn, focus = false) => {
+    tabs.forEach(b => { b.setAttribute('aria-selected', b === btn); b.tabIndex = b === btn ? 0 : -1; });
+    document.querySelectorAll('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== btn.dataset.tab);
+    if (focus) btn.focus();
+  };
+  tabs.forEach((btn, i) => {
+    btn.onclick = () => pick(btn);
+    btn.onkeydown = e => {   // 탭 사이는 ← →, 처음·끝은 Home/End
+      const k = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+      if (k === undefined) return;
+      e.preventDefault(); pick(tabs[(k + tabs.length) % tabs.length], true);
+    };
+  });
+})();
 </script>
 {% endblock %}

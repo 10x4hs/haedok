@@ -17,6 +17,25 @@
 .sc-toast.in{animation:sc-toast-in .35s var(--ease,ease)}
 @keyframes sc-toast-in{from{opacity:0;transform:translateX(-50%) translateY(-10px)}}
 
+/* 띠 넘기기 버튼: 끌지 않아도 한 번 눌러 넘긴다 (2.5.7). 손가락 화면에서는 스와이프가 있으니 숨긴다 */
+.sc-nav{display:flex;justify-content:center;gap:10px;margin-top:10px}
+.sc-nav button{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;cursor:pointer;color:var(--text,#fff);
+  border:1px solid color-mix(in srgb,var(--text,#fff) 16%,transparent);background:color-mix(in srgb,var(--text,#fff) 6%,transparent);transition:background .2s}
+.sc-nav button:hover{background:color-mix(in srgb,var(--text,#fff) 12%,transparent)}
+.sc-nav button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.sc-nav .ic{width:20px;height:20px}
+@media (pointer:coarse){.sc-nav{display:none}}
+
+/* 움직임 줄이기: 띠는 저절로 흐르지 않고(JS), 책은 기울지 않고, 토스트·모달은 페이드만 */
+@media (prefers-reduced-motion:reduce){
+  .sc-book,.sc-book .bk{transition:none}
+  .sc-book:active{transform:none}
+  .sc-book.locked:hover .bk,.sc-book.locked:focus-visible .bk{transform:none}
+  .sc-toast.in{animation:sc-fade .2s ease}
+  .demo-modal{animation:sc-fade .2s ease}
+}
+@keyframes sc-fade{from{opacity:0}}
+
 /* 시연 영상 */
 .l-play{display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:7px 14px 7px 7px;border-radius:999px;cursor:pointer;
   border:1px solid color-mix(in srgb,var(--text,#fff) 16%,transparent);background:color-mix(in srgb,var(--text,#fff) 6%,transparent);

@@ -217,6 +217,7 @@
     if (typeof f === 'string') { msg = f; f = null; }
     toastEl?.remove(); clearTimeout(toastT);
     const t = document.createElement('div');
+    if (!f && window.haedokToast) { toastEl = null; window.haedokToast(msg); return; }   // 글만 있는 알림은 공통 토스트(aria-live)로
     t.className = 'pz-toast' + (f ? '' : ' plain');
     t.setAttribute('role', 'status');
     if (f) { t.style.setProperty('--pc', colorOf(f.user_id)); t.appendChild(face(f)); }
@@ -236,10 +237,11 @@
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
         body: JSON.stringify({ chunk_index: chunk, text }),
       });
-      if (r.ok) { toast('대결방에 공유했어요'); window.getSelection()?.removeAllRanges(); return; }
+      if (r.ok) { window.haedokToast ? window.haedokToast('대결방에 공유했어요', { kind: 'success' }) : toast('대결방에 공유했어요'); window.getSelection()?.removeAllRanges(); return; }
       const d = await r.json().catch(() => ({}));
-      toast(typeof d.detail === 'string' ? d.detail : '공유하지 못했어요');
-    } catch (e) { toast('공유하지 못했어요'); }
+      const why = typeof d.detail === 'string' ? d.detail : '공유하지 못했어요';
+      window.haedokToast ? window.haedokToast(why, { kind: 'error' }) : toast(why);
+    } catch (e) { window.haedokToast ? window.haedokToast('공유하지 못했어요. 연결을 확인해 주세요', { kind: 'error' }) : toast('공유하지 못했어요'); }
   };
   const selected = () => {
     const sel = window.getSelection();
