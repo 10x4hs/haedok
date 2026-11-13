@@ -39,7 +39,7 @@
 - **초대 코드 한 줄로 대결** — 코드 하나로 친구를 불러 페이지 레이스를 열고, 순위는 **서버가 검증한 쪽 수**로만 매겨요.
 - **문단 반응 + 스포일러 가드** — 이모지·한 줄 글을 문단에 남겨요. 내가 아직 안 읽은 쪽의 반응은 "🔒 N개"로 개수만 보여요.
 - **같이 읽는 중** — 같은 방 친구의 현재 위치와 반응이 실시간으로 날아와요(로컬은 WebSocket, 배포는 폴링).
-- **이메일 가입 6자리 인증** — Resend 우선, SMTP 대체. 발송 시도는 모두 `mail_logs`에 남아 관리자 화면에서 봐요.
+- **이메일 가입 6자리 인증** — Brevo → Resend → SMTP 순으로 시도. 발송 시도는 모두 `mail_logs`에 남아 관리자 화면에서 봐요.
 - **설치 없이 어디서나** — PWA(오프라인 셸·홈 화면 추가)와 Android TWA. 휴대폰·태블릿·PC에 맞춰 배치가 바뀌고, 배경 30종·강조색 12종으로 꾸며요.
 
 | 홈 · 3D로 쌓인 책 | 리더 · 친구 반응 | 대결 · 실시간 순위 | 탐색 · 서가 |
@@ -105,7 +105,7 @@ flowchart LR
 | 서버 | Python 3.12 · FastAPI · SQLAlchemy 2(async) · Alembic · pydantic-settings |
 | 화면 | Jinja2 서버 렌더링 + 바닐라 CSS/JS · CSS transform 3D · StPageFlip · View Transitions |
 | 데이터 | Postgres(Neon) · 로컬·테스트는 SQLite(aiosqlite) |
-| 메일 | Resend API(배포) · SMTP 465/587(로컬) · 모든 시도는 `mail_logs` |
+| 메일 | Brevo·Resend API(배포) · SMTP 465/587(로컬) · 모든 시도는 `mail_logs` |
 | 실시간 | 인메모리 브로커 + WebSocket(로컬) · 폴링(서버리스) |
 | 배포 | Vercel Python Function(`api/index.py`) · GitHub Actions CI(테스트 + 실제 Postgres 마이그레이션) |
 | 품질 | pytest(네트워크 0, `httpx.MockTransport`) · ruff |
@@ -130,7 +130,8 @@ Postgres로 돌리려면 `docker compose up -d` 뒤에 `alembic upgrade head`를
 | `SECRET_KEY` | 세션 쿠키 서명 키. **배포 필수** |
 | `DATABASE_URL` | `postgres://…?sslmode=require`(Neon) 또는 `sqlite+aiosqlite:///…`. asyncpg 형식으로 자동 변환 |
 | `COOKIE_SECURE` | HTTPS에서 `true` |
-| `RESEND_API_KEY` · `RESEND_FROM` | 가입 인증 메일. **Vercel에서는 이걸 써요** (SMTP는 Vercel 함수에서 끊겨요) |
+| `BREVO_API_KEY` · `BREVO_FROM` | 가입 인증 메일 1순위. 도메인 없이 발신 주소 인증만으로 누구에게나 보내요(무료 300통/일) |
+| `RESEND_API_KEY` · `RESEND_FROM` | 가입 인증 메일 2순위. 도메인을 검증해야 본인 외에도 보내요 (SMTP는 Vercel 함수에서 끊겨요) |
 | `SMTP_HOST` · `SMTP_PORT` · `SMTP_USER` · `SMTP_PASSWORD` | 로컬·일반 서버용 SMTP(Gmail은 앱 비밀번호). 둘 다 없으면 로컬은 코드를 로그에 남겨요 |
 | `ADMIN_EMAILS` | `/admin`을 열 수 있는 이메일, 쉼표로 여러 개. 비어 있으면 아무도 못 열어요 |
 | `DWELL_SCALE` | 최소 체류시간 배율(시연용). **운영은 1.0** |

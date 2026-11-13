@@ -130,7 +130,8 @@ Set them in `.env` or as Vercel environment variables. [`app/core/config.py`](ap
 | `SECRET_KEY` | Session cookie signing key. **Required in production** |
 | `DATABASE_URL` | `postgres://…?sslmode=require` (Neon) or `sqlite+aiosqlite:///…`. Converted to the asyncpg form automatically |
 | `COOKIE_SECURE` | `true` on HTTPS |
-| `RESEND_API_KEY` · `RESEND_FROM` | Signup code emails. **Use this on Vercel** (SMTP connections drop inside Vercel functions) |
+| `BREVO_API_KEY` · `BREVO_FROM` | Signup code emails, first choice. Works without a domain: verify the sender address in Brevo (free, 300/day) |
+| `RESEND_API_KEY` · `RESEND_FROM` | Second choice. Needs a verified domain to reach anyone but yourself (SMTP drops inside Vercel functions) |
 | `SMTP_HOST` · `SMTP_PORT` · `SMTP_USER` · `SMTP_PASSWORD` | SMTP for local or conventional servers (Gmail needs an app password). With neither configured, local runs log the code instead |
 | `ADMIN_EMAILS` | Comma-separated emails allowed into `/admin`. Empty means nobody |
 | `DWELL_SCALE` | Multiplier on the minimum dwell time (for demos). **Keep 1.0 in production** |

@@ -1,9 +1,10 @@
-"""메일 보내기 — SMTP(Gmail 앱 비밀번호)와 Resend HTTP API 중 되는 쪽으로 보낸다.
+"""메일 보내기 — Brevo·Resend HTTP API와 SMTP(Gmail 앱 비밀번호) 중 되는 쪽으로 보낸다.
 둘 다 없으면 로컬에서는 코드를 로그에만 남기고, 배포(Vercel)에서는 실패로 처리한다.
 
 Vercel 서버리스에서는 Gmail SMTP(465·587)가 바로 끊긴다(2026-11 운영 로그:
 "SMTPServerDisconnected: Connection unexpectedly closed" 두 포트 모두). Vercel도 함수에서는
-세션형 SMTP 대신 HTTP 메일 API를 권한다. 그래서 배포에서는 Resend를 먼저 쓰고 SMTP는 예비로 둔다.
+세션형 SMTP 대신 HTTP 메일 API를 권한다. 그래서 배포에서는 HTTP(Brevo → Resend)를 먼저 쓰고 SMTP는 예비로 둔다.
+Brevo는 도메인 없이 발신 주소 인증만으로 누구에게나 보낼 수 있어 Resend(도메인 검증 전엔 본인에게만)보다 앞에 둔다.
 시도 하나하나를 mail_logs 에 남긴다(코드 원문은 절대 저장하지 않는다)."""
 
 import asyncio
@@ -22,6 +23,7 @@ from app.models import MailLog
 
 log = logging.getLogger("haedok.mail")
 RESEND_URL = "https://api.resend.com/emails"
+BREVO_URL = "https://api.brevo.com/v3/smtp/email"
 # 서버리스 함수 예산(60초) 안에 465 → 587 → Resend 를 다 돌 수 있게 짧게 잡는다
 SMTP_TIMEOUT_S = 10
 RESEND_TIMEOUT_S = 10
@@ -29,7 +31,7 @@ RESEND_TIMEOUT_S = 10
 
 @dataclass
 class Attempt:
-    transport: str  # smtp465 | smtp587 | resend | log
+    transport: str  # brevo | resend | smtp465 | smtp587 | log
     ok: bool
     error: str | None = None
     duration_ms: int | None = None
@@ -57,8 +59,8 @@ def transports(settings: Settings) -> list[str]:
     smtp = ["smtp465", "smtp587"] if settings.smtp_user and settings.smtp_password else []
     if settings.smtp_port not in (465, 587) and smtp:
         smtp = [f"smtp{settings.smtp_port}", *smtp]
-    resend = ["resend"] if settings.resend_api_key else []
-    order = resend + smtp if settings.vercel_env else smtp + resend
+    http = (["brevo"] if settings.brevo_api_key else []) + (["resend"] if settings.resend_api_key else [])
+    order = http + smtp if settings.vercel_env else smtp + http
     return order or ["log"]
 
 
@@ -73,8 +75,10 @@ async def deliver(
         try:
             if name == "log":
                 if settings.vercel_env:
-                    raise RuntimeError("메일 설정 없음 (SMTP_USER/SMTP_PASSWORD 또는 RESEND_API_KEY)")
+                    raise RuntimeError("메일 설정 없음 (BREVO_API_KEY, RESEND_API_KEY 또는 SMTP_USER/SMTP_PASSWORD)")
                 log.warning("메일 설정 없음 — %s 에게 보낼 내용: %s", to, secret or subject)
+            elif name == "brevo":
+                await _send_brevo(client, settings, to, subject, text, html)
             elif name == "resend":
                 await _send_resend(client, settings, to, subject, text, html)
             else:
@@ -124,6 +128,33 @@ async def _send_resend(client, settings: Settings, to: str, subject: str, text: 
     )
     if r.status_code >= 400:
         raise RuntimeError(f"Resend {r.status_code}: {r.text[:300]}")
+
+
+def _split_from(value: str) -> tuple[str, str]:
+    """'해독 <a@b.com>' → ('해독', 'a@b.com'). 주소만 있으면 이름은 '해독'."""
+    name, _, addr = value.rpartition("<")
+    if not addr:
+        return "해독", value.strip()
+    return name.strip() or "해독", addr.rstrip(">").strip()
+
+
+async def _send_brevo(client, settings: Settings, to: str, subject: str, text: str, html: str) -> None:
+    name, addr = _split_from(settings.brevo_from)
+    payload = {
+        "sender": {"name": name, "email": addr},
+        "to": [{"email": to}],
+        "subject": subject,
+        "textContent": text,
+        "htmlContent": html,
+    }
+    r = await client.post(
+        BREVO_URL,
+        json=payload,
+        headers={"api-key": settings.brevo_api_key, "accept": "application/json"},
+        timeout=RESEND_TIMEOUT_S,
+    )
+    if r.status_code >= 400:
+        raise RuntimeError(f"Brevo {r.status_code}: {r.text[:300]}")
 
 
 def _send_smtp(settings: Settings, port: int, to: str, subject: str, text: str, html: str) -> None:

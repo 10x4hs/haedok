@@ -1,3 +1,5 @@
+import json
+
 """메일 전송 수단: SMTP 465 → 587 → Resend 순서, 배포에서는 Resend 우선, 시도마다 mail_logs 한 줄."""
 
 import smtplib
@@ -27,7 +29,7 @@ def env(monkeypatch):
                 monkeypatch.setenv(k, v)
         get_settings.cache_clear()
 
-    set_(SMTP_USER=None, SMTP_PASSWORD=None, RESEND_API_KEY=None, VERCEL_ENV=None)
+    set_(SMTP_USER=None, SMTP_PASSWORD=None, RESEND_API_KEY=None, BREVO_API_KEY=None, VERCEL_ENV=None)
     yield set_
     get_settings.cache_clear()
 
@@ -80,6 +82,38 @@ async def test_smtp_465_drop_falls_back_to_587_then_resend(env, monkeypatch, ses
     assert [(r.transport, r.ok) for r in logged] == [("smtp465", False), ("smtp587", False), ("resend", True)]
     assert all(r.kind == "signup_code" and r.to_email == "a@b.com" for r in logged)
     assert all(r.duration_ms is not None and r.created_at is not None for r in logged)
+
+
+async def test_brevo_first_on_vercel_and_payload_shape(env, session_factory):
+    """도메인 없이도 가는 Brevo를 배포에서 가장 먼저 쓴다. 발신자는 BREVO_FROM 을 이름/주소로 나눈다."""
+    env(BREVO_API_KEY="xkeysib-x", BREVO_FROM="해독 <me@gmail.com>", RESEND_API_KEY="re_x", VERCEL_ENV="production")
+    assert mail.transports(get_settings()) == ["brevo", "resend"]
+    posted = []
+    client = mock_client(lambda req: posted.append(req) or httpx.Response(201, json={"messageId": "x"}))
+    async with session_factory() as s:
+        assert await real_send(client, "a@b.com", "123456", session=s)
+    assert len(posted) == 1 and str(posted[0].url) == mail.BREVO_URL
+    assert posted[0].headers["api-key"] == "xkeysib-x"
+    body = json.loads(posted[0].content)
+    assert body["sender"] == {"name": "해독", "email": "me@gmail.com"} and body["to"] == [{"email": "a@b.com"}]
+    assert "123456" in body["subject"] and "123456" in body["htmlContent"]
+    logged = await rows(session_factory)
+    assert [(r.transport, r.ok) for r in logged] == [("brevo", True)]
+
+
+async def test_brevo_error_falls_through_to_resend(env, session_factory):
+    env(BREVO_API_KEY="xkeysib-x", RESEND_API_KEY="re_x", VERCEL_ENV="production")
+
+    def route(req):
+        if "brevo" in str(req.url):
+            return httpx.Response(401, json={"message": "Key not found"})
+        return httpx.Response(200, json={"id": "x"})
+
+    async with session_factory() as s:
+        assert await real_send(mock_client(route), "a@b.com", "123456", session=s)
+    logged = await rows(session_factory)
+    assert [(r.transport, r.ok) for r in logged] == [("brevo", False), ("resend", True)]
+    assert "Brevo 401" in logged[0].error
 
 
 async def test_vercel_prefers_resend_over_smtp(env, monkeypatch):

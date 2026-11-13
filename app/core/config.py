@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     # 업로드 상한(MB). Vercel은 요청 본문을 4.5MB에서 끊으므로 배포에서는 4로 둔다
     max_upload_mb: int = 20
     # 가입 인증 메일(Resend). 키가 없으면 코드를 로그에만 남긴다
+    # Brevo(구 Sendinblue) HTTP API — 도메인 없이 "발신 이메일 주소 인증"만으로 보낼 수 있다(무료 300통/일)
+    brevo_api_key: str | None = None
+    brevo_from: str = "해독 <1gmltjd0@gmail.com>"
     resend_api_key: str | None = None
     resend_from: str = "해독 <onboarding@resend.dev>"
     # Gmail 등 SMTP(우선 사용). Gmail은 계정 주소 + 16자리 앱 비밀번호
