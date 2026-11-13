@@ -1,5 +1,5 @@
 {% extends "app.html" %}
-{% from "_ui.html" import book_cover, avatar %}
+{% from "_ui.html" import book_cover, avatar, empty_state %}
 {% block title %}{{ book.title }} 레이스 — 偕讀 해독{% endblock %}
 {% block content_class %}split{% endblock %}
 {% block heading %}<small>{{ '끝난 대결' if over else '진행 중' }}</small>{{ book.title }}{% endblock %}
@@ -62,7 +62,8 @@
 
 <section class="row rc-sec">
   <div class="row-h"><h2>함께 밑줄</h2><span class="mono muted">책에서 문장을 골라 「대결방에 공유」</span></div>
-  <ul class="quote-feed" id="quotes"><li class="muted small empty">아직 공유한 문장이 없어요</li></ul>
+  <ul class="quote-feed" id="quotes"><li class="empty-li">{{ empty_state('chat', '아직 공유한 문장이 없어요', '책을 읽다가 문장을 길게 눌러 「대결방에 공유」하면 여기에 모여요.', '/books/' ~ book.id, '읽으러 가기', 'compact') }}</li></ul>
+<template id="quotesEmpty"><li class="empty-li">{{ empty_state('chat', '아직 공유한 문장이 없어요', '책을 읽다가 문장을 길게 눌러 「대결방에 공유」하면 여기에 모여요.', '/books/' ~ book.id, '읽으러 가기', 'compact') }}</li></template>
 </section>
 
 <section class="invite glass-card">
@@ -192,7 +193,7 @@
     if (sig === feedSig) return;
     feedSig = sig;
     feed.innerHTML = '';
-    if (!d.items.length) { feed.innerHTML = '<li class="muted small empty">아직 공유한 문장이 없어요</li>'; return; }
+    if (!d.items.length) { feed.appendChild(document.getElementById('quotesEmpty').content.cloneNode(true)); return; }
     d.items.forEach(q => {
       const li = document.createElement('li'); if (q.sealed) li.className = 'sealed';
       const bq = document.createElement('blockquote');
