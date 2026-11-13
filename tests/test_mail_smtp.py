@@ -42,7 +42,9 @@ async def rows(session_factory) -> list[MailLog]:
 async def test_smtp_used_when_configured(env, monkeypatch):
     env(SMTP_USER="me@gmail.com", SMTP_PASSWORD="app-pass")
     sent = {}
-    monkeypatch.setattr(mail, "_send_smtp", lambda s, port, to, subj, text, html: sent.update(port=port, to=to))
+    monkeypatch.setattr(
+        mail, "_send_smtp", lambda s, port, to, subj, text, html: sent.update(port=port, to=to)
+    )
     async with httpx.AsyncClient() as c:
         assert await real_send(c, "a@b.com", "123456")
     assert sent == {"port": 465, "to": "a@b.com"}
@@ -86,7 +88,12 @@ async def test_smtp_465_drop_falls_back_to_587_then_resend(env, monkeypatch, ses
 
 async def test_brevo_first_on_vercel_and_payload_shape(env, session_factory):
     """도메인 없이도 가는 Brevo를 배포에서 가장 먼저 쓴다. 발신자는 BREVO_FROM 을 이름/주소로 나눈다."""
-    env(BREVO_API_KEY="xkeysib-x", BREVO_FROM="해독 <me@gmail.com>", RESEND_API_KEY="re_x", VERCEL_ENV="production")
+    env(
+        BREVO_API_KEY="xkeysib-x",
+        BREVO_FROM="해독 <me@gmail.com>",
+        RESEND_API_KEY="re_x",
+        VERCEL_ENV="production",
+    )
     assert mail.transports(get_settings()) == ["brevo", "resend"]
     posted = []
     client = mock_client(lambda req: posted.append(req) or httpx.Response(201, json={"messageId": "x"}))
@@ -95,7 +102,9 @@ async def test_brevo_first_on_vercel_and_payload_shape(env, session_factory):
     assert len(posted) == 1 and str(posted[0].url) == mail.BREVO_URL
     assert posted[0].headers["api-key"] == "xkeysib-x"
     body = json.loads(posted[0].content)
-    assert body["sender"] == {"name": "해독", "email": "me@gmail.com"} and body["to"] == [{"email": "a@b.com"}]
+    assert body["sender"] == {"name": "해독", "email": "me@gmail.com"} and body["to"] == [
+        {"email": "a@b.com"}
+    ]
     assert "123456" in body["subject"] and "123456" in body["htmlContent"]
     logged = await rows(session_factory)
     assert [(r.transport, r.ok) for r in logged] == [("brevo", True)]
@@ -175,8 +184,19 @@ def test_send_smtp_uses_ssl_on_465_and_starttls_on_587(monkeypatch):
     monkeypatch.setattr(smtplib, "SMTP_SSL", Fake)
     monkeypatch.setattr(smtplib, "SMTP", Fake)
     st = SimpleNamespace(
-        smtp_host="smtp.gmail.com", smtp_port=465, smtp_user="me@gmail.com", smtp_password="abcd efgh ijkl mnop"
+        smtp_host="smtp.gmail.com",
+        smtp_port=465,
+        smtp_user="me@gmail.com",
+        smtp_password="abcd efgh ijkl mnop",
     )
     mail._send_smtp(st, 465, "a@b.com", "s", "t", "<p>h</p>")
     mail._send_smtp(st, 587, "a@b.com", "s", "t", "<p>h</p>")
-    assert calls == [(465, mail.SMTP_TIMEOUT_S), "sent", (587, mail.SMTP_TIMEOUT_S), "ehlo", "starttls", "ehlo", "sent"]
+    assert calls == [
+        (465, mail.SMTP_TIMEOUT_S),
+        "sent",
+        (587, mail.SMTP_TIMEOUT_S),
+        "ehlo",
+        "starttls",
+        "ehlo",
+        "sent",
+    ]

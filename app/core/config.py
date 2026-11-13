@@ -66,6 +66,7 @@ class Settings(BaseSettings):
 
     def admin_email_set(self) -> frozenset[str]:
         return frozenset(e.strip().lower() for e in self.admin_emails.split(",") if e.strip())
+
     # 안드로이드 TWA 앱 — /.well-known/assetlinks.json 에 실린다. 지문은 쉼표로 여러 개
     android_package: str = "app.vercel.saipr_reading.twa"
     android_cert_sha256: str = (

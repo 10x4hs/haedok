@@ -3,8 +3,9 @@
 
 Vercel 서버리스에서는 Gmail SMTP(465·587)가 바로 끊긴다(2026-11 운영 로그:
 "SMTPServerDisconnected: Connection unexpectedly closed" 두 포트 모두). Vercel도 함수에서는
-세션형 SMTP 대신 HTTP 메일 API를 권한다. 그래서 배포에서는 HTTP(Brevo → Resend)를 먼저 쓰고 SMTP는 예비로 둔다.
-Brevo는 도메인 없이 발신 주소 인증만으로 누구에게나 보낼 수 있어 Resend(도메인 검증 전엔 본인에게만)보다 앞에 둔다.
+세션형 SMTP 대신 HTTP 메일 API를 권한다. 그래서 배포에서는 HTTP(Brevo → Resend)를 먼저 쓰고
+SMTP는 예비로 둔다. Brevo는 도메인 없이 발신 주소 인증만으로 누구에게나 보낼 수 있어
+Resend(도메인 검증 전엔 본인에게만)보다 앞에 둔다.
 시도 하나하나를 mail_logs 에 남긴다(코드 원문은 절대 저장하지 않는다)."""
 
 import asyncio
@@ -75,7 +76,9 @@ async def deliver(
         try:
             if name == "log":
                 if settings.vercel_env:
-                    raise RuntimeError("메일 설정 없음 (BREVO_API_KEY, RESEND_API_KEY 또는 SMTP_USER/SMTP_PASSWORD)")
+                    raise RuntimeError(
+                        "메일 설정 없음 (BREVO_API_KEY, RESEND_API_KEY 또는 SMTP_USER/SMTP_PASSWORD)"
+                    )
                 log.warning("메일 설정 없음 — %s 에게 보낼 내용: %s", to, secret or subject)
             elif name == "brevo":
                 await _send_brevo(client, settings, to, subject, text, html)
