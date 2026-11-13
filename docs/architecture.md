@@ -100,3 +100,21 @@ app/templates/leaderboard.html  GET /leaderboard?range=week|all — 상위 50 + 
 
 - 소셜 로그인(Authlib)을 `app/auth.py` 옆에 붙인다 (oauth_accounts 테이블은 이미 있음)
 - 서버를 여러 대로 늘리면 `app/realtime.py`의 Broker를 Redis Pub/Sub 구현으로 교체
+
+## 온보딩 · SEO · 공유 (2026-11)
+
+```
+app/seo.py             robots.txt · sitemap.xml · /og/default.png (scripts/build_og.py 로 미리 그린 PNG)
+app/templates/base.html  description / og:* / twitter:card / canonical — 페이지는 description·og_title·og_image 블록만 덮어쓴다
+app/templates/join_preview.html  로그인 전 초대 미리보기 (GET /join/{code}) — 공개 + noindex
+app/templates/_welcome.html      첫 가입 뒤 홈의 3단계 안내 카드 (세션 first_run, POST /welcome/dismiss 로 닫음)
+```
+
+| 결정 | 이유 |
+|---|---|
+| **초대 미리보기는 로그인 없이 공개, 대신 `noindex`** | 카카오톡·슬랙 봇은 OG 태그만 읽는다. 로그인 벽이 있으면 미리보기 카드가 깨진다 |
+| **가입의 `next`는 세션에만 둔다** (`/signup?next=/join/CODE` → 인증 뒤 이동) | 폼·메일에 안 실어도 되고, `_safe_next`로 이 사이트 안 경로만 받는다 |
+| **첫 방문 카드는 세션 표시(`first_run`)** | 스키마 변경 없이 한 번만 보이고, 닫으면 끝 |
+| **카카오 SDK를 쓰지 않는다** — `navigator.share` + 클립보드 대체 | 카카오 링크 공유 SDK는 앱 키·도메인 등록이 필요하다. 기기 공유 시트로 카카오톡에 보내면 OG 카드가 그대로 뜬다 |
+| **OG 이미지는 정적 PNG 한 장** (`app/static/og/default.png`) | Pillow·한글 글꼴을 서버리스 번들에 넣지 않으려고. 방별 이미지는 og:title에 책 제목만 넣는다 |
+| **공개 주소는 `SITE_URL` → `VERCEL_PROJECT_PRODUCTION_URL` → `VERCEL_URL` → 요청 base** | 미리보기 배포에서도 절대 주소의 og:image가 깨지지 않게 |

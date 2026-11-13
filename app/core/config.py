@@ -69,6 +69,19 @@ class Settings(BaseSettings):
         "7F:D4:97:F9:FC:B0:1F:F9:A2:CB:2F:1A:A8:BE:65:21:F7:C9:08:3B:34:96:A4:E3:8F:F9:CB:41:7C:35:06:48"
     )
 
+    # --- growth ---
+    # 공개 주소(https://…, 끝 슬래시 없이). canonical·OG·사이트맵에 쓴다.
+    # 비어 있으면 Vercel이 주는 VERCEL_PROJECT_PRODUCTION_URL → VERCEL_URL → 요청의 base URL 순으로 정한다
+    site_url: str | None = None
+    vercel_project_production_url: str | None = None
+    vercel_url: str | None = None
+
+    def public_base(self, request_base: str = "") -> str:
+        host = self.site_url or self.vercel_project_production_url or self.vercel_url or request_base
+        if host and "://" not in host:
+            host = "https://" + host
+        return host.rstrip("/")
+
 
 @lru_cache
 def get_settings() -> Settings:

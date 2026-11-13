@@ -69,7 +69,7 @@
   <span class="mono muted">초대 코드</span>
   <div class="code-big mono" id="code">{{ room.invite_code }}</div>
   <div class="hud-actions">
-    <button class="btn primary" id="share" data-url="{{ invite }}" data-title="{{ book.title }}">초대 보내기</button>
+    <button class="btn primary" id="share" data-url="{{ invite }}" data-title="{{ book.title }}">초대 링크 공유</button>
     <button class="btn ghost" id="copy">코드 복사</button>
   </div>
   <span class="muted small" id="copied" aria-live="polite"></span>
@@ -79,9 +79,16 @@
 (() => {
   const share = document.getElementById('share'), note = document.getElementById('copied');
   const text = `해독(偕讀)에서 「${share.dataset.title}」 페이지 레이스 하자! 코드 ${document.getElementById('code').textContent}`;
-  const copy = async v => { try { await navigator.clipboard.writeText(v); note.textContent = '복사했어요'; } catch (e) { note.textContent = v; } };
+  // 토스트: 공용 헬퍼(window.toast)가 있으면 쓰고, 없으면 작은 대체를 띄운다
+  const toast = msg => { if (window.toast) return window.toast(msg);
+    let t = document.getElementById('rcToast');
+    if (!t) { t = document.createElement('div'); t.id = 'rcToast'; t.className = 'r-toast glass-card'; t.setAttribute('role', 'status'); t.style.cssText = 'background:var(--surface);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)'; document.body.appendChild(t); }
+    t.textContent = msg; t.classList.remove('in'); void t.offsetWidth; t.classList.add('in'); t.hidden = false;
+    clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 2200); };
+  const copy = async v => { try { await navigator.clipboard.writeText(v); note.textContent = '복사했어요'; toast('초대 링크를 복사했어요'); } catch (e) { note.textContent = v; } };
   share.onclick = async () => {
-    if (navigator.share) { try { await navigator.share({ title: '해독 대결', text, url: share.dataset.url }); return; } catch (e) {} }
+    // 카카오톡 SDK는 앱 키가 필요해 쓰지 않는다 — 기기 공유 시트(navigator.share)로 카카오톡·메시지에 보낸다
+    if (navigator.share) { try { await navigator.share({ title: '해독 대결', text, url: share.dataset.url }); toast('초대 링크를 보냈어요'); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
     copy(`${text}\n${share.dataset.url}`);
   };
   document.getElementById('copy').onclick = () => copy(document.getElementById('code').textContent);

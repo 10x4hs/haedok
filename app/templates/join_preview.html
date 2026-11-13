@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "_ui.html" import book_cover, brand %}
+{# 로그인 전 초대 미리보기 — 카카오·슬랙은 OG 태그만 읽으므로 공개, 검색엔진에는 noindex #}
+{% block title %}{% if room %}{{ owner.nickname }}님의 초대 — {{ book.title }} 같이 읽기{% else %}초대를 찾을 수 없어요{% endif %} — 偕讀 해독{% endblock %}
+{% block og_title %}{% if room %}{{ owner.nickname }}님이 「{{ book.title }}」 같이 읽기에 초대했어요{% else %}초대를 찾을 수 없어요 — 偕讀 해독{% endif %}{% endblock %}
+{% block description %}{% if room %}{{ count }}명이 함께 읽는 중 · {{ book.author or '' }}{% if book.author %} · {% endif %}해독(偕讀)에서 같은 책을 각자의 속도로 함께 읽어요{% else %}초대 코드가 만료됐거나 잘못됐어요{% endif %}{% endblock %}
+{% block body_class %}landing{% endblock %}
+{% block body %}
+<style>
+  .jp{display:grid;gap:18px;padding:0 20px calc(40px + env(safe-area-inset-bottom))}
+  .jp-hero{display:grid;grid-template-columns:104px 1fr;gap:18px;align-items:center;padding:18px;background:var(--surface);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+  .jp-hero h2{font-size:21px;letter-spacing:-.03em;margin:4px 0 2px}
+  .jp-hero p{margin:0}
+  .jp-cta{display:grid;gap:10px}
+  .jp-cta .btn{height:48px;font-size:15px}
+  .jp-steps{list-style:none;margin:0;padding:0;display:grid;gap:6px;color:var(--dim);font-size:13px}
+  .jp-steps li{display:flex;gap:8px;align-items:center}
+  .jp-steps .n{display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:11px}
+</style>
+<div class="phone">
+  <header class="l-nav">
+    {{ brand() }}
+    <a class="pill" href="/login{% if next %}?next={{ next|urlencode }}{% endif %}">로그인</a>
+  </header>
+  <main class="jp">
+  {% if room %}
+    <p class="eyebrow mono small">{{ owner.nickname }}님의 초대</p>
+    <section class="jp-hero glass-card">
+      <div data-tilt="12">{{ book_cover(book.title, book.author, img=cover_of(book)) }}</div>
+      <div>
+        <span class="mono muted small">{{ count }}명 참가 중 · 코드 {{ room.invite_code }}</span>
+        <h2>{{ book.title }}</h2>
+        <p class="muted">{{ book.author or '' }}</p>
+      </div>
+    </section>
+    <h1 style="font-size:24px;letter-spacing:-.03em;margin:0">같은 책을 각자의 속도로<br><em>함께</em> 읽어요</h1>
+    <div class="jp-cta">
+      <a class="btn primary" href="/signup?next={{ next|urlencode }}">같이 읽기 · 가입하고 참가</a>
+      <a class="btn ghost" href="/login?next={{ next|urlencode }}">이미 계정이 있어요 · 로그인</a>
+    </div>
+    <ol class="jp-steps">
+      <li><span class="n">1</span>이메일로 가입하면 바로 이 대결방으로 돌아와요</li>
+      <li><span class="n">2</span>참가 버튼을 누르면 책이 내 서재에 꽂혀요</li>
+      <li><span class="n">3</span>읽은 쪽이 검증될 때마다 순위가 올라가요</li>
+    </ol>
+  {% else %}
+    <section class="jp-hero glass-card" style="grid-template-columns:1fr">
+      <div>
+        <h2>초대를 찾을 수 없어요</h2>
+        <p class="muted">코드가 잘못됐거나 대결방이 사라졌어요. 초대한 친구에게 링크를 다시 받아 보세요.</p>
+      </div>
+    </section>
+    <div class="jp-cta"><a class="btn primary" href="/">해독 둘러보기</a></div>
+  {% endif %}
+  </main>
+</div>
+<script src="/static/motion.js" defer></script>
+{% endblock %}

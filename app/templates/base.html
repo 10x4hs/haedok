@@ -7,10 +7,33 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/static/favicon.ico" sizes="32x32">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
-<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/favicon-180.png">
 <script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));</script>
 <title>{% block title %}偕讀 해독 — 같은 책을 함께 읽다{% endblock %}</title>
+{# ---- 검색·공유 메타: 페이지는 description / og_title / og_image / og_type / robots 블록만 덮어쓰면 된다 ---- #}
+{% set site = public_base(request) if public_base is defined else (request.base_url|string).rstrip('/') %}
+{% set page_desc %}{% block description %}{{ SITE_DESCRIPTION if SITE_DESCRIPTION is defined else '같은 책을 각자의 속도로 함께 읽는 소셜 독서 앱. 고전은 무료, 친구와 페이지 레이스.' }}{% endblock %}{% endset %}
+{% set page_og_title %}{% block og_title %}{{ self.title() }}{% endblock %}{% endset %}
+{% set page_og_image %}{% block og_image %}{{ site }}/og/default.png{% endblock %}{% endset %}
+<meta name="description" content="{{ page_desc|trim }}">
+{% if user or noindex %}<meta name="robots" content="noindex, nofollow">{% endif %}
+<link rel="canonical" href="{{ site }}{{ request.url.path }}">
+<meta property="og:site_name" content="해독 偕讀">
+<meta property="og:type" content="{% block og_type %}website{% endblock %}">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:title" content="{{ page_og_title|trim }}">
+<meta property="og:description" content="{{ page_desc|trim }}">
+<meta property="og:url" content="{{ site }}{{ request.url.path }}">
+<meta property="og:image" content="{{ page_og_image|trim }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ page_og_title|trim }}">
+<meta name="twitter:description" content="{{ page_desc|trim }}">
+<meta name="twitter:image" content="{{ page_og_image|trim }}">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Geist+Mono:wght@500&display=swap">
 <meta name="csrf" content="{{ csrf }}">
