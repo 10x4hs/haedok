@@ -123,6 +123,14 @@ async def start_signup(session: AsyncSession, form: SignupForm) -> str | None:
     return code
 
 
+async def mail_failed(session: AsyncSession, email: str) -> None:
+    """메일이 안 나갔으면 재발송 간격을 풀어, 바로 다시 눌러도 새 코드가 나가게 한다."""
+    pending = await pending_signup(session, email)
+    if pending is not None:
+        pending.sent_at = 0
+        await session.commit()
+
+
 async def resend_code(session: AsyncSession, email: str) -> tuple[str | None, int]:
     """(새 코드, 0) 또는 아직 기다려야 하면 (None, 남은 초). 대기가 없으면 (None, -1)."""
     pending = await pending_signup(session, email)

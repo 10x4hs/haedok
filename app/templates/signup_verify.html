@@ -2,17 +2,33 @@
 {% block title %}이메일 인증 — 偕讀 해독{% endblock %}
 {% block form %}
 <p class="auth-note"><b>{{ email }}</b>(으)로<br>인증 코드를 보냈어요</p>
-<form method="post" action="/signup/verify" class="steps" novalidate>
+<p class="auth-switch"><a href="/signup">다른 이메일로 받기</a></p>
+<form method="post" action="/signup/verify" class="steps verify" novalidate
+      data-kind="{{ kind }}" data-expires-in="{{ expires_in }}" data-attempts-left="{{ attempts_left }}"{% if locked %} data-locked{% endif %}>
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <div class="step" data-step data-name="code">
     <label class="sr" for="code">인증 코드 6자리</label>
-    <div class="pill-field"><input id="code" name="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="인증 코드 6자리" autocomplete="one-time-code" required autofocus><button class="go" aria-label="인증하기">→</button></div>
+    <div class="pill-field code-field">
+      <input id="code" name="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="인증 코드 6자리"
+             autocomplete="one-time-code" enterkeyhint="done" required autofocus{% if locked %} disabled{% endif %}>
+      <div class="code-boxes" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <button class="go" aria-label="인증하기"{% if locked %} disabled{% endif %}>→</button>
+    </div>
   </div>
-  <p class="step-msg{% if notice and not error %} ok{% endif %}" role="alert" data-msg>{{ error or notice or '' }}</p>
+  <p class="step-msg{% if notice and not error %} ok{% elif error %} bad{% endif %}" role="alert" aria-live="assertive" data-msg>{{ error or notice or '' }}</p>
+  <p class="verify-hint" data-hint>
+    {%- if expires_in > 0 -%}
+      <span data-attempts>남은 기회 {{ attempts_left }}번</span> · <span data-expiry>{{ (expires_in // 60) + (1 if expires_in % 60 else 0) }}분 안에 입력</span>
+    {%- else -%}
+      <span>코드가 만료됐어요 · 새 코드를 받아 주세요</span>
+    {%- endif -%}
+  </p>
 </form>
 <form method="post" action="/signup/resend" class="auth-resend">
   <input type="hidden" name="csrf" value="{{ csrf }}">
-  <button class="step-back">코드 다시 받기</button>
+  <button class="step-back resend{% if locked %} urge{% endif %}" data-resend data-wait="{{ resend_wait }}">
+    {%- if resend_wait > 0 -%}코드 다시 받기 <span data-countdown>({{ resend_wait }}초)</span>{%- else -%}코드 다시 받기{%- endif -%}
+  </button>
 </form>
 {% endblock %}
 {% block foot %}메일이 안 보이면 스팸함도 확인해 주세요 · <a href="/signup">처음부터</a>{% endblock %}
