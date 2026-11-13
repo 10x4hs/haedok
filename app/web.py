@@ -7,6 +7,7 @@ import datetime as dt
 import hashlib
 import json
 import random
+import time
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -207,24 +208,59 @@ async def signup(
             form.errors["email"] = "이미 가입된 이메일이에요"
         else:
             code = await auth.start_signup(session, form)
-            if code is None or await mail.send_signup_code(http, form.email, code):
+            if code is None or await mail.send_signup_code(http, form.email, code, session=session):
                 request.session["signup_email"] = form.email
                 return RedirectResponse("/signup/verify", status_code=303)
-            form.errors["email"] = "인증 메일을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요"
+            # 안 나간 메일은 재발송 간격을 풀어 둔다.
+            # 안 그러면 60초 안의 재시도가 메일 없이 조용히 인증 화면으로 넘어간다
+            await auth.mail_failed(session, form.email)
+            form.errors["email"] = MAIL_FAILED
     # 비밀번호는 다시 채워 보내지 않는다
     return _render(request, "signup.html", None, form=form)
 
 
-def _verify_page(request: Request, email: str, error: str | None = None, notice: str | None = None):
-    return _render(request, "signup_verify.html", None, email=email, error=error, notice=notice)
+MAIL_FAILED = "인증 메일을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요"
+
+
+async def _verify_page(
+    request: Request,
+    session: AsyncSession,
+    email: str,
+    error: str | None = None,
+    notice: str | None = None,
+    kind: str = "",
+):
+    """인증 화면. 남은 기회·만료·재발송 대기를 함께 내려 화면이 상태를 보여 주게 한다."""
+    pending = await auth.pending_signup(session, email)
+    now = int(time.time())
+    expires_in = max(0, pending.expires_at - now) if pending else 0
+    attempts_left = max(0, auth.MAX_CODE_ATTEMPTS - pending.attempts) if pending else 0
+    resend_wait = max(0, auth.RESEND_COOLDOWN_S - (now - pending.sent_at)) if pending else 0
+    if error and not kind:
+        kind = "expired" if expires_in == 0 else "locked" if attempts_left == 0 else "wrong"
+    return _render(
+        request,
+        "signup_verify.html",
+        None,
+        email=email,
+        error=error,
+        notice=notice,
+        kind=kind,
+        expires_in=expires_in,
+        attempts_left=attempts_left,
+        resend_wait=resend_wait,
+        locked=kind in ("expired", "locked"),
+    )
 
 
 @router.get("/signup/verify", response_class=HTMLResponse, response_model=None)
-async def signup_verify_form(request: Request) -> HTMLResponse | RedirectResponse:
+async def signup_verify_form(
+    request: Request, session: AsyncSession = Depends(get_session)
+) -> HTMLResponse | RedirectResponse:
     email = request.session.get("signup_email")
     if not email:
         return RedirectResponse("/signup", status_code=303)
-    return _verify_page(request, email, notice="메일로 받은 6자리 코드를 입력해 주세요")
+    return await _verify_page(request, session, email, notice="메일로 받은 6자리 코드를 입력해 주세요")
 
 
 @router.post("/signup/verify", response_class=HTMLResponse, response_model=None)
@@ -240,7 +276,7 @@ async def signup_verify(
         return RedirectResponse("/signup", status_code=303)
     user, error = await auth.verify_signup(session, email, code)
     if user is None:
-        return _verify_page(request, email, error=error)
+        return await _verify_page(request, session, email, error=error)
     auth.login(request, user)  # 세션을 새로 만들며 signup_email도 지워진다
     return RedirectResponse("/", status_code=303)
 
@@ -260,10 +296,13 @@ async def signup_resend(
     if wait < 0:
         return RedirectResponse("/signup", status_code=303)
     if code is None:
-        return _verify_page(request, email, error=f"{wait}초 뒤에 다시 받을 수 있어요")
-    if not await mail.send_signup_code(http, email, code):
-        return _verify_page(request, email, error="인증 메일을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요")
-    return _verify_page(request, email, notice="새 코드를 보냈어요")
+        return await _verify_page(
+            request, session, email, error=f"{wait}초 뒤에 다시 받을 수 있어요", kind="wait"
+        )
+    if not await mail.send_signup_code(http, email, code, session=session):
+        await auth.mail_failed(session, email)
+        return await _verify_page(request, session, email, error=MAIL_FAILED, kind="mail")
+    return await _verify_page(request, session, email, notice="새 코드를 보냈어요")
 
 
 @router.get("/login", response_class=HTMLResponse)
