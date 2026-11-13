@@ -2,8 +2,7 @@
 
 <div align="center">
 
-<img width="720" height="900" alt="image" src="https://github.com/user-attachments/assets/48c37828-b426-4269-b4df-5f20fc8af65f" />
-
+<img width="1459" height="939" alt="image" src="https://github.com/user-attachments/assets/229d5e2d-7b83-4420-9d7a-b09f198fa6d6" />
 # 같은 책을, 함께.
 
 **偕** 함께 해 + **讀** 읽을 독 — 친구와 같은 책을 각자의 속도로 읽고, 반응을 남기고, 페이지 레이스를 해요.
