@@ -2,6 +2,7 @@
 {% from "_ui.html" import book_cover %}
 {% block title %}대결 — 偕讀 해독{% endblock %}
 {% block heading %}<small>친구와 같은 책으로</small>페이지 레이스{% endblock %}
+{% block top_extra %}<a class="pill lb-link" href="/leaderboard" aria-label="주간 순위">🏆 순위</a>{% endblock %}
 {% block main %}
 {% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
 

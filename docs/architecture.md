@@ -72,6 +72,30 @@ app/core/appearance.py 테마 · 배경 30종 · 강조 색 12종 (looks.css와 
 | PUT | `/api/v1/me/settings` | 테마 · 배경 · 강조 색 |
 | WS | `/api/v1/ws/books/{id}` | 실시간 이벤트 (로그인 세션 필요, 아니면 4401) |
 
+## 포인트 원장 + 순위 (2026-11)
+
+```
+app/services/points.py   적립 규칙 · 멱등 award() · 주간/전체 순위 · 연속 일수
+app/api/points.py        GET /api/me/points (= /api/v1/me/points): 총합 · 이번 주 · 연속 일수 · 최근 원장 20줄
+app/templates/leaderboard.html  GET /leaderboard?range=week|all — 상위 50 + 내 순위, 같은 방 친구 표시, 빈 상태
+```
+
+| 적립 지점 | 점수 | ref_id | 어디서 |
+|---|---|---|---|
+| 체류시간 검증을 통과한 쪽 | +1 | `book:chunk` | `PUT /api/v1/books/{id}/progress` 가 `verified_chunk` 를 올린 뒤 |
+| 문단에 처음 남긴 반응 (하루 20번) | +1 | `book:chunk:anchor` | `POST .../reactions` |
+| 대결에서 문장 공유 | +3 | `quote.id` | `POST /api/v1/races/{id}/quotes` |
+| 대결에서 친구 추월 (방·사람마다 한 번) | +5 | `room:other` | 쪽 적립 직후, 아까는 뒤였고 지금은 앞선 사람 |
+| 대결 책 완주 (방마다 한 번) | +20 | `room` | 쪽 적립 직후 `verified_chunk >= total-1` |
+| 7일 연속 읽기 (7·14·21일째) | +30 | KST 날짜 | 그날 첫 쪽 적립 때만 계산 |
+
+| 결정 | 이유 |
+|---|---|
+| **points_log 는 append-only, 잔액은 SUM** | 행을 고치지 않으니 감사가 쉽고, 멱등성은 (user, source, ref_id) 를 select-before-insert 로 지킨다 — 이번 라운드엔 스키마를 못 바꿔 unique 제약이 없다. insert 뒤 commit 직전에 한 번 더 세어 겹치면 내 행을 지운다 |
+| **모든 날짜 경계는 KST** — 주간은 월요일 00:00, 하루 상한·연속 일수도 KST 날짜 | 저장은 UTC, 경계만 `week_start()` / `day_start()` 가 KST→UTC 로 바꿔서 쿼리 |
+| **응답은 그대로** — 적립은 기존 API 응답 뒤에 붙고 아무것도 바꾸지 않는다 | 리더·대결 화면의 계약을 건드리지 않기 위해 |
+| **연속 일수는 하루에 쿼리 하나씩 거슬러 센다** | SQLite·Postgres 공통으로 KST 날짜 그룹핑을 하려면 방언별 SQL 이 필요해서, 당장은 단순하게. 길어지면 날짜별 집계 테이블로 옮긴다 |
+
 ## 다음 Phase에서 채울 자리
 
 - 소셜 로그인(Authlib)을 `app/auth.py` 옆에 붙인다 (oauth_accounts 테이블은 이미 있음)

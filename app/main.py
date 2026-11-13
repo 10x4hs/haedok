@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app import admin, auth, intro, pwa, web
-from app.api import books, me, social
+from app.api import books, me, points, social
 from app.core.config import Settings, get_settings
 
 USER_AGENT = "haedok/0.1 (+https://github.com/10x4hs/haedok)"  # Wikimedia는 UA 명시 요구
@@ -76,6 +76,7 @@ async def to_login(request: Request, exc: auth.LoginRequired) -> RedirectRespons
 
 app.include_router(books.router)
 app.include_router(me.router)
+app.include_router(points.router)
 app.include_router(social.router)
 app.include_router(web.router)
 app.include_router(admin.router)

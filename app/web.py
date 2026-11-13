@@ -26,6 +26,7 @@ from app.db.session import get_session
 from app.models import Book, LibraryEntry, Room, Shelf, User
 from app.services import books as book_service
 from app.services import mail, social
+from app.services import points as points_service
 from app.services import races as race_service
 from app.services.search import FULLTEXT_SOURCES, search_all
 from app.services.uploads import parse_upload
@@ -517,8 +518,27 @@ async def me(
         "me.html",
         user,
         stats=stats,
+        points=await points_service.summary(session, user.id),
         error=request.query_params.get("error"),
         saved=bool(request.query_params.get("saved")),
+    )
+
+
+@router.get("/leaderboard", response_class=HTMLResponse)
+async def leaderboard(
+    request: Request,
+    range: str = "week",
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(auth.require_user),
+) -> HTMLResponse:
+    board = await points_service.leaderboard(session, user.id, range)
+    return _render(
+        request,
+        "leaderboard.html",
+        user,
+        board=board,
+        mine=await points_service.summary(session, user.id),
+        week_start=points_service.week_start(points_service.clock()).astimezone(points_service.KST),
     )
 
 
