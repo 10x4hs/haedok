@@ -7,8 +7,8 @@ from app.db.session import get_session
 from app.models import Book, Room, User
 from app.realtime import broker
 from app.services import books as book_service
+from app.services import points, social
 from app.services import races as race_service
-from app.services import social
 
 
 def avatar_url(user: User) -> str | None:
@@ -62,6 +62,7 @@ async def post_reaction(
         )
     except social.ReactionError as e:
         raise HTTPException(422, str(e)) from e
+    await points.award_reaction(session, user.id, book.id, r.chunk_index, r.anchor)
     others = await social.circle(session, user.id, book.id) - {user.id}
     # 본문은 싣지 않는다: 받는 쪽이 자기 스포일러 가드로 다시 읽는다
     await broker.publish(
@@ -222,6 +223,7 @@ async def post_quote(
         q = await race_service.add_quote(session, room, user, body.chunk_index, body.text)
     except race_service.QuoteError as e:
         raise HTTPException(422, str(e)) from e
+    await points.award_quote(session, user.id, q.id)
     return {"id": q.id, "chunk": q.chunk_index, "text": q.body}
 
 

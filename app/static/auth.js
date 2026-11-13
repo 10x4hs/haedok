@@ -5,6 +5,7 @@
   const steps = [...form.querySelectorAll('[data-step]')];
   const msg = form.querySelector('[data-msg]'), back = form.querySelector('[data-back]');
   const dots = [...form.querySelectorAll('.step-dots i')];
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   form.classList.add('stepped');
 
   const check = input => {
@@ -31,14 +32,26 @@
   const advance = () => {
     const input = steps[at].querySelector('input');
     const err = check(input);
-    if (err) { msg.textContent = err; steps[at].classList.remove('shake'); void steps[at].offsetWidth; steps[at].classList.add('shake'); return false; }
+    if (err) {
+      msg.textContent = err; input.setAttribute('aria-invalid', 'true');
+      if (!reduced) { steps[at].classList.remove('shake'); void steps[at].offsetWidth; steps[at].classList.add('shake'); }
+      input.focus();
+      return false;
+    }
+    input.removeAttribute('aria-invalid');
     if (at < steps.length - 1) { show(at + 1); return false; }
     return true;
   };
 
   form.querySelectorAll('[data-next]').forEach(b => b.addEventListener('click', advance));
   form.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); if (advance()) form.requestSubmit(); } });
-  form.addEventListener('submit', e => { if (at < steps.length - 1 || check(steps[at].querySelector('input'))) { e.preventDefault(); advance(); return; } form.classList.add('sending'); });
+  form.addEventListener('submit', e => {
+    if (form.classList.contains('sending')) { e.preventDefault(); return; }   // 두 번 보내지 않는다
+    if (at < steps.length - 1 || check(steps[at].querySelector('input'))) { e.preventDefault(); advance(); return; }
+    form.classList.add('sending'); form.setAttribute('aria-busy', 'true');
+    const go = steps[at].querySelector('.go'); if (go) { go.setAttribute('aria-busy', 'true'); setTimeout(() => { go.disabled = true; }, 0); }
+  });
+  addEventListener('pageshow', () => { form.classList.remove('sending'); form.removeAttribute('aria-busy'); form.querySelectorAll('.go[aria-busy]').forEach(b => { b.disabled = false; b.removeAttribute('aria-busy'); }); });
   back?.addEventListener('click', () => show(Math.max(0, at - 1)));
 
   // 서버가 돌려준 오류: 가입은 그 칸에서, 로그인은 비밀번호 칸에서 다시 시작
@@ -80,8 +93,9 @@
   input.addEventListener('blur', paint);
   form.querySelector('.code-boxes').addEventListener('click', () => input.focus());
   form.addEventListener('submit', e => {
-    if (!/^\d{6}$/.test(input.value)) { e.preventDefault(); submitted = false; form.classList.remove('sending'); msg.textContent = '6자리 숫자를 입력해 주세요'; msg.classList.add('bad'); return; }
-    form.classList.add('sending');
+    if (!/^\d{6}$/.test(input.value)) { e.preventDefault(); submitted = false; form.classList.remove('sending'); form.removeAttribute('aria-busy'); msg.textContent = '6자리 숫자를 입력해 주세요'; msg.classList.add('bad'); input.setAttribute('aria-invalid', 'true'); return; }
+    if (form.dataset.sent) { e.preventDefault(); return; }   // 자동 제출 뒤 Enter를 또 눌러도 한 번만
+    form.dataset.sent = '1'; form.classList.add('sending'); form.setAttribute('aria-busy', 'true');
   });
   if (form.dataset.kind === 'wrong') { input.value = ''; input.select?.(); }
   paint();
@@ -111,6 +125,6 @@
     };
     tickWait();
     if (wait > 0) { const t = setInterval(() => { wait -= 1; tickWait(); if (wait <= 0) clearInterval(t); }, 1000); }
-    resend.closest('form').addEventListener('submit', () => { resend.disabled = true; resend.textContent = '보내는 중…'; });
+    resend.closest('form').addEventListener('submit', e => { if (resend.disabled) { e.preventDefault(); return; } resend.setAttribute('aria-busy', 'true'); resend.textContent = '보내는 중…'; setTimeout(() => { resend.disabled = true; }, 0); });
   }
 })();

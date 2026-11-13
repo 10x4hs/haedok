@@ -111,16 +111,6 @@ async def read_chunk(client: httpx.AsyncClient, book_id, index: int, token: str,
 
 
 @pytest.fixture(autouse=True)
-def _reset_login_failures():
-    """로그인 실패 기록은 프로세스 메모리라 테스트끼리 섞이지 않게 비운다."""
-    from app import auth
-
-    auth._failures.clear()
-    yield
-    auth._failures.clear()
-
-
-@pytest.fixture(autouse=True)
 def _capture_signup_mail(monkeypatch):
     """가입 인증 메일을 보내는 대신 SENT_CODES에 적어 둔다."""
 

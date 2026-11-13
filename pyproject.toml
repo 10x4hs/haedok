@@ -19,6 +19,7 @@ dependencies = [
     "bcrypt>=4.1",
     "itsdangerous>=2.1",
     "aiosqlite>=0.20",  # 로컬 시연·임시 배포용 SQLite
+    "sentry-sdk>=2.0",  # SENTRY_DSN이 있을 때만 켜진다
 ]
 
 [project.optional-dependencies]

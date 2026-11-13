@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_ui.html" import icon, video_list %}
+{% from "_ui.html" import icon, video_list, toast_region %}
 {% block title %}{{ book.title }} — 偕讀 해독{% endblock %}
 {% block body_class %}reading{% endblock %}
 {% block body %}
@@ -10,9 +10,9 @@
   <button class="pill-btn" id="aa" aria-label="보기 설정" aria-expanded="false">Aa</button>
 </header>
 <div class="r-sheet glass" id="sheet" hidden>
-  <div class="r-row"><span>글자 크기</span><div class="seg mini"><button id="smaller" aria-label="작게">가−</button><button id="bigger" aria-label="크게">가+</button></div></div>
-  <div class="r-row"><span>넘김</span><div class="seg mini" id="modes"><button data-mode="3d">3D 넘김</button><button data-mode="scroll">스크롤</button></div></div>
-  <div class="r-row"><span>종이</span><div class="seg mini" id="tones"><button data-tone="">기본</button><button data-tone="paper">종이</button><button data-tone="night">밤</button></div></div>
+  <div class="r-row"><span id="lblSize">글자 크기</span><div class="seg mini" role="group" aria-labelledby="lblSize"><button type="button" id="smaller" aria-label="작게">가−</button><button type="button" id="bigger" aria-label="크게">가+</button></div></div>
+  <div class="r-row"><span id="lblMode">넘김</span><div class="seg mini" id="modes" role="group" aria-labelledby="lblMode"><button type="button" data-mode="3d">3D 넘김</button><button type="button" data-mode="scroll">스크롤</button></div></div>
+  <div class="r-row"><span id="lblTone">종이</span><div class="seg mini" id="tones" role="group" aria-labelledby="lblTone"><button type="button" data-tone="">기본</button><button type="button" data-tone="paper">종이</button><button type="button" data-tone="night">밤</button></div></div>
 </div>
 
 <main class="r-stage" id="stage" data-book="{{ book.id }}" data-total="{{ book.total_chunks }}"
@@ -29,7 +29,8 @@
 
 <footer class="r-foot glass" id="foot">
   <div class="rf-row">
-    <button type="button" class="mono pos-btn" id="pos" aria-label="쪽 이동" aria-expanded="false">–</button>
+    <button type="button" class="pill-btn r-nav" id="prevPg" aria-label="앞 쪽" title="앞 쪽 (←)">{{ icon('prev') }}</button>
+    <button type="button" class="mono pos-btn" id="pos" aria-label="쪽 이동" aria-expanded="false" aria-controls="jump">–</button>
     {# 이 쪽이 '읽음'으로 인정되기까지 남은 시간(쪽마다 15초) #}
     <span class="ring" id="ring" role="timer" aria-live="off" title="이 쪽을 다 읽었다고 인정되기까지">
       <svg viewBox="0 0 36 36" aria-hidden="true"><circle class="ring-trk" cx="18" cy="18" r="15"/><circle class="ring-arc" id="ringArc" cx="18" cy="18" r="15" pathLength="100"/></svg>
@@ -37,6 +38,7 @@
     </span>
     <span id="state">읽는 중</span>
     <span class="friends" id="friends" aria-label="같이 읽는 친구"></span>
+    <button type="button" class="pill-btn r-nav" id="nextPg" aria-label="다음 쪽" title="다음 쪽 (→)">{{ icon('next') }}</button>
   </div>
   <div class="rf-bar">
     {# 책 전체: 채운 곳 = 다 읽은 쪽, 흰 눈금 = 지금 쪽, 색 점 = 친구가 있는 쪽 #}
@@ -79,7 +81,7 @@
 })();
 </script>
 {% endif %}
-<div class="r-toast glass" id="toast" role="status" aria-live="polite" hidden></div>
+{{ toast_region() }}
 
 <div class="sheet-wrap" id="react" hidden>
   <section class="sheet glass react-sheet" role="dialog" aria-modal="true" aria-labelledby="reactTitle">
@@ -87,7 +89,7 @@
     <blockquote class="react-quote" id="reactQuote"></blockquote>
     <div class="emoji-row" id="emojiRow"></div>
     <form class="react-form" id="reactForm">
-      <input id="reactText" maxlength="140" placeholder="한 줄로 남기기 (같은 방 친구만 봐요)" autocomplete="off">
+      <label class="sr" for="reactText">한 줄 반응</label><input id="reactText" maxlength="140" placeholder="한 줄로 남기기 (같은 방 친구만 봐요)" autocomplete="off" enterkeyhint="send">
       <button class="btn primary">남기기</button>
     </form>
     <p class="hint" id="reactMsg"></p>
@@ -95,6 +97,7 @@
   </section>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+<script src="/static/app.js"></script>
 <script src="/static/palette.js"></script>
 <script src="/static/presence.js"></script>
 <script src="/static/reader.js"></script>

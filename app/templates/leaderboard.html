@@ -1,0 +1,83 @@
+{% extends "app.html" %}
+{% from "_ui.html" import avatar %}
+{% block title %}순위 — 偕讀 해독{% endblock %}
+{% block heading %}<small>{{ '이번 주' if board.scope == 'week' else '지금까지' }}</small>포인트 순위{% endblock %}
+{% block main %}
+<style>
+.lb-tabs{margin:4px 0 14px}
+.lb-tabs a{flex:1;display:flex;align-items:center;justify-content:center;height:36px;border-radius:999px;font-size:14px;font-weight:500;color:var(--dim);transition:background .4s var(--ease),color .4s var(--ease)}
+.lb-tabs a[aria-current]{background:var(--text);color:var(--bg)}
+.lb-mine{display:flex;align-items:center;gap:14px;padding:14px 18px;margin-bottom:18px;background:var(--surface)}
+.lb-mine .rank{font:500 26px var(--f-mono);letter-spacing:-.04em;color:var(--accent);min-width:48px}
+.lb-mine .rank small{font-size:13px;color:var(--dim);margin-left:2px}
+.lb-mine div{flex:1;display:grid;min-width:0}
+.lb-mine b{font-size:15px}
+.lb-mine span{font-size:12px;color:var(--dim)}
+.lb-mine .pts{font:500 20px var(--f-mono);letter-spacing:-.03em}
+.lb-list{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.lb-list li{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;min-width:0}
+.lb-list li.lb-me{background:color-mix(in srgb,var(--accent) 16%,transparent);outline:1px solid color-mix(in srgb,var(--accent) 45%,transparent)}
+.lb-list li.lb-friend:not(.lb-me){background:var(--surface)}
+.lb-list .rank{width:28px;font:500 15px var(--f-mono);color:var(--dim);text-align:center;flex:none}
+.lb-list li:nth-child(-n+3) .rank{color:var(--accent);font-size:18px}
+.lb-list div{flex:1;display:grid;min-width:0}
+.lb-list b{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-list .lb-tag{font-size:11px;color:var(--accent)}
+.lb-list .pts{font:500 15px var(--f-mono);letter-spacing:-.03em;flex:none}
+.lb-list .pts small{font-size:11px;color:var(--dim);margin-left:2px}
+.lb-empty{text-align:center;padding:48px 20px;color:var(--dim)}
+.lb-empty .big{font-size:40px;line-height:1;margin-bottom:12px}
+.lb-empty b{display:block;color:var(--text);font-size:17px;margin-bottom:6px}
+.lb-empty .btn{margin-top:18px}
+.lb-rules{margin-top:28px}
+.lb-rules ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px;font-size:13px;color:var(--dim)}
+.lb-rules li{display:flex;justify-content:space-between}
+.lb-rules li b{font:500 13px var(--f-mono);color:var(--text)}
+</style>
+
+<nav class="seg full lb-tabs" aria-label="기간">
+  <a href="/leaderboard?range=week" {% if board.scope == 'week' %}aria-current="page"{% endif %}>이번 주</a>
+  <a href="/leaderboard?range=all" {% if board.scope == 'all' %}aria-current="page"{% endif %}>전체</a>
+</nav>
+{% if board.scope == 'week' %}<p class="muted small" style="margin:0 0 14px">{{ week_start.strftime('%-m월 %-d일') }} 월요일 0시(한국 시간)부터 센 점수예요. 매주 새로 시작해요.</p>{% endif %}
+
+{% if board.me %}
+<section class="lb-mine glass-card" aria-label="내 순위">
+  <span class="rank">{{ board.me.rank }}<small>위</small></span>
+  <div><b>{{ user.nickname }}</b><span>{{ '이번 주' if board.scope == 'week' else '지금까지' }} · {{ mine.streak }}일 연속 읽는 중</span></div>
+  <span class="pts">{{ '{:,}'.format(board.me.points) }}P</span>
+</section>
+{% endif %}
+
+{% if board.entries %}
+<ol class="lb-list" aria-label="순위표">
+  {% for e in board.entries %}
+  <li class="{{ 'lb-me' if e.is_me }} {{ 'lb-friend' if e.is_friend }}">
+    <span class="rank">{{ e.rank }}</span>
+    {{ avatar(e.user, 'sm') }}
+    <div><b>{{ e.user.nickname }}</b>{% if e.is_me %}<span class="lb-tag">나</span>{% elif e.is_friend %}<span class="lb-tag">같은 방 친구</span>{% endif %}</div>
+    <span class="pts">{{ '{:,}'.format(e.points) }}<small>P</small></span>
+  </li>
+  {% endfor %}
+</ol>
+{% else %}
+<section class="lb-empty glass-card">
+  <div class="big" aria-hidden="true">🏁</div>
+  <b>{{ '이번 주는 아직 아무도 점수가 없어요' if board.scope == 'week' else '아직 쌓인 점수가 없어요' }}</b>
+  한 쪽을 끝까지 읽으면 바로 1점이 들어와요. 첫 번째 자리는 비어 있어요.
+  <a class="btn primary" href="/library">읽으러 가기</a>
+</section>
+{% endif %}
+
+<section class="lb-rules">
+  <div class="row-h"><h2>점수는 이렇게 쌓여요</h2></div>
+  <ul>
+    <li><span>쪽을 끝까지 읽기 (서버가 체류시간을 확인해요)</span><b>+1</b></li>
+    <li><span>문단에 처음 반응 남기기 (하루 20번까지)</span><b>+1</b></li>
+    <li><span>대결에서 문장 공유</span><b>+3</b></li>
+    <li><span>대결에서 친구 추월</span><b>+5</b></li>
+    <li><span>대결 책 완주</span><b>+20</b></li>
+    <li><span>7일 연속 읽기</span><b>+30</b></li>
+  </ul>
+</section>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}잠시 문제가 생겼어요 — 偕讀 해독{% endblock %}
+{% block body_class %}auth{% endblock %}
+{% block body %}
+<div class="auth-bg" aria-hidden="true"><i class="auth-glass"></i><i class="auth-glow"></i></div>
+<main class="auth-main">
+  <div class="auth-card" role="alert">
+    <p class="mono muted">500</p>
+    <h1>잠시 문제가 생겼어요</h1>
+    <p class="muted">읽던 자리는 그대로 남아 있어요.<br>잠시 뒤 다시 시도해 주세요.</p>
+    <p><a class="btn primary" href="/">처음으로</a></p>
+    {% if request_id %}<p class="mono muted" style="font-size:.75rem">문의 번호 {{ request_id }}</p>{% endif %}
+  </div>
+</main>
+<footer class="auth-foot">같은 책을, 각자의 속도로</footer>
+{% endblock %}

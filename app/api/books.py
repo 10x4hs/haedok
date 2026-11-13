@@ -10,7 +10,7 @@ from app.db.session import get_session
 from app.models import Book, User
 from app.realtime import broker
 from app.services import books as book_service
-from app.services import social
+from app.services import points, social
 from app.services.search import FULLTEXT_SOURCES, search_all
 from app.sources.base import BookSource, SourceError
 
@@ -162,6 +162,7 @@ async def put_progress(
     before = await book_service.shelve(session, user.id, book.id)
     was_verified = before.verified_chunk
     e = await book_service.record_progress(session, user.id, book, body.chunk_index, body.verified)
+    await points.award_progress(session, user.id, book, was_verified, e.verified_chunk)
     # 같은 방 친구들에게: 검증 위치가 올라갔거나 다른 쪽으로 옮겼을 때
     others = await social.circle(session, user.id, book.id) - {user.id}
     await broker.publish(

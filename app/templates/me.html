@@ -28,6 +28,23 @@
   <div><b>{{ stats.reading }}</b><span>읽는 중</span></div>
   <div><b>{{ stats.done }}</b><span>다 읽음</span></div>
 </section>
+<a class="points-card glass-card" href="/leaderboard" aria-label="포인트와 순위 보기">
+  <div class="points-main"><span class="mono muted">포인트</span><b>{{ '{:,}'.format(points.total) }}<small>P</small></b></div>
+  <div class="points-sub">
+    <span><b>{{ '{:,}'.format(points.week) }}</b>이번 주</span>
+    <span><b>{{ points.streak }}</b>일 연속</span>
+  </div>
+  <em class="mono">순위 ›</em>
+</a>
+<style>
+.points-card{display:flex;align-items:center;gap:14px;margin-top:10px;padding:14px 18px;background:var(--surface)}
+.points-main{flex:1;display:grid}
+.points-main b{font:500 26px var(--f-mono);letter-spacing:-.04em}
+.points-main small{font-size:13px;margin-left:3px;color:var(--dim)}
+.points-sub{display:grid;gap:4px;font-size:12px;color:var(--dim);text-align:right}
+.points-sub b{font:500 14px var(--f-mono);color:var(--text);margin-right:5px}
+.points-card em{font-style:normal;color:var(--accent);font-size:13px}
+</style>
 <section class="settings">
   <button class="set-row" type="button" data-open-look>{{ icon('theme') }}<span>화면 꾸미기</span><em>{{ APPEARANCE.MODES[look.mode] }} · ›</em></button>
   <a class="set-row" href="/races">{{ icon('race') }}<span>친구와 대결</span><em>›</em></a>

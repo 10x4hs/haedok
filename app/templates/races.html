@@ -1,7 +1,8 @@
 {% extends "app.html" %}
-{% from "_ui.html" import book_cover %}
+{% from "_ui.html" import book_cover, empty_state %}
 {% block title %}대결 — 偕讀 해독{% endblock %}
 {% block heading %}<small>친구와 같은 책으로</small>페이지 레이스{% endblock %}
+{% block top_extra %}<a class="pill lb-link" href="/leaderboard" aria-label="주간 순위">🏆 순위</a>{% endblock %}
 {% block main %}
 {% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
 
@@ -15,17 +16,20 @@
   <div class="row-h"><h2>내 대결</h2><span class="mono muted">{{ races|length }}</span></div>
   <ul class="list">{% for r, b, over in races %}<li><a href="/races/{{ r.id }}">{{ book_cover(b.title, b.author, 'xs', img=cover_of(b)) }}<div><b>{{ b.title }}</b><span>코드 {{ r.invite_code }} · {{ '끝남' if over else '진행 중' }}</span></div><em class="mono">보기 ›</em></a></li>{% endfor %}</ul>
 </section>
+{% else %}
+{{ empty_state('flag', '아직 대결이 없어요', '아래에서 책을 고르면 초대 코드가 생겨요. 친구에게 보내면 바로 시작!', '#newRace', '책 고르러 가기', 'compact') }}
 {% endif %}
 
-<section class="row">
+<section class="row" id="newRace">
   <div class="row-h"><h2>새 대결 열기</h2></div>
   <p class="muted small">책을 고르면 초대 코드가 만들어져요. 체류시간 검증을 통과한 쪽만 점수가 돼요.</p>
   <div class="seg full" id="days" role="radiogroup" aria-label="기간">
-    {% for d in durations %}<button type="button" data-days="{{ d }}" aria-pressed="{{ 'true' if d == 7 else 'false' }}">{{ d }}일</button>{% endfor %}
+    {% for d in durations %}<button type="button" role="radio" data-days="{{ d }}" aria-checked="{{ 'true' if d == 7 else 'false' }}" aria-pressed="{{ 'true' if d == 7 else 'false' }}">{{ d }}일</button>{% endfor %}
   </div>
-  {% if reading %}
+  {% set shared = reading|rejectattr('owner_id')|list %}
+  {% if shared %}
   <h3 class="sub">읽는 중인 책으로</h3>
-  <div class="pick-grid">{% for b in reading if not b.owner_id %}
+  <div class="pick-grid">{% for b in shared %}
     <form method="post" action="/races"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="book_id" value="{{ b.id }}"><input type="hidden" name="days" value="7" class="days-in">
       <button class="pick">{{ book_cover(b.title, b.author, img=cover_of(b)) }}<b>{{ b.title }}</b></button></form>
   {% endfor %}</div>
@@ -38,7 +42,7 @@
 </section>
 <script>
 document.querySelectorAll('#days button').forEach(b => b.onclick = () => {
-  document.querySelectorAll('#days button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  document.querySelectorAll('#days button').forEach(x => { x.setAttribute('aria-pressed', x === b); x.setAttribute('aria-checked', x === b); });
   document.querySelectorAll('.days-in').forEach(i => i.value = b.dataset.days);
 });
 </script>
