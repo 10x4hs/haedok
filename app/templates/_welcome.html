@@ -1,0 +1,27 @@
+{# 첫 가입 직후 홈에 한 번 보이는 3단계 안내 카드. 세션의 first_run 표시로 켜지고, 닫기(POST /welcome/dismiss)로 꺼진다 #}
+<section class="welcome glass-card" id="welcome" aria-labelledby="welcomeH">
+  <style>
+    .welcome{position:relative;z-index:5;padding:18px 18px 16px;margin:4px 0 18px;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(24px) saturate(1.2);-webkit-backdrop-filter:blur(24px) saturate(1.2);box-shadow:0 20px 50px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08)}
+    .welcome h2{font-size:19px;letter-spacing:-.03em;margin:0 0 4px}
+    .welcome>p{margin:0 0 14px;color:var(--dim);font-size:14px}
+    .welcome ol{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+    .welcome li a,.welcome li span.step{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:16px;border:1px solid var(--glass-line);background:var(--sunken);color:var(--text);text-decoration:none}
+    .welcome li a:active{transform:scale(.985)}
+    .welcome .n{display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:13px}
+    .welcome li b{display:block;font-size:14px;font-weight:600}
+    .welcome li small{display:block;color:var(--dim);font-size:12px}
+    .welcome .arrow{margin-left:auto;color:var(--dim)}
+    .welcome form{position:absolute;top:10px;right:10px}
+    .welcome .x{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;border:0;background:transparent;color:var(--dim);font-size:20px;line-height:1;cursor:pointer}
+    .welcome .x:active{transform:scale(.9)}
+  </style>
+  <form method="post" action="/welcome/dismiss"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="x" type="submit" aria-label="안내 닫기">×</button></form>
+  <span class="eyebrow mono small">WELCOME</span>
+  <h2 id="welcomeH">{{ user.nickname }}님, 반가워요</h2>
+  <p>세 걸음이면 친구와 같은 책을 읽기 시작해요.</p>
+  <ol>
+    <li><a href="/discover"><span class="n">1</span><span><b>책 고르기</b><small>고전은 무료, 내 EPUB·PDF도 올릴 수 있어요</small></span><span class="arrow" aria-hidden="true">›</span></a></li>
+    <li><a href="/races"><span class="n">2</span><span><b>친구 초대</b><small>대결방을 만들고 초대 링크를 보내요</small></span><span class="arrow" aria-hidden="true">›</span></a></li>
+    <li><span class="step"><span class="n">3</span><span><b>같이 읽기</b><small>각자의 속도로, 서로의 진도를 보면서</small></span></span></li>
+  </ol>
+</section>

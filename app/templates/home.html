@@ -3,6 +3,20 @@
 {% block heading %}<small>{{ user.nickname }}님,</small>오늘은 뭘 읽을까요{% endblock %}
 
 {% block main %}
+{% if first_run %}{% include "_welcome.html" %}{% endif %}
+{% if not drum %}
+<section class="home-empty glass-card" aria-label="비어 있는 서가">
+  <style>
+    .home-empty{display:grid;gap:10px;justify-items:center;text-align:center;padding:40px 20px;margin-top:12px;background:var(--surface);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+    .home-empty h2{font-size:19px;letter-spacing:-.03em;margin:0}
+    .home-empty p{margin:0;color:var(--dim);font-size:14px}
+  </style>
+  {{ book_cover('偕讀', '해독', 'sm') }}
+  <h2>아직 꽂힌 책이 없어요</h2>
+  <p>탐색에서 고전을 고르거나, 내 EPUB·PDF를 올려 보세요.</p>
+  <div class="hud-actions"><a class="btn primary" href="/discover">책 고르러 가기</a><a class="btn ghost" href="/upload">파일 올리기</a></div>
+</section>
+{% else %}
 {# ---------- 3D: 책들이 나선 계단처럼 위로·뒤로 감겨 쌓여 있고, 스크롤하면 앞으로 한 권씩 내려온다 ---------- #}
 <section class="helix" id="drum" aria-label="인기 고전">
   <div class="dotfield" id="dotfield" aria-hidden="true"></div>
@@ -32,4 +46,5 @@
 <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
 <script src="/static/helix.js"></script>
 <script src="/static/backdrop.js"></script>
+{% endif %}
 {% endblock %}

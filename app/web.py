@@ -18,7 +18,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import auth
+from app import auth, seo
 from app.api.deps import get_http_client, get_sources
 from app.core import appearance
 from app.core.config import Settings, get_settings
@@ -116,12 +116,15 @@ templates.env.filters["small_cover"] = small_cover
 templates.env.globals["cover"] = cover
 templates.env.globals["cover_of"] = cover_of
 templates.env.globals["APPEARANCE"] = appearance
+seo.install(templates.env)  # canonical·OG 주소
 
 
-def _render(request: Request, name: str, user: User | None, **ctx) -> HTMLResponse:
+def _render(
+    request: Request, name: str, user: User | None, status_code: int = 200, **ctx
+) -> HTMLResponse:
     look = appearance.resolve(user.settings if user else None)
     ctx |= {"user": user, "csrf": auth.csrf_token(request), "path": request.url.path, "look": look}
-    return templates.TemplateResponse(request, name, ctx)
+    return templates.TemplateResponse(request, name, ctx, status_code=status_code)
 
 
 def _safe_next(target: str | None) -> str:
@@ -179,14 +182,33 @@ async def home(
         return _render(request, "landing.html", None, picks=picks, showcase=SHOWCASE, total=len(CATALOG))
     top = await popular(session, 30)
     return _render(
-        request, "home.html", user, drum=[b | {"store": True} for b in STORE[:14]] + _fill(top, 30)
+        request,
+        "home.html",
+        user,
+        drum=[b | {"store": True} for b in STORE[:14]] + _fill(top, 30),
+        first_run=bool(request.session.get("first_run")),
     )
 
 
+@router.post("/welcome/dismiss")
+async def welcome_dismiss(
+    request: Request, csrf: str = Form(""), user: User = Depends(auth.require_user)
+) -> RedirectResponse:
+    """첫 방문 안내 카드를 닫는다 — 세션 표시만 지우므로 스키마 변경이 없다."""
+    auth.check_csrf(request, csrf)
+    request.session.pop("first_run", None)
+    return RedirectResponse("/", status_code=303)
+
+
 @router.get("/signup", response_class=HTMLResponse)
-async def signup_form(request: Request, user: User | None = Depends(auth.current_user)) -> HTMLResponse:
+async def signup_form(
+    request: Request, next: str | None = None, user: User | None = Depends(auth.current_user)
+) -> HTMLResponse:
     if user:
-        return RedirectResponse("/", status_code=303)
+        return RedirectResponse(_safe_next(next), status_code=303)
+    if next:
+        # 초대 링크(/join/CODE)에서 온 사람은 가입·인증을 마친 뒤 그곳으로 돌려보낸다 (세션에만 둔다)
+        request.session["signup_next"] = _safe_next(next)
     return _render(request, "signup.html", None, form=None)
 
 
@@ -277,8 +299,10 @@ async def signup_verify(
     user, error = await auth.verify_signup(session, email, code)
     if user is None:
         return await _verify_page(request, session, email, error=error)
-    auth.login(request, user)  # 세션을 새로 만들며 signup_email도 지워진다
-    return RedirectResponse("/", status_code=303)
+    target = _safe_next(request.session.get("signup_next"))
+    auth.login(request, user)  # 세션을 새로 만들며 signup_email·signup_next도 지워진다
+    request.session["first_run"] = True  # 홈의 첫 방문 안내 카드 (닫으면 지워진다)
+    return RedirectResponse(target, status_code=303)
 
 
 @router.post("/signup/resend", response_class=HTMLResponse, response_model=None)
@@ -662,9 +686,27 @@ async def join_preview(
     request: Request,
     code: str,
     session: AsyncSession = Depends(get_session),
-    user: User = Depends(auth.require_user),
+    user: User | None = Depends(auth.current_user),
 ) -> HTMLResponse | RedirectResponse:
     room = await race_service.by_code(session, code)
+    if user is None:
+        # 로그인 전 공개 미리보기 — 카카오·슬랙 봇이 OG 태그를 읽어 가고, 사람은 가입/로그인 뒤 돌아온다
+        if room is None:
+            return _render(request, "join_preview.html", None, room=None, noindex=True, status_code=404)
+        book = await session.get(Book, room.book_id)
+        owner = await session.get(User, room.owner_id)
+        count = await race_service.member_count(session, room)
+        return _render(
+            request,
+            "join_preview.html",
+            None,
+            room=room,
+            book=book,
+            owner=owner,
+            count=count,
+            next=f"/join/{room.invite_code}",
+            noindex=True,
+        )
     if room is None:
         return RedirectResponse("/races?error=코드를 찾을 수 없어요", status_code=303)
     if await race_service.is_member(session, room, user.id):
