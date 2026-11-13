@@ -69,6 +69,16 @@ class Settings(BaseSettings):
         "7F:D4:97:F9:FC:B0:1F:F9:A2:CB:2F:1A:A8:BE:65:21:F7:C9:08:3B:34:96:A4:E3:8F:F9:CB:41:7C:35:06:48"
     )
 
+    # --- ops ---
+    # Sentry DSN. 비워 두면 오류 수집을 하지 않는다 (로컬·테스트 기본)
+    sentry_dsn: str | None = None
+    # 로그 레벨(stdlib). 운영은 INFO, 디버깅은 DEBUG
+    log_level: str = "INFO"
+    # 로그를 JSON 한 줄로 낼지(서버·Vercel) 사람이 읽기 쉬운 텍스트로 낼지(로컬)
+    log_json: bool = True
+    # CSP를 Report-Only로 내보낼지. 템플릿 인라인 스크립트가 모두 nonce를 달면 false로 바꿔 강제한다
+    csp_report_only: bool = True
+
 
 @lru_cache
 def get_settings() -> Settings:

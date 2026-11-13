@@ -174,32 +174,7 @@ async def verify_signup(session: AsyncSession, email: str, code: str) -> tuple[U
     return user, None
 
 
-# 비밀번호 대입 막기: (이메일, IP)별로 10분에 5번까지 틀릴 수 있다.
-# 서버리스에서는 인스턴스마다 따로 세지만, 한 인스턴스에 몰아 대입하는 공격은 막는다
-MAX_FAILURES = 5
-FAILURE_WINDOW_S = 600
-_failures: dict[tuple[str, str], list[float]] = {}
-
-
-def too_many_failures(email: str, ip: str) -> bool:
-    now = time.time()
-    key = (normalize_email(email), ip)
-    recent = [t for t in _failures.get(key, []) if now - t < FAILURE_WINDOW_S]
-    if recent:
-        _failures[key] = recent
-    else:
-        _failures.pop(key, None)  # 오래된 기록은 지워 메모리가 쌓이지 않게
-    return len(recent) >= MAX_FAILURES
-
-
-def record_failure(email: str, ip: str) -> None:
-    _failures.setdefault((normalize_email(email), ip), []).append(time.time())
-    if len(_failures) > 10_000:  # 아주 많은 이메일로 흩뿌려도 무한히 커지지 않게
-        _failures.clear()
-
-
-def clear_failures(email: str, ip: str) -> None:
-    _failures.pop((normalize_email(email), ip), None)
+# 로그인 횟수 제한은 app/core/ratelimit.py(DB 고정창)가 맡는다 — 서버리스 인스턴스 사이에도 공유된다
 
 
 async def authenticate(session: AsyncSession, email: str, password: str) -> User | None:

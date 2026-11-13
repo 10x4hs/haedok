@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import auth
 from app.api.deps import get_http_client, get_sources
-from app.core import appearance
+from app.core import appearance, ratelimit
 from app.core.config import Settings, get_settings
 from app.db.session import get_session
 from app.models import Book, LibraryEntry, Room, Shelf, User
@@ -118,10 +118,12 @@ templates.env.globals["cover_of"] = cover_of
 templates.env.globals["APPEARANCE"] = appearance
 
 
-def _render(request: Request, name: str, user: User | None, **ctx) -> HTMLResponse:
+def _render(
+    request: Request, name: str, user: User | None, status_code: int = 200, **ctx
+) -> HTMLResponse:
     look = appearance.resolve(user.settings if user else None)
     ctx |= {"user": user, "csrf": auth.csrf_token(request), "path": request.url.path, "look": look}
-    return templates.TemplateResponse(request, name, ctx)
+    return templates.TemplateResponse(request, name, ctx, status_code=status_code)
 
 
 def _safe_next(target: str | None) -> str:
@@ -204,6 +206,11 @@ async def signup(
     auth.check_csrf(request, csrf)
     form = auth.SignupForm(nickname, email, password, password_confirm)
     if form.validate():
+        try:
+            await ratelimit.check_signup(session, form.email, ratelimit.client_ip(request))
+        except ratelimit.RateLimited as e:
+            form.errors["email"] = e.message
+            return _render(request, "signup.html", None, form=form, status_code=429)
         if await auth.email_taken(session, form.email):
             form.errors["email"] = "이미 가입된 이메일이에요"
         else:
@@ -292,6 +299,12 @@ async def signup_resend(
     email = request.session.get("signup_email")
     if not email:
         return RedirectResponse("/signup", status_code=303)
+    try:
+        await ratelimit.check_signup(session, email, ratelimit.client_ip(request))
+    except ratelimit.RateLimited as e:
+        page = await _verify_page(request, session, email, error=e.message, kind="wait")
+        page.status_code = 429
+        return page
     code, wait = await auth.resend_code(session, email)
     if wait < 0:
         return RedirectResponse("/signup", status_code=303)
@@ -324,21 +337,20 @@ async def login(
     session: AsyncSession = Depends(get_session),
 ) -> HTMLResponse | RedirectResponse:
     auth.check_csrf(request, csrf)
-    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
-        request.client.host if request.client else ""
-    )
-    if auth.too_many_failures(email, ip):
+    try:
+        await ratelimit.check_login(session, email, ratelimit.client_ip(request))
+    except ratelimit.RateLimited as e:
         return _render(
             request,
             "login.html",
             None,
             email=auth.normalize_email(email),
-            error="비밀번호를 여러 번 틀렸어요. 10분 뒤에 다시 시도해 주세요",
+            error=e.message,
             next=_safe_next(next),
+            status_code=429,
         )
     user = await auth.authenticate(session, email, password)
     if user is None:
-        auth.record_failure(email, ip)
         return _render(
             request,
             "login.html",
@@ -347,7 +359,6 @@ async def login(
             error="이메일 또는 비밀번호가 맞지 않아요",
             next=_safe_next(next),
         )
-    auth.clear_failures(email, ip)
     auth.login(request, user)
     return RedirectResponse(_safe_next(next), status_code=303)
 
@@ -684,6 +695,10 @@ async def join(
     user: User = Depends(auth.require_user),
 ) -> RedirectResponse:
     auth.check_csrf(request, csrf)
+    try:
+        await ratelimit.check_join(session, user.id)
+    except ratelimit.RateLimited as e:
+        return RedirectResponse(f"/races?error={e.message}", status_code=303)
     room = await race_service.by_code(session, code)
     if room is None:
         return RedirectResponse("/races?error=코드를 찾을 수 없어요", status_code=303)
