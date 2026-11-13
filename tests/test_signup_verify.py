@@ -2,6 +2,7 @@
 
 import json
 import logging
+import re
 import time
 
 import httpx
@@ -140,11 +141,69 @@ async def test_signup_form_labels(api):
 
 async def test_mail_logs_code_without_api_key(monkeypatch, caplog):
     monkeypatch.setattr(get_settings(), "resend_api_key", None)
+    monkeypatch.setattr(get_settings(), "vercel_env", None)
     calls = []
     client = mock_client(lambda req: calls.append(req) or httpx.Response(200))
     with caplog.at_level(logging.WARNING, logger="haedok.mail"):
         assert await REAL_SEND_SIGNUP_CODE(client, "a@b.co", "123456")
     assert "123456" in caplog.text and not calls
+
+
+async def test_failed_mail_shows_error_and_next_try_resends(api, session_factory, monkeypatch):
+    """운영에서 겪은 버그: 첫 발송이 실패해도 60초 안에 다시 누르면 메일 없이 인증 화면으로 넘어갔다."""
+    from app.services import mail
+
+    results = iter([False, True])
+
+    async def flaky(client, email, code, session=None):
+        ok = next(results)
+        if ok:
+            SENT_CODES[email] = code
+        return ok
+
+    monkeypatch.setattr(mail, "send_signup_code", flaky)
+    async with api(upstream) as c:
+        token = await csrf_of(c)
+        form = {"nickname": "새독자", "email": EMAIL, "password": "password123",
+                "password_confirm": "password123", "csrf": token}
+        r = await c.post("/signup", data=form)
+        assert r.status_code == 200 and "인증 메일을 보내지 못했어요" in r.text
+        assert EMAIL not in SENT_CODES
+        assert (await c.get("/signup/verify")).status_code == 303  # 인증 화면으로 새지 않는다
+        r = await c.post("/signup", data=form)  # 바로 다시: 간격에 막히지 않고 새 코드가 나간다
+        assert r.status_code == 303 and r.headers["location"] == "/signup/verify"
+        assert EMAIL in SENT_CODES
+        r = await c.post("/signup/verify", data={"code": SENT_CODES[EMAIL], "csrf": token})
+        assert r.status_code == 303
+    assert await users(session_factory) == 1
+
+
+async def test_verify_page_shows_attempts_expiry_and_cooldown(api, monkeypatch):
+    async with api(upstream) as c:
+        token = await start(c)
+        html = (await c.get("/signup/verify")).text
+        assert "다른 이메일로" in html and re.search(r'data-expires-in="(599|600)"', html)
+        assert re.search(r'data-wait="(59|60)"', html) and "남은 기회 5번" in html
+        assert 'inputmode="numeric"' in html and 'autocomplete="one-time-code"' in html
+        r = await c.post("/signup/verify", data={"code": wrong(SENT_CODES[EMAIL]), "csrf": token})
+        assert 'data-kind="wrong"' in r.text and "남은 기회 4번" in r.text
+        shift_clock(monkeypatch, auth.CODE_TTL_S + 1)
+        r = await c.post("/signup/verify", data={"code": SENT_CODES[EMAIL], "csrf": token})
+        assert 'data-kind="expired"' in r.text and 'data-wait="0"' in r.text
+
+
+async def test_resend_failure_is_visible_and_unlocks_cooldown(api, monkeypatch):
+    from app.services import mail
+
+    async def fail(client, email, code, session=None):
+        return False
+
+    async with api(upstream) as c:
+        token = await start(c)
+        shift_clock(monkeypatch, auth.RESEND_COOLDOWN_S + 1)
+        monkeypatch.setattr(mail, "send_signup_code", fail)
+        r = await c.post("/signup/resend", data={"csrf": token})
+        assert "보내지 못했어요" in r.text and 'data-kind="mail"' in r.text and 'data-wait="0"' in r.text
 
 
 async def test_mail_posts_to_resend(monkeypatch):

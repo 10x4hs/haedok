@@ -56,6 +56,8 @@ class Settings(BaseSettings):
     smtp_port: int = 465
     smtp_user: str | None = None
     smtp_password: str | None = None
+    # Vercel이 넣어 주는 값(production/preview). 있으면 메일 설정이 없을 때 로그 대신 실패로 처리한다
+    vercel_env: str | None = None
     # 안드로이드 TWA 앱 — /.well-known/assetlinks.json 에 실린다. 지문은 쉼표로 여러 개
     android_package: str = "app.vercel.saipr_reading.twa"
     android_cert_sha256: str = (

@@ -124,7 +124,7 @@ def _reset_login_failures():
 def _capture_signup_mail(monkeypatch):
     """가입 인증 메일을 보내는 대신 SENT_CODES에 적어 둔다."""
 
-    async def fake(client, email, code):
+    async def fake(client, email, code, session=None):
         SENT_CODES[email] = code
         return True
 
