@@ -137,8 +137,8 @@ Postgres로 돌리려면 `docker compose up -d` 뒤에 `alembic upgrade head`를
 | `MAX_UPLOAD_MB` | 업로드 상한. Vercel은 4 |
 | `ANDROID_PACKAGE` · `ANDROID_CERT_SHA256` | Android TWA 서명 지문(`/.well-known/assetlinks.json`) |
 | `KAKAO_REST_API_KEY` · `NAVER_CLIENT_*` · `GOOGLE_BOOKS_API_KEY` | 메타데이터 검색 소스. 키가 없으면 그 소스만 꺼져요 |
-| `SENTRY_DSN` | 오류 수집(선택). 나란히 진행 중인 PR에서 추가돼요 |
-| `SITE_URL` | 메일·초대 링크에 쓰는 절대 주소. 나란히 진행 중인 PR에서 추가돼요 |
+| `SENTRY_DSN` | Sentry 오류 수집(선택). 비우면 꺼져요 |
+| `SITE_URL` | 공개 주소(https://…). canonical·OG·사이트맵·초대 미리보기에 써요. 비우면 Vercel URL → 요청 주소 순 |
 
 ## 관리자 화면
 

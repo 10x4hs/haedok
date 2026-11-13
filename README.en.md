@@ -137,8 +137,8 @@ Set them in `.env` or as Vercel environment variables. [`app/core/config.py`](ap
 | `MAX_UPLOAD_MB` | Upload limit. 4 on Vercel |
 | `ANDROID_PACKAGE` · `ANDROID_CERT_SHA256` | Android TWA signing fingerprint (`/.well-known/assetlinks.json`) |
 | `KAKAO_REST_API_KEY` · `NAVER_CLIENT_*` · `GOOGLE_BOOKS_API_KEY` | Metadata search sources. A missing key simply disables that source |
-| `SENTRY_DSN` | Error reporting (optional). Being added in a parallel PR |
-| `SITE_URL` | Absolute URL used in emails and invite links. Being added in a parallel PR |
+| `SENTRY_DSN` | Sentry error reporting (optional). Off when empty |
+| `SITE_URL` | Public base URL (https://…) for canonical, OG, sitemap and invite previews. Falls back to the Vercel URL, then the request host |
 
 ## Admin screens
 
