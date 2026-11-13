@@ -1,22 +1,19 @@
 # README 에셋 다시 만들기
 
-README에 들어가는 이미지는 세 종류예요. 모두 `docs/images/` 아래에 있어요.
+README에 들어가는 이미지는 두 종류예요. 모두 `docs/images/` 아래에 있어요.
 
 | 에셋 | 경로 | 만드는 법 |
 |---|---|---|
-| 히어로 GIF | `docs/images/hero.gif` | `scripts/readme_assets.sh gif` |
 | 소셜 배너 1200×630 | `docs/images/banner.png` | `scripts/readme_assets.sh banner` |
 | 앱 스크린샷 390×844 (DPR 2) | `docs/images/app/*.jpg` · `docs/images/admin/*.jpg` | 아래 "스크린샷" 절 |
 
-## GIF · 배너
+## 배너
 
 ```bash
-brew install ffmpeg                                  # GIF
 uv pip install pillow --python .venv/bin/python      # 배너
-scripts/readme_assets.sh                             # 둘 다 (gif | banner 로 하나만)
+scripts/readme_assets.sh
 ```
 
-- GIF는 `app/static/demo/haedok-demo.mp4`(41초, 720×1280)에서 **14초~28초** 구간을 잘라요 — "코드 하나로 초대 → 지금 같은 페이지 → 앞서거니 뒤서거니". ffmpeg 2패스(`palettegen` → `paletteuse`)로 12fps, 가로 360px, 128색, bayer 디더링이에요. 미세 노이즈를 걷어내는 `hqdn3d` 덕에 5 MB 아래로 들어와요. 구간이나 크기를 바꾸려면 `START= DURATION= FPS= WIDTH= COLORS=` 환경변수를 주세요. 5 MB를 넘으면 스크립트가 실패해요.
 - 배너는 `scripts/readme_banner.py`가 Pillow로 그려요. 한글·한자 폰트는 macOS의 Apple SD Gothic Neo를 기본으로 찾고, 리눅스에서는 `FONT=/path/to/NotoSansCJK-Bold.ttc`로 알려 주세요. 색은 `app/static/app.css`의 `--accent`·`--glow`를 그대로 써요.
 
 ## 스크린샷

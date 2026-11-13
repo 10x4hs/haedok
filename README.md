@@ -16,9 +16,7 @@
 
 <br>
 
-<img src="docs/images/hero.gif" alt="초대 코드로 친구를 부르고, 같은 페이지를 보고, 레이스하는 14초" width="300">
-
-<sub>초대 → 같은 페이지 → 레이스, 14초 요약 · [41초 전체 영상 보기](app/static/demo/haedok-demo.mp4)</sub>
+<img src="docs/images/app/7-race.jpg" alt="페이지 레이스 화면" width="300">
 
 </div>
 
