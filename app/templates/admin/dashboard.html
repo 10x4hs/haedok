@@ -1,0 +1,14 @@
+{% extends "admin/_layout.html" %}
+{% block admin_title %}현황{% endblock %}
+{% block admin %}
+<section class="stats admin-stats">
+  <a href="/admin/users"><b>{{ counts.users }}</b><span>사용자</span></a>
+  <a href="/admin/users"><b>{{ counts.pending }}</b><span>가입 대기</span></a>
+  <a href="/admin/users"><b>{{ counts.expired }}</b><span>대기 만료</span></a>
+  <a href="/admin/rooms"><b>{{ counts.rooms }}</b><span>대결방</span></a>
+  <a href="/admin/rooms"><b>{{ counts.books }}</b><span>책</span></a>
+  <a href="/admin/rooms"><b>{{ counts.uploads }}</b><span>올린 파일</span></a>
+  <a href="/admin/mail" class="{{ 'bad' if counts.mail_fail else 'ok' }}"><b>{{ counts.mail_ok }} <small>/ {{ counts.mail_fail }}</small></b><span>24시간 메일 성공 / 실패</span></a>
+</section>
+<p class="muted small">숫자를 누르면 해당 화면으로 가요. 가입 대기는 아직 인증 코드를 넣지 않은 사람이에요.</p>
+{% endblock %}

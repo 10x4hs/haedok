@@ -1,0 +1,38 @@
+{% extends "admin/_layout.html" %}
+{% block admin_title %}대결방{% endblock %}
+{% block admin %}
+<section class="row">
+  <div class="row-h"><h2>대결방</h2><span class="mono muted">{{ rows|length }}</span></div>
+  {% if not rows %}<p class="muted">아직 열린 대결방이 없어요</p>{% endif %}
+  <ul class="admin-list">
+  {% for r in rows %}
+    <li>
+      <div>
+        <b>{{ r.title }} <em class="tag">{{ r.room.invite_code }}</em></b>
+        <span>{{ r.owner }} · {{ r.members }}명 · 한 문장 {{ r.quotes }}개 · 만든 때 {{ r.room.created_at|fmt_dt }} · 마지막 활동 {{ r.last_seen|fmt_dt }} · {{ '끝남' if r.over else '진행 중' }}</span>
+      </div>
+      <a class="pill" href="/races/{{ r.room.id }}">열기</a>
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+
+<section class="row">
+  <div class="row-h"><h2>책</h2></div>
+  {% if not by_source %}<p class="muted">아직 열린 책이 없어요</p>{% endif %}
+  <div class="stats admin-stats">
+    {% for source, n in by_source %}<div><b>{{ n }}</b><span>{{ '올린 파일' if source == 'upload' else source }}</span></div>{% endfor %}
+  </div>
+</section>
+
+{% if uploads %}
+<section class="row">
+  <div class="row-h"><h2>올린 파일</h2><span class="mono muted">{{ uploads|length }}</span></div>
+  <ul class="admin-list">
+  {% for b, owner in uploads %}
+    <li><div><b>{{ b.title }}</b><span>{{ b.author or '지은이 없음' }} · {{ owner or '(주인 없음)' }} · {{ b.total_chunks }}쪽</span></div></li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

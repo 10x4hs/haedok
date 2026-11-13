@@ -1,0 +1,12 @@
+{% extends "app.html" %}
+{% block title %}{% block admin_title %}관리{% endblock %} — 관리자 · 偕讀 해독{% endblock %}
+{% block content_class %}split admin{% endblock %}
+{% block heading %}<small>관리자</small>{{ self.admin_title() }}{% endblock %}
+{% block main %}
+<nav class="admin-nav seg full" aria-label="관리 메뉴">
+  {% for href, label in nav %}<a href="{{ href }}" aria-pressed="{{ 'true' if path == href else 'false' }}">{{ label }}</a>{% endfor %}
+</nav>
+{% if msg %}<p class="form-ok" role="status">{{ msg }}</p>{% endif %}
+{% if err %}<p class="form-err" role="alert">{{ err }}</p>{% endif %}
+{% block admin %}{% endblock %}
+{% endblock %}

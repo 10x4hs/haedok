@@ -894,3 +894,30 @@ html:root[data-bg-tone="light"]{
 .l-login{background:#2a2226;border-color:rgba(255,255,255,.28)}
 .l-ios{border-color:#f5f5f7}
 .l-android{border-color:#3ddc84}
+
+/* ---------- 관리자 (/admin) ---------- */
+.admin-nav{display:grid;grid-template-columns:repeat(4,1fr);width:100%;margin-bottom:16px}
+.admin-nav a{display:grid;place-items:center;height:36px;border-radius:999px;font-size:14px;font-weight:500;color:var(--dim);transition:background .4s var(--ease),color .4s var(--ease)}
+.admin-nav a[aria-pressed="true"]{background:var(--text);color:var(--bg)}
+.form-ok{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok);border-radius:12px;padding:12px 14px;margin:0 0 12px;font-size:14px}
+.admin .form-err{margin-bottom:12px}
+.admin-stats{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));margin-top:8px}
+.admin-stats a,.admin-stats div{display:block;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.admin-stats a.bad b{color:var(--bad)}
+.admin-stats b small{font-size:15px;color:var(--dim)}
+.admin-search{display:flex;gap:8px;margin-bottom:8px}
+.admin-search input{flex:1;min-width:0;height:44px;padding:0 16px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--text);font:inherit}
+.admin-search .btn{height:44px;padding:0 18px;font-size:14px}
+.admin-list{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.admin-list li{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.admin-list li:last-child{border-bottom:0}
+.admin-list li>div{flex:1;display:grid;min-width:0}
+.admin-list b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-list span{font-size:13px;color:var(--dim);overflow-wrap:anywhere}
+.admin-actions{display:flex;gap:6px;flex:none}
+.admin .pill{height:32px;padding:0 14px;font-size:13px}
+.admin .pill.danger{color:var(--bad)}
+.tag{display:inline-block;vertical-align:middle;font:500 11px var(--f-mono);letter-spacing:.04em;padding:2px 8px;border-radius:999px;background:var(--sunken);color:var(--dim);font-style:normal}
+.tag.ok{color:var(--ok)}.tag.bad{color:var(--bad)}
+.checks .dot{width:12px;height:12px;border-radius:50%;flex:none}
+.checks .dot.ok{background:var(--ok)}.checks .dot.warn{background:var(--bad)}

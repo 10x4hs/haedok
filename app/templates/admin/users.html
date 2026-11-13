@@ -1,0 +1,50 @@
+{% extends "admin/_layout.html" %}
+{% block admin_title %}사용자{% endblock %}
+{% block admin %}
+<form class="admin-search" method="get" action="/admin/users" role="search">
+  <input type="search" name="q" value="{{ q }}" placeholder="이메일로 찾기" aria-label="이메일로 찾기" autocomplete="off">
+  <button class="btn ghost">찾기</button>
+</form>
+
+{% if pending %}
+<section class="row">
+  <div class="row-h"><h2>가입 대기</h2><span class="mono muted">{{ pending|length }}</span></div>
+  <ul class="admin-list">
+  {% for p in pending %}
+    <li>
+      <div>
+        <b>{{ p.email }}</b>
+        <span>{{ p.nickname }} · 보낸 때 {{ p.sent_at|fmt_dt }} · {{ '만료됨' if p.expires_at < now else '유효' }} · 틀림 {{ p.attempts }}번</span>
+      </div>
+      <div class="admin-actions">
+        <form method="post" action="/admin/signups/{{ p.id }}/approve"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="pill">승인</button></form>
+        <form method="post" action="/admin/signups/{{ p.id }}/delete"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="pill danger">지우기</button></form>
+      </div>
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="row">
+  <div class="row-h"><h2>가입한 사용자</h2><span class="mono muted">{{ rows|length }}</span></div>
+  {% if not rows %}<p class="muted">{{ '찾는 사용자가 없어요' if q else '아직 가입한 사람이 없어요' }}</p>{% endif %}
+  <ul class="admin-list">
+  {% for u, last, books in rows %}
+    <li>
+      <div>
+        <b>{{ u.email or '(이메일 없음)' }}{% if is_admin(u) %} <em class="tag">관리자</em>{% endif %}</b>
+        <span>{{ u.nickname }} · 가입 {{ u.created_at|fmt_dt }} · 최근 활동 {{ last|fmt_dt }} · 서재 {{ books }}권 · {{ '인증됨' if u.email else '소셜' }}</span>
+      </div>
+      <div class="admin-actions">
+        {% if u.id != user.id %}
+        <form method="post" action="/admin/users/{{ u.id }}/delete" onsubmit="return confirm('{{ u.email or u.nickname }} 계정과 서재·반응·대결 기록을 모두 지울까요? 되돌릴 수 없어요.')">
+          <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="confirm" value="1"><button class="pill danger">삭제</button>
+        </form>
+        {% endif %}
+      </div>
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% endblock %}

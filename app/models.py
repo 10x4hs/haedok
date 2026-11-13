@@ -113,6 +113,22 @@ class SignupVerification(Base):
     sent_at: Mapped[int] = mapped_column(BigInteger)
 
 
+class MailLog(Base):
+    """메일 발송 시도 기록 — 관리자 화면(/admin/mail)에서 최근 성공·실패를 본다."""
+
+    __tablename__ = "mail_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    to_email: Mapped[str] = mapped_column(String(255))
+    kind: Mapped[str] = mapped_column(String(40))
+    ok: Mapped[bool] = mapped_column(Boolean)
+    # "smtp465" | "smtp587" | "resend" | "log"
+    transport: Mapped[str] = mapped_column(String(20))
+    error: Mapped[str | None] = mapped_column(Text)
+    duration_ms: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = _now()
+
+
 class Book(Base):
     __tablename__ = "books"
     __table_args__ = (UniqueConstraint("source", "external_id"),)

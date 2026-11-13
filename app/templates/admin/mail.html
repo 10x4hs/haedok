@@ -1,0 +1,28 @@
+{% extends "admin/_layout.html" %}
+{% block admin_title %}메일{% endblock %}
+{% block admin %}
+<section class="row">
+  <div class="row-h"><h2>설정 점검</h2></div>
+  <ul class="admin-list checks">
+  {% for name, value, good in checks %}
+    <li><div><b>{{ name }}</b><span>{{ value }}</span></div><em class="dot {{ 'ok' if good else 'warn' }}" aria-label="{{ '정상' if good else '확인 필요' }}"></em></li>
+  {% endfor %}
+  </ul>
+  <p class="muted small">값은 보여 주지 않고 설정 여부만 확인해요.</p>
+</section>
+
+<section class="row">
+  <div class="row-h"><h2>최근 발송</h2><span class="mono muted">{{ logs|length }}</span></div>
+  {% if not logs %}<p class="muted">아직 메일 발송 기록이 없어요</p>{% endif %}
+  <ul class="admin-list">
+  {% for m in logs %}
+    <li>
+      <div>
+        <b>{{ m.to_email }} <em class="tag {{ 'ok' if m.ok else 'bad' }}">{{ '성공' if m.ok else '실패' }}</em></b>
+        <span>{{ m.kind }} · {{ m.transport }} · {{ m.created_at|fmt_dt }}{% if m.duration_ms is not none %} · {{ m.duration_ms }}ms{% endif %}{% if m.error %} · {{ m.error }}{% endif %}</span>
+      </div>
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% endblock %}
