@@ -86,7 +86,7 @@ flowchart LR
 | 서버 | Python 3.12 · FastAPI · SQLAlchemy 2(async) · Alembic · pydantic-settings |
 | 화면 | Jinja2 서버 렌더링 + 바닐라 CSS/JS · CSS transform 3D · StPageFlip · View Transitions |
 | 데이터 | Postgres(Neon) · 로컬·테스트는 SQLite(aiosqlite) |
-| 메일 | Resend API(배포) · SMTP 465/587(로컬) · 모든 시도는 `mail_logs` |
+| 메일 | Brevo·Resend API(배포) · SMTP 465/587(로컬) · 모든 시도는 `mail_logs` |
 | 실시간 | 인메모리 브로커 + WebSocket(로컬) · 폴링(서버리스) |
 | 배포 | Vercel Python Function(`api/index.py`) · GitHub Actions CI(테스트 + 실제 Postgres 마이그레이션) |
 | 품질 | pytest(네트워크 0, `httpx.MockTransport`) · ruff |
@@ -111,7 +111,8 @@ Postgres로 돌리려면 `docker compose up -d` 뒤에 `alembic upgrade head`를
 | `SECRET_KEY` | 세션 쿠키 서명 키. **배포 필수** |
 | `DATABASE_URL` | `postgres://…?sslmode=require`(Neon) 또는 `sqlite+aiosqlite:///…`. asyncpg 형식으로 자동 변환 |
 | `COOKIE_SECURE` | HTTPS에서 `true` |
-| `RESEND_API_KEY` · `RESEND_FROM` | 가입 인증 메일. **Vercel에서는 이걸 써요** (SMTP는 Vercel 함수에서 끊겨요) |
+| `BREVO_API_KEY` · `BREVO_FROM` | 가입 인증 메일 1순위. 도메인 없이 발신 주소 인증만으로 누구에게나 보내요(무료 300통/일) |
+| `RESEND_API_KEY` · `RESEND_FROM` | 가입 인증 메일 2순위. 도메인을 검증해야 본인 외에도 보내요 (SMTP는 Vercel 함수에서 끊겨요) |
 | `SMTP_HOST` · `SMTP_PORT` · `SMTP_USER` · `SMTP_PASSWORD` | 로컬·일반 서버용 SMTP(Gmail은 앱 비밀번호). 둘 다 없으면 로컬은 코드를 로그에 남겨요 |
 | `ADMIN_EMAILS` | `/admin`을 열 수 있는 이메일, 쉼표로 여러 개. 비어 있으면 아무도 못 열어요 |
 | `DWELL_SCALE` | 최소 체류시간 배율(시연용). **운영은 1.0** |
