@@ -247,7 +247,10 @@ async def signup(
     return _render(request, "signup.html", None, form=form)
 
 
-MAIL_FAILED = "인증 메일을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요"
+MAIL_FAILED = (
+    "인증 메일을 보내지 못했어요. 가입 요청은 접수됐으니 관리자가 확인하면 "
+    "바로 로그인할 수 있어요. 급하면 잠시 뒤 다시 시도해 주세요"
+)
 
 
 async def _verify_page(
