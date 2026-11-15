@@ -17,9 +17,7 @@
 
 <br>
 
-<img src="docs/images/hero.gif" alt="Fourteen seconds: invite a friend with a code, see the same page, race" width="300">
-
-<sub>Invite → same page → race, in 14 seconds · [Watch the full 41-second video](app/static/demo/haedok-demo.mp4)</sub>
+<img src="docs/images/app/7-race.jpg" alt="Page race screen" width="300">
 
 </div>
 
