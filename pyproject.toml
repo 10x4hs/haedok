@@ -29,6 +29,10 @@ dev = [
     "respx>=0.21",
     "ruff>=0.5",
 ]
+# scripts/ 의 이미지 생성(OG·README 배너)에만 쓴다 — 런타임(앱·Vercel)은 Pillow 없이 돈다
+scripts = [
+    "pillow>=10",
+]
 
 [build-system]
 requires = ["hatchling"]
