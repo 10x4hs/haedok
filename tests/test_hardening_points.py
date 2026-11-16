@@ -167,7 +167,7 @@ def _hardening_migration():
 
 def test_migration_metadata():
     mod = _hardening_migration()
-    assert mod.revision.startswith("c2") and mod.down_revision == "b7c2d9e4f601"
+    assert mod.revision.startswith("c2") and mod.down_revision == "c1a4e8d2f305"
 
 
 async def test_migration_dedupes_then_adds_constraint(session_factory):

@@ -131,7 +131,7 @@
     <button class="demo-close" type="button" data-close aria-label="닫기">✕</button>
   </div>
 </div>
-<script>
+<script nonce="{{ csp_nonce }}">
 (() => {
   const m = document.getElementById('demoModal'), v = document.getElementById('demoVideo'), open = document.getElementById('demoOpen');
   const close = () => { v.pause(); m.hidden = true; document.body.classList.remove('locked'); open.focus(); };
