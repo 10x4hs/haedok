@@ -132,7 +132,7 @@ async def test_theme_persists_through_settings_api(api):
         assert 'data-preset="midnight"' in html and 'data-theme="dark"' in html
         assert "--bg:#0F1115" in html and 'data-accent="theme"' in html
         assert '<div class="fx" id="fx" data-bg="theme"' in page.text
-        assert "심야 독서 · ›" in page.text
+        assert "<em data-look-label>심야 독서</em>" in page.text
         assert 'data-theme-pick="midnight"' in page.text
         # 직접 고르면(theme="") 테마가 꺼진다
         await _set_look(c, theme="", mode="light", bg="paper", accent="green")
