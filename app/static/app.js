@@ -68,9 +68,11 @@
     $$('#lookMode button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === p.mode));
     $$('[data-bgpick]').forEach(b => b.setAttribute('aria-pressed', b.dataset.bgpick === p.bg));
     $$('#lookAccent button').forEach(b => b.setAttribute('aria-pressed', b.dataset.accent === p.accent));
+    const name = $(`#lookAccent button[data-accent="${p.accent}"]`)?.getAttribute('aria-label');
+    if (name) $('#lookAccentName').textContent = name;
   };
   let opener = null;
-  function openLook() { opener = document.activeElement; pick = { ...saved }; apply(pick); sheet.hidden = false; document.body.classList.add('locked'); (sheet.querySelector('button, [href]') || sheet).focus(); }
+  function openLook() { opener = document.activeElement; pick = { ...saved }; apply(pick); sheet.hidden = false; document.body.classList.add('locked'); sheet.querySelector('[role=dialog]').focus(); }
   function closeLook(revert) { if (sheet.hidden) return; if (revert) apply(saved); sheet.hidden = true; document.body.classList.remove('locked'); opener?.focus?.(); }
   window.closeLook = closeLook;
 
