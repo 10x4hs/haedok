@@ -566,7 +566,9 @@ h3.sub,.sheet h3{font-size:14px;font-weight:600;color:var(--dim);margin:22px 0 1
 .accents button[aria-pressed="true"] .dot.mono,.accents button[aria-pressed="true"] .dot.multi{box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--text)}
 
 /* 아래 버튼 — 꽉 찬 '완료' 하나, 안내는 그 아래 작게 */
-.sheet-f{position:sticky;bottom:0;z-index:2;display:grid;gap:8px;justify-items:center;margin:20px -20px 0;padding:12px 20px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,color-mix(in srgb,var(--bg) 92%,transparent) 22%)}
+.sheet-f{position:sticky;bottom:0;z-index:2;display:grid;gap:8px;justify-items:center;margin:20px -20px 0;padding:12px 20px calc(12px + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--bg) 82%,var(--surface))}
+/* 버튼 위로 내용이 비치지 않게 바탕을 채우고, 그 위 24px만 부드럽게 사라지게 */
+.sheet-f::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:24px;background:linear-gradient(transparent,color-mix(in srgb,var(--bg) 82%,var(--surface)));pointer-events:none}
 .sheet-f .btn{width:100%;height:54px;font-size:16px;border-radius:16px}
 .sheet-f .hint{margin:0;font-size:12px;line-height:1.4}
 @media (max-width:374px){
