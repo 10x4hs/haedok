@@ -28,7 +28,7 @@ def env(monkeypatch):
                 monkeypatch.setenv(k, v)
         get_settings.cache_clear()
 
-    set_(SMTP_USER=None, SMTP_PASSWORD=None, RESEND_API_KEY=None, BREVO_API_KEY=None, VERCEL_ENV=None)
+    set_(SMTP_USER=None, SMTP_PASSWORD=None, RESEND_API_KEY=None, BREVO_API_KEY=None, VERCEL_ENV=None, GAS_MAIL_URL=None)
     yield set_
     get_settings.cache_clear()
 
@@ -199,3 +199,42 @@ def test_send_smtp_uses_ssl_on_465_and_starttls_on_587(monkeypatch):
         "ehlo",
         "sent",
     ]
+
+
+GAS_URL = "https://script.google.com/macros/s/abc/exec"
+
+
+async def test_gmail_script_first_on_vercel_and_payload_shape(env, session_factory):
+    """Apps Script 웹 앱(회원님 Gmail)으로 누구에게나 보낸다. 배포에서 가장 먼저 쓴다."""
+    env(GAS_MAIL_URL=GAS_URL, GAS_MAIL_SECRET="s3cret", BREVO_API_KEY="xkeysib-x", VERCEL_ENV="production")
+    assert mail.transports(get_settings()) == ["gas", "brevo"]
+    posted = []
+
+    def route(req):
+        posted.append(req)
+        if req.method == "POST":  # Apps Script는 실행 뒤 결과 URL로 302를 준다
+            return httpx.Response(302, headers={"location": "https://script.googleusercontent.com/echo?x=1"})
+        return httpx.Response(200, json={"ok": True})
+
+    async with session_factory() as s:
+        assert await real_send(mock_client(route), "friend@b.com", "123456", session=s) == mail.SENT_USER
+    body = json.loads(posted[0].content)
+    assert str(posted[0].url) == GAS_URL and body["secret"] == "s3cret" and body["to"] == "friend@b.com"
+    assert "123456" in body["subject"] and "123456" in body["html"] and body["name"] == "해독"
+    assert [(r.transport, r.ok) for r in await rows(session_factory)] == [("gas", True)]
+
+
+async def test_gmail_script_error_falls_through(env, session_factory):
+    """스크립트가 ok:false(할당량 초과 등)나 HTML 로그인 화면을 주면 실패로 보고 다음 수단으로."""
+    env(GAS_MAIL_URL=GAS_URL, GAS_MAIL_SECRET="s3cret", RESEND_API_KEY="re_x", VERCEL_ENV="production")
+
+    def route(req):
+        if "script.google" in str(req.url):
+            return httpx.Response(200, json={"ok": False, "error": "Service invoked too many times"})
+        return httpx.Response(200, json={"id": "x"})
+
+    async with session_factory() as s:
+        assert await real_send(mock_client(route), "a@b.com", "123456", session=s)
+    logged = await rows(session_factory)
+    assert [(r.transport, r.ok) for r in logged] == [("gas", False), ("resend", True)]
+    assert "too many times" in logged[0].error

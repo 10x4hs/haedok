@@ -1,4 +1,4 @@
-"""메일 보내기 — Brevo·Resend HTTP API와 SMTP(Gmail 앱 비밀번호) 중 되는 쪽으로 보낸다.
+"""메일 보내기 — Gmail Apps Script·Brevo·Resend HTTP API와 SMTP(Gmail 앱 비밀번호) 중 되는 쪽으로 보낸다.
 둘 다 없으면 로컬에서는 코드를 로그에만 남기고, 배포(Vercel)에서는 실패로 처리한다.
 
 Vercel 서버리스에서는 Gmail SMTP(465·587)가 바로 끊긴다(2026-11 운영 로그:
@@ -33,7 +33,7 @@ RESEND_TIMEOUT_S = 10
 
 @dataclass
 class Attempt:
-    transport: str  # brevo | resend | smtp465 | smtp587 | log
+    transport: str  # gas | brevo | resend | smtp465 | smtp587 | log
     ok: bool
     error: str | None = None
     duration_ms: int | None = None
@@ -123,7 +123,15 @@ def transports(settings: Settings) -> list[str]:
     smtp = ["smtp465", "smtp587"] if settings.smtp_user and settings.smtp_password else []
     if settings.smtp_port not in (465, 587) and smtp:
         smtp = [f"smtp{settings.smtp_port}", *smtp]
-    http = (["brevo"] if settings.brevo_api_key else []) + (["resend"] if settings.resend_api_key else [])
+    http = [
+        name
+        for name, on in (
+            ("gas", settings.gas_mail_url and settings.gas_mail_secret),
+            ("brevo", settings.brevo_api_key),
+            ("resend", settings.resend_api_key),
+        )
+        if on
+    ]
     order = http + smtp if settings.vercel_env else smtp + http
     return order or ["log"]
 
@@ -143,6 +151,8 @@ async def deliver(
                         "메일 설정 없음 (BREVO_API_KEY, RESEND_API_KEY 또는 SMTP_USER/SMTP_PASSWORD)"
                     )
                 log.warning("메일 설정 없음 — %s 에게 보낼 내용: %s", to, secret or subject)
+            elif name == "gas":
+                await _send_gas(client, settings, to, subject, text, html)
             elif name == "brevo":
                 await _send_brevo(client, settings, to, subject, text, html)
             elif name == "resend":
@@ -221,6 +231,28 @@ async def _send_brevo(client, settings: Settings, to: str, subject: str, text: s
     )
     if r.status_code >= 400:
         raise RuntimeError(f"Brevo {r.status_code}: {r.text[:300]}")
+
+
+async def _send_gas(client, settings: Settings, to: str, subject: str, text: str, html: str) -> None:
+    """Apps Script 웹 앱(scripts/gas_mailer.gs)에 맡긴다. 실행 뒤 302로 결과 URL을 주므로 따라간다."""
+    name, _ = _split_from(settings.brevo_from)
+    payload = {
+        "secret": settings.gas_mail_secret,
+        "to": to,
+        "subject": subject,
+        "text": text,
+        "html": html,
+        "name": name,
+    }
+    r = await client.post(
+        settings.gas_mail_url, json=payload, timeout=RESEND_TIMEOUT_S, follow_redirects=True
+    )
+    try:
+        result = r.json()
+    except ValueError:  # 배포 권한이 '모든 사용자'가 아니면 로그인 HTML이 온다
+        raise RuntimeError(f"Gmail script {r.status_code}: JSON 아님 {r.text[:120]!r}") from None
+    if r.status_code >= 400 or not result.get("ok"):
+        raise RuntimeError(f"Gmail script {r.status_code}: {str(result.get('error'))[:300]}")
 
 
 def _send_smtp(settings: Settings, port: int, to: str, subject: str, text: str, html: str) -> None:
