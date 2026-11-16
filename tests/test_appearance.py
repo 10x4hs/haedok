@@ -45,7 +45,7 @@ async def test_html_carries_bg_tone_for_dark_background_in_light_mode(api):
     html = re.search(r"<html[^>]*>", page.text).group(0)
     assert 'data-theme="light"' in html and 'data-bg-tone="dark"' in html
     assert 'data-bg-tone="auto"' in re.search(r"<html[^>]*>", plain.text).group(0)
-    assert 'class="ranklist"' in page.text
+    assert 'class="d-search"' in page.text
 
 
 async def test_customize_swatches_carry_their_tone_for_live_preview(api):

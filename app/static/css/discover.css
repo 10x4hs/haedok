@@ -1,0 +1,127 @@
+/* 탐색 영역(탐색 · 분위기 격자 · 검색 · 책 소개 · 서점) 전용 — explore/discover/search/book/store.html 에서만 읽는다 */
+
+/* ---- 검색 입구 ---- */
+.d-top{display:grid;gap:14px;margin-top:4px}
+.d-search{display:flex;align-items:center;gap:12px;height:56px;padding:0 18px;border-radius:18px;background:var(--surface);border:1px solid var(--glass-line);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:var(--dim);font-size:17px;transition:transform .1s ease-out,border-color .15s}
+.d-search .ic{width:22px;height:22px;flex:none;color:var(--text)}
+.d-search:active{transform:scale(.97)}
+.d-search:focus-within,.d-search:focus-visible{border-color:var(--accent-strong);outline:none}
+.d-search.is-form{margin-top:4px}
+.d-search.is-form:active{transform:none}
+.d-search input{flex:1;min-width:0;height:100%;margin:0;padding:0;border:0;background:none;color:var(--text);font:inherit;font-size:17px;outline:none;box-shadow:none}
+.d-search input::placeholder{color:var(--dim)}
+
+/* ---- 스크롤 없는 아이콘 칩: 줄바꿈으로 한눈에, 고른 칩은 글자색 반전 ---- */
+.d-chips{display:flex;flex-wrap:wrap;gap:8px 6px}
+.d-chips a{display:inline-flex;align-items:center;gap:5px;min-height:40px;padding:0 13px;border-radius:999px;background:var(--sunken);border:1px solid var(--line);color:var(--body);font-size:15px;font-weight:500;letter-spacing:-.01em;transition:background-color .15s,color .15s,transform .1s ease-out}
+.d-chips a .ic{width:17px;height:17px;flex:none;opacity:.85}
+.d-chips a:active{transform:scale(.97)}
+.d-chips a:hover{border-color:var(--glass-line);color:var(--text)}
+.d-chips a.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.d-chips a.on .ic{opacity:1}
+.d-chips a:focus-visible,.d-row-h a:focus-visible,.d-shelves a:focus-visible,.d-rail .card:focus-visible,.d-grid .card:focus-visible{outline:2px solid var(--accent-strong);outline-offset:3px;border-radius:12px}
+
+/* ---- 큐레이션 줄 ---- */
+.d-row{margin-top:36px}
+.d-row-h{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}
+.d-row-h>div{display:grid;gap:4px;min-width:0}
+.d-eye{font:500 11px/1.2 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.d-row-h h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-.03em;line-height:1.3}
+.d-row-h a{display:inline-flex;align-items:center;gap:2px;flex:none;min-height:44px;font-size:15px;color:var(--dim);transition:color .15s}
+.d-row-h a:hover{color:var(--text)}
+.d-row-h a .ic{width:16px;height:16px}
+.d-rail{display:grid;grid-auto-flow:column;grid-auto-columns:116px;gap:14px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;padding:4px 20px 8px;margin:0 -20px;scroll-padding:0 20px;scrollbar-width:none}
+.d-rail::-webkit-scrollbar{display:none}
+.d-rail .card{scroll-snap-align:start}
+
+/* ---- 책 카드: 표지 + 제목 + 저자 + 예상 시간, 친구 아바타는 표지 왼쪽 아래 ---- */
+.d-cover{position:relative;display:block}
+.d-cover .flatbook{margin-bottom:10px;box-shadow:0 10px 22px -14px rgba(0,0,0,.55)}
+.d-rail .card,.d-grid .card{gap:2px;transition:transform .1s ease-out}
+.d-rail .card:active,.d-grid .card:active{transform:scale(.97)}
+.d-rail .card b,.d-grid .card b{font-size:15px;line-height:1.4}
+.d-rail .card>span:not(.d-cover),.d-grid .card>span:not(.d-cover){font-size:13px}
+.card>.d-time{color:var(--text);opacity:.72;font-variant-numeric:tabular-nums}
+.d-faces{display:inline-flex;align-items:center}
+.d-faces .avatar{width:24px;height:24px;font-size:11px;box-shadow:0 0 0 2px var(--bg)}
+.d-faces .avatar+.avatar{margin-left:-7px}
+.d-faces .avatar.more{background:var(--text);color:var(--bg);font:600 10px var(--f-ui)}
+.d-faces.pin{position:absolute;left:6px;bottom:16px;z-index:1}
+
+/* ---- 서가 목록 ---- */
+.d-shelves{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:0 20px}
+.d-shelves a{display:flex;align-items:center;gap:8px;min-height:48px;border-bottom:1px solid var(--line);font-size:15px;color:var(--body)}
+.d-shelves span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.d-shelves em{font-style:normal;font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums}
+.d-shelves .ic{width:14px;height:14px;color:var(--dim)}
+.d-mark{margin:56px -20px calc(-1 * (var(--tab) + 40px));height:120px;overflow:hidden;font:700 180px/1 var(--f-serif);letter-spacing:-.04em;text-align:center;color:var(--text);opacity:.045;user-select:none;pointer-events:none}
+
+/* ---- 격자(분위기 · 서가 · 검색) ---- */
+.d-lede{margin:6px 0 16px;font-size:15px;line-height:1.5;color:var(--dim)}
+.d-lede b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.d-filter{display:block;margin-top:16px}
+.d-filter input{display:block;width:100%;height:48px;margin:0;padding:0 16px;border-radius:14px;border:1px solid var(--line);background:var(--sunken);color:var(--text);font:inherit;font-size:15px;outline:none}
+.d-filter input:focus-visible{border-color:var(--accent-strong)}
+.d-grid{margin-top:18px;gap:26px 14px}
+
+/* ---- 검색: 결과가 차례로 떠오른다 ---- */
+.s-sec .d-grid{margin-top:0}
+.s-list{list-style:none;margin:0;padding:0;display:grid}
+.s-list a{display:flex;align-items:center;gap:14px;min-height:64px;padding:8px 0;border-bottom:1px solid var(--line)}
+.s-list div{flex:1;display:grid;gap:2px;min-width:0}
+.s-list b{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.s-list span{font-size:13px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.s-list em{font-style:normal;font-size:13px;font-weight:600;color:var(--accent-strong)}
+.s-list img.thumb{width:44px;aspect-ratio:2/3;object-fit:cover;border-radius:3px 6px 6px 3px;flex:none}
+.s-more{display:flex;margin:20px auto 0;height:44px;padding:0 20px;font-size:15px}
+.s-suggest .d-chips+.d-row-h{margin-top:28px}
+.d-chips.plain a{padding:0 16px}
+@media (prefers-reduced-motion:no-preference){
+  .s-reveal>*,.s-reveal .card{animation:d-rise .32s cubic-bezier(.2,0,0,1) both;animation-delay:calc(var(--i,0) * 35ms)}
+  @keyframes d-rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
+
+/* ---- 책 소개(서가 · 서점) ---- */
+.bd-cover{width:min(56vw,220px);margin:8px auto 0}
+.bd-head{display:grid;justify-items:center;gap:6px;margin-top:22px;text-align:center}
+.bd-head h2{margin:2px 0 0;font:700 26px/1.3 var(--f-serif);letter-spacing:-.03em;text-wrap:balance}
+.bd-author{margin:0;font-size:17px;color:var(--body)}
+.bd-pitch{margin:8px 0 0;max-width:34ch;font-size:15px;line-height:1.5;color:var(--dim);text-wrap:pretty}
+.bd-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:24px 0 0;padding:18px 0;border-radius:20px;background:var(--sunken);border:1px solid var(--line)}
+.bd-stats.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.bd-stats>div{display:flex;flex-direction:column-reverse;align-items:center;gap:4px;padding:0 6px;text-align:center}
+.bd-stats>div+div{border-left:1px solid var(--line)}
+.bd-stats dt{font-size:13px;color:var(--dim)}
+.bd-stats dd{margin:0;font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1.2;color:var(--text);font-variant-numeric:tabular-nums;word-break:keep-all}
+.bd-stats dd small{margin-left:1px;font-size:15px;font-weight:600;color:var(--body)}
+.bd-actions{display:grid;gap:10px;margin-top:22px}
+.bd-actions form{margin:0}
+.bd-sec{margin-top:36px}
+.bd-friends{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:16px}
+.bd-friends li{display:grid;justify-items:center;gap:6px;width:64px;font-size:13px;color:var(--body);text-align:center}
+.bd-friends .avatar{width:48px;height:48px;font-size:18px}
+.bd-friends span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bd-none{margin:0;padding:16px 18px;border-radius:16px;background:var(--sunken);font-size:15px;line-height:1.5;color:var(--dim)}
+.bd-facts{list-style:none;margin:0;padding:0}
+.bd-facts li{display:flex;justify-content:space-between;gap:16px;min-height:48px;align-items:center;border-bottom:1px solid var(--line);font-size:15px}
+.bd-facts span{color:var(--dim)}
+.bd-facts b{font-weight:600;text-align:right}
+.bd-note{margin:14px 0 0;font-size:13px;line-height:1.5;color:var(--dim)}
+.bd-steps{list-style:none;margin:0;padding:0;counter-reset:step;display:grid}
+.bd-steps li{counter-increment:step;display:grid;grid-template-columns:28px 1fr;gap:2px 12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.bd-steps li::before{content:counter(step);grid-row:span 2;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--sunken);border:1px solid var(--line);font:600 13px var(--f-ui);color:var(--text)}
+.bd-steps b{font-size:15px;font-weight:600}
+.bd-steps span{font-size:13px;line-height:1.5;color:var(--dim)}
+
+@media (min-width:768px) and (min-height:520px){
+  .d-top{max-width:720px}
+  .d-rail{grid-auto-columns:140px;gap:20px;padding:4px 40px 8px;margin:0 -40px;scroll-padding:0 40px}
+  .d-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .d-shelves{grid-template-columns:repeat(3,1fr)}
+  .d-mark{margin:72px -40px -72px;height:180px;font-size:260px}
+  .bd-cover{width:min(100%,300px);margin:8px auto 0}
+  .bd-head{justify-items:start;text-align:left;margin-top:0}
+  .bd-head h2{font-size:30px}
+  .bd-actions{grid-template-columns:1fr 1fr}
+}
+.d-search.is-form~.empty{margin-top:20px}

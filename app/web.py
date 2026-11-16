@@ -25,7 +25,7 @@ from app.core.config import Settings, get_settings
 from app.db.session import get_session
 from app.models import Book, LibraryEntry, Room, Shelf, User
 from app.services import books as book_service
-from app.services import mail, social
+from app.services import discovery, mail, social
 from app.services import points as points_service
 from app.services import races as race_service
 from app.services.search import FULLTEXT_SOURCES, search_all
@@ -72,6 +72,7 @@ SHELVES = {g: [b for b in CATALOG if b["genre"] == g] for g in GENRE_ORDER}
 SHELVES = {g: books for g, books in SHELVES.items() if books}
 CATALOG_INDEX = {(b["source"], b["id"]): b for b in CATALOG}
 POPULAR_ORDER = [tuple(k) for k in json.loads((DATA / "popular.json").read_text())["order"]]
+discovery.enrich(CATALOG, discovery.load_lengths())  # 분량 → 예상 시간(약 1시간 40분)
 
 
 def _load_showcase() -> list[dict]:
@@ -610,35 +611,74 @@ async def delete_my_account(
 # --- 앱 ---
 
 
+def _short_picks(n: int) -> list[dict]:
+    """오늘 시작하기 좋은 짧은 책 — 표지 있는 30분 안쪽 책 가운데 날마다 바뀌는 n권."""
+    pool = [b for b in CATALOG if b["minutes"] <= 30 and b.get("cover")]
+    return random.Random(dt.date.today().toordinal()).sample(pool, min(n, len(pool)))
+
+
 @router.get("/discover", response_class=HTMLResponse)
 async def discover(
     request: Request,
     g: str | None = None,
+    mood: str | None = None,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(auth.require_user),
 ) -> HTMLResponse:
-    """탐색: 이어 읽기 · 인기 순위 · 오늘의 추천 · 서점 · 장르별 선반. ?g= 를 주면 그 서가 전체 격자."""
-    common = {"genres": SHELVES, "store": STORE, "total": len(CATALOG)}
+    """탐색: 검색 · 분위기 칩 · 큐레이션 줄. ?mood= 는 분위기별 격자, ?g= 는 서가(장르) 격자."""
+    friends = await discovery.friends_reading(session, user.id)
+    common = {
+        "genres": SHELVES, "store": STORE, "total": len(CATALOG), "moods": discovery.MOODS,
+        "chip_moods": discovery.CHIP_MOODS, "friends": friends, "mood": None, "genre": None,
+    }  # fmt: skip
+    if mood in discovery.MOODS:
+        books = discovery.mood_books(CATALOG, mood, POPULAR_ORDER)
+        ctx = common | {"mood": discovery.MOODS[mood], "books": books}
+        return _render(request, "discover.html", user, **ctx)
     if g == "서점":
-        return _render(request, "discover.html", user, genre="서점", books=[], **common)
+        return _render(request, "discover.html", user, **common | {"genre": "서점", "books": []})
     if g == "all" or g in SHELVES:
         genre = g if g in SHELVES else None
-        return _render(
-            request, "discover.html", user, genre=genre, books=SHELVES[genre] if genre else CATALOG, **common
-        )
-    library = await book_service.library_of(session, user.id)
-    reading = [(e, b) for e, b in library if e.shelf == Shelf.READING]
+        books = SHELVES[genre] if genre else CATALOG
+        return _render(request, "discover.html", user, **common | {"genre": genre, "books": books})
+    friend_books = [CATALOG_INDEX[k] for k in friends if k in CATALOG_INDEX][:14]
     return _render(
         request,
         "explore.html",
         user,
-        current=reading[0] if reading else None,
-        reading=reading[1:6],
-        picks=_daily_picks(10),
-        marquee=_daily_picks(16),
-        popular=await popular(session, 30),
-        shelves={name: books[:14] for name, books in SHELVES.items()},
+        short=_short_picks(14),
+        friend_books=friend_books,
+        korean=discovery.mood_books(CATALOG, "ko", POPULAR_ORDER)[:14],
+        world=discovery.mood_books(CATALOG, "world", POPULAR_ORDER)[:14],
         **common,
+    )
+
+
+@router.get("/book/{source}/{external_id:path}", response_class=HTMLResponse)
+async def book_detail(
+    request: Request,
+    source: str,
+    external_id: str,
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(auth.require_user),
+) -> HTMLResponse:
+    """서가 책 소개: 큰 표지 · 분량 · 예상 시간 · 읽는 친구 · '읽기 시작' 하나."""
+    meta = CATALOG_INDEX.get((source, external_id))
+    if meta is None:
+        raise HTTPException(404, "책을 찾을 수 없어요")
+    friends = await discovery.friends_reading(session, user.id)
+    same_author = [
+        b for b in CATALOG if meta["author"] and b["author"] == meta["author"] and b is not meta
+    ][:12]
+    return _render(
+        request,
+        "book.html",
+        user,
+        book=meta,
+        readers=friends.get((source, external_id), []),
+        friends=friends,
+        same_author=same_author,
+        videos=VIDEOS.get(f"{source}:{external_id}", []),
     )
 
 
@@ -683,7 +723,13 @@ async def search(
 ) -> HTMLResponse:
     readable, others, errors = [], [], {}
     term = q.strip()
-    in_catalog = [b for b in CATALOG if term and (term in b["title"] or term in (b["author"] or ""))]
+    low = term.lower()
+
+    def hit(b: dict) -> bool:
+        return bool(low) and (low in b["title"].lower() or low in (b["author"] or "").lower())
+
+    in_catalog = discovery.by_popularity([b for b in CATALOG if hit(b)], POPULAR_ORDER)
+    in_store = [b for b in STORE if hit(b)]
     if term:
         result = await search_all(list(sources.values()), term, 20, settings.http_timeout_seconds)
         errors = result.errors
@@ -697,7 +743,10 @@ async def search(
         "search.html",
         user,
         q=q,
-        in_catalog=in_catalog[:30],
+        in_catalog=in_catalog[:60],
+        in_store=in_store[:30],
+        moods=discovery.MOODS,
+        chip_moods=discovery.CHIP_MOODS,
         readable=readable,
         others=others,
         errors=errors,
