@@ -63,7 +63,9 @@ async def test_admin_sees_every_page(api, admin_emails, session_factory):
         home = await c.get("/admin")
         assert home.status_code == 200 and "가입 대기" in home.text
         assert "1 <small>/ 1</small>" in home.text  # 24시간 메일 성공 / 실패
-        assert 'href="/admin"' in (await c.get("/me")).text
+        me_html = (await c.get("/me")).text
+        assert 'href="/admin"' in me_html
+        assert '"/admin", "/admin/*"' in me_html  # 관리자 화면은 미리 그리지 않는다(speculation rules)
         users = await c.get("/admin/users")
         assert users.status_code == 200 and "admin@example.com" in users.text and "관리자" in users.text
         assert (await c.get("/admin/rooms")).status_code == 200

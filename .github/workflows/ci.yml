@@ -16,7 +16,7 @@ jobs:
           cache-dependency-glob: "uv.lock"
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
       - run: uv sync --locked --extra dev
       - run: uv run ruff check .
       - run: uv run pytest -q
@@ -43,7 +43,7 @@ jobs:
           cache-dependency-glob: "uv.lock"
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
       - run: uv sync --locked
       - name: upgrade → downgrade → upgrade on real Postgres
         run: uv run alembic upgrade head && uv run alembic downgrade base && uv run alembic upgrade head
