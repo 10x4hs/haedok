@@ -328,21 +328,12 @@ a:hover .bk,a:focus-visible .bk,.now:hover .bk,.pick:hover .bk{transform:rotateY
 .drop+.form-err{margin-top:14px}
 
 /* ---------- me ---------- */
-.profile{display:flex;align-items:center;gap:16px;margin-top:4px}
-.profile h2{font-size:22px;margin:0;letter-spacing:-.03em}
-.profile p{margin:2px 0 0}
 .avatar{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:700}
 .avatar.xl{width:64px;height:64px;font-size:26px}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:24px}
 .stats div{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
 .stats b{display:block;font:500 26px var(--f-mono);letter-spacing:-.04em}
 .stats span{font-size:12px;color:var(--dim)}
-.settings{margin-top:24px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
-.set-row{display:flex;align-items:center;gap:14px;width:100%;height:56px;padding:0 18px;border-bottom:1px solid var(--line);text-align:left;font-size:15px}
-.settings form:last-child .set-row{border-bottom:0}
-.set-row span{flex:1}
-.set-row em{font-style:normal;color:var(--dim)}
-.set-row.danger{color:var(--bad);justify-content:center}
 
 /* ---------- reader ---------- */
 .reading{--paper:#17181c;--ink:var(--body);--pdim:var(--dim);height:100dvh;overflow:hidden;background:radial-gradient(80% 50% at 50% 0%,color-mix(in srgb,var(--glow) 50%,transparent),transparent 70%),var(--bg)}
@@ -402,7 +393,7 @@ a:hover .bk,a:focus-visible .bk,.now:hover .bk,.pick:hover .bk{transform:rotateY
 
 
 /* ---------- glass surfaces ---------- */
-.now,.stats div,.settings,.chips a,.seg,.filter,.big-search input,.drop label,.field input,.glass-card{
+.now,.stats div,.chips a,.seg,.filter,.big-search input,.drop label,.field input,.glass-card{
   background:var(--surface);backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);border-color:var(--glass-line)}
 .glass-card{border:1px solid var(--glass-line);border-radius:24px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
 .small{font-size:13px}
@@ -657,14 +648,6 @@ h3.sub,.sheet h3{font-size:14px;font-weight:600;color:var(--dim);margin:22px 0 1
 /* ---------- 프로필 ---------- */
 .avatar{overflow:hidden}
 .avatar img{width:100%;height:100%;object-fit:cover;display:block}
-.profile-edit{display:grid;grid-template-columns:auto 1fr;gap:16px 18px;align-items:center;padding:18px;margin-top:4px}
-.avatar-pick{position:relative}
-.avatar-pick .cam{position:absolute;right:-4px;bottom:-2px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:var(--text);color:var(--bg)}
-.profile-fields{display:grid;gap:4px;min-width:0}
-.profile-fields input{height:44px;font:inherit;font-size:17px;font-weight:600;color:var(--text);background:var(--sunken);border:1px solid var(--glass-line);border-radius:12px;padding:0 12px;min-width:0}
-.profile-fields input:focus{outline:none;border-color:var(--accent)}
-.profile-actions{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end}
-.profile-actions .btn{height:42px;padding:0 18px;font-size:14px}
 
 /* ---------- 리더: 넘김 효과 끄기(스크롤) ---------- */
 .pg.scroll-col{position:absolute;inset:0;overflow-y:auto;border-radius:14px;overscroll-behavior:contain;padding-bottom:40px}
@@ -740,7 +723,7 @@ html,body{overflow-x:clip;max-width:100%}
 /* 배경(캔버스)이 움직이는 동안 유리 블러는 매 프레임 다시 계산된다. 터치 기기에서는 내용 카드의 블러를 빼고
    불투명도로 대신하고, 떠 있는 탭 바·메뉴·시트만 가벼운 블러를 남긴다 */
 @media (pointer:coarse){
-  .now,.stats div,.settings,.chips a,.seg,.filter,.big-search input,.drop label,.field input,.glass-card,.board li,
+  .now,.stats div,.chips a,.seg,.filter,.big-search input,.drop label,.field input,.glass-card,.board li,
   .steps-guide li,.code-card,.race-hero,.invite,.lp-card,.react-form input{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:color-mix(in srgb,var(--bg) 82%,var(--text) 6%)}
   .tabbar,.menu-list,.sheet,.glass,.pill-btn,.menu-pill,.r-foot,.r-top{backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important}
   .menu{backdrop-filter:none;-webkit-backdrop-filter:none;background:color-mix(in srgb,var(--bg) 70%,transparent)}
@@ -864,9 +847,6 @@ html,body{overflow-x:clip;max-width:100%}
   .split .store-cover{width:min(240px,70%)}
   .split .race-hero{grid-template-columns:1fr;justify-items:center;text-align:center;padding:32px 24px}
   .split .race-cover{width:180px}
-  .split .profile-edit{grid-template-columns:1fr;justify-items:center;text-align:center;padding:32px 24px}
-  .split .profile-fields{width:100%}
-  .split .profile-actions{justify-content:center}
   .split .avatar.xl{width:112px;height:112px;font-size:44px}
   .split .stats{margin-top:4px}
 
@@ -1034,7 +1014,7 @@ html:root[data-bg-tone="light"]{
 html{scroll-padding-top:calc(72px + env(safe-area-inset-top));scroll-padding-bottom:calc(var(--tab) + 32px + env(safe-area-inset-bottom))}
 .reading .pg,.scroll-col{scroll-padding-bottom:calc(120px + env(safe-area-inset-bottom))}
 /* 입력칸 포커스: 테두리색만 바뀌면 약해서 바깥 고리를 함께 */
-.filter:focus-visible,.big-search input:focus-visible,.code-row input:focus-visible,.react-form input:focus-visible,.profile-fields input:focus-visible,.r-jump input:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent)}
+.filter:focus-visible,.big-search input:focus-visible,.code-row input:focus-visible,.react-form input:focus-visible,.r-jump input:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent)}
 .tabbar a:focus-visible{outline-offset:-4px;border-radius:999px}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 /* 24px 이상 만져지게: 쪽 이동 글자 버튼, 작은 세그먼트, 한 줄 링크 */
@@ -1042,7 +1022,6 @@ html{scroll-padding-top:calc(72px + env(safe-area-inset-top));scroll-padding-bot
 .seg.mini button{min-height:36px}
 .step-back,.resend{min-height:36px}
 .menu-list a,.menu-list button{min-height:44px}
-.set-row{min-height:48px}
 
 /* 빈 상태: 아이콘·제목·힌트·CTA 하나. 목록 격자 안에서는 전체 폭을 차지한다 */
 .empty{grid-column:1/-1;display:grid;justify-items:center;gap:6px;padding:36px 20px;text-align:center;color:var(--dim);border-radius:24px;background:var(--sunken);border:1px dashed var(--line)}
