@@ -108,3 +108,116 @@ async def test_session_expires_after_idle(api, monkeypatch):
         monkeypatch.setattr(auth.time, "time", lambda: real() + 31 * 60)
         r = await c.get("/me")
     assert r.status_code == 303
+
+
+# --- 로그인·가입 화면 개선 ---
+
+
+async def login_as(c, email="me@example.com", password="password123", **extra):
+    token = await csrf_of(c, "/login")
+    return await c.post("/login", data={"email": email, "password": password, "csrf": token, **extra})
+
+
+def session_cookie(r) -> str:
+    return next(v for v in r.headers.get_list("set-cookie") if v.startswith("session="))
+
+
+async def test_login_page_has_toggle_capslock_remember_and_links(api):
+    async with api(upstream) as c:
+        html = (await c.get("/login?next=/library")).text
+    assert "data-toggle-pw" in html and 'aria-pressed="false"' in html  # 비밀번호 보기 버튼
+    assert "data-caps" in html  # Caps Lock 경고 자리
+    assert 'name="remember"' in html and "로그인 상태 유지" in html
+    assert 'href="/password/forgot"' in html and "비밀번호를 잊었어요" in html
+    assert 'href="/signup' in html
+    assert 'name="next" value="/library"' in html
+    assert "aria-live" in html
+
+
+async def test_login_wrong_password_is_inline_field_error(api):
+    async with api(upstream) as c:
+        await signup(c, email="me@example.com")
+        c.cookies.clear()
+        r = await login_as(c, password="wrongpass1")
+    assert r.status_code == 200
+    assert 'id="password-err"' in r.text and "맞지 않아요" in r.text
+    assert 'aria-invalid="true"' in r.text
+    assert 'value="me@example.com"' in r.text  # 이메일은 다시 채운다
+
+
+async def test_login_without_remember_keeps_short_cookie(api):
+    async with api(upstream) as c:
+        await signup(c, email="me@example.com")
+        c.cookies.clear()
+        r = await login_as(c)
+    assert r.status_code == 303
+    assert "Max-Age=1800;" in session_cookie(r)
+
+
+async def test_login_remember_me_extends_cookie_and_idle_window(api, monkeypatch):
+    async with api(upstream) as c:
+        await signup(c, email="me@example.com")
+        c.cookies.clear()
+        r = await login_as(c, remember="1")
+        assert f"Max-Age={auth.REMEMBER_S};" in session_cookie(r)
+        real = time.time
+        monkeypatch.setattr(auth.time, "time", lambda: real() + 3 * 24 * 3600)  # 사흘 뒤
+        assert (await c.get("/me")).status_code == 200
+
+
+async def test_login_rate_limit_shows_clear_message(api):
+    async with api(upstream) as c:
+        await signup(c, email="me@example.com")
+        c.cookies.clear()
+        for _ in range(10):
+            await login_as(c, password="wrongpass1")
+        r = await login_as(c, next="/library")
+    assert r.status_code == 429
+    assert "너무 여러 번" in r.text and "10분" in r.text
+    assert 'name="next" value="/library"' in r.text
+
+
+async def test_login_next_survives_error_and_rejects_absolute(api):
+    async with api(upstream) as c:
+        html = (await c.get("/login?next=https://evil.example/x")).text
+        assert 'name="next" value="/"' in html
+        await signup(c, email="me@example.com")
+        c.cookies.clear()
+        r = await login_as(c, password="nope-nope", next="/books/3")
+    assert 'name="next" value="/books/3"' in r.text
+
+
+async def test_signup_page_has_live_validation_hooks_and_terms(api):
+    async with api(upstream) as c:
+        html = (await c.get("/signup")).text
+    for name in ("nickname", "email", "password", "password_confirm"):
+        assert f'id="{name}-err"' in html
+    assert "data-strength" in html  # 비밀번호 강도
+    assert "이용약관" in html and "개인정보" in html
+    assert "data-toggle-pw" in html
+
+
+async def test_signup_server_errors_map_to_fields(api):
+    async with api(upstream) as c:
+        token = await csrf_of(c)
+        r = await c.post(
+            "/signup",
+            data={
+                "nickname": "",
+                "email": "nope",
+                "password": "short",
+                "password_confirm": "other",
+                "csrf": token,
+            },
+        )
+    assert r.status_code == 200
+    import re
+
+    def err(name):
+        m = re.search(rf'id="{name}-err"[^>]*>([^<]*)<', r.text)
+        return m.group(1) if m else ""
+
+    assert "1~40자" in err("nickname")
+    assert "이메일" in err("email")
+    assert "8자" in err("password")
+    assert "달라요" in err("password_confirm")

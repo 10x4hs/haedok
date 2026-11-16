@@ -344,13 +344,35 @@ async def signup_resend(
     return await _verify_page(request, session, email, notice="새 코드를 보냈어요")
 
 
+def _login_page(
+    request: Request,
+    email: str = "",
+    next: str | None = "/",
+    errors: dict[str, str] | None = None,
+    alert: str | None = None,
+    remember: bool = False,
+    status_code: int = 200,
+) -> HTMLResponse:
+    return _render(
+        request,
+        "login.html",
+        None,
+        email=email,
+        errors=errors or {},
+        alert=alert,
+        next=_safe_next(next),
+        remember=remember,
+        status_code=status_code,
+    )
+
+
 @router.get("/login", response_class=HTMLResponse)
 async def login_form(
     request: Request, next: str | None = None, user: User | None = Depends(auth.current_user)
 ) -> HTMLResponse:
     if user:
         return RedirectResponse(_safe_next(next), status_code=303)
-    return _render(request, "login.html", None, email="", error=None, next=_safe_next(next))
+    return _login_page(request, next=next)
 
 
 @router.post("/login", response_class=HTMLResponse, response_model=None)
@@ -359,33 +381,27 @@ async def login(
     email: str = Form(""),
     password: str = Form(""),
     next: str = Form("/"),
+    remember: str = Form(""),
     csrf: str = Form(""),
     session: AsyncSession = Depends(get_session),
 ) -> HTMLResponse | RedirectResponse:
     auth.check_csrf(request, csrf)
+    page = {"email": auth.normalize_email(email), "next": next, "remember": bool(remember)}
+    errors = {}
+    if not page["email"]:
+        errors["email"] = "이메일을 입력해 주세요"
+    if not password:
+        errors["password"] = "비밀번호를 입력해 주세요"
+    if errors:
+        return _login_page(request, errors=errors, **page)
     try:
         await ratelimit.check_login(session, email, ratelimit.client_ip(request))
     except ratelimit.RateLimited as e:
-        return _render(
-            request,
-            "login.html",
-            None,
-            email=auth.normalize_email(email),
-            error=e.message,
-            next=_safe_next(next),
-            status_code=429,
-        )
+        return _login_page(request, alert=e.message, status_code=429, **page)
     user = await auth.authenticate(session, email, password)
     if user is None:
-        return _render(
-            request,
-            "login.html",
-            None,
-            email=auth.normalize_email(email),
-            error="이메일 또는 비밀번호가 맞지 않아요",
-            next=_safe_next(next),
-        )
-    auth.login(request, user)
+        return _login_page(request, errors={"password": "이메일 또는 비밀번호가 맞지 않아요"}, **page)
+    auth.login(request, user, remember=bool(remember))
     return RedirectResponse(_safe_next(next), status_code=303)
 
 
@@ -395,6 +411,185 @@ async def logout(
 ) -> RedirectResponse:
     auth.check_csrf(request, csrf)
     await auth.logout(request, session)
+    return RedirectResponse("/", status_code=303)
+
+
+# --- 비밀번호 재설정: 이메일 → 6자리 코드 + 새 비밀번호 ---
+
+
+def _valid_email(email: str) -> bool:
+    return "@" in email and not email.startswith("@") and len(email) <= 255
+
+
+@router.get("/password/forgot", response_class=HTMLResponse)
+async def password_forgot_form(request: Request, email: str = "") -> HTMLResponse:
+    return _render(request, "password_forgot.html", None, email=auth.normalize_email(email), errors={})
+
+
+@router.post("/password/forgot", response_class=HTMLResponse, response_model=None)
+async def password_forgot(
+    request: Request,
+    email: str = Form(""),
+    csrf: str = Form(""),
+    session: AsyncSession = Depends(get_session),
+    http: httpx.AsyncClient = Depends(get_http_client),
+) -> HTMLResponse | RedirectResponse:
+    auth.check_csrf(request, csrf)
+    email = auth.normalize_email(email)
+    if not _valid_email(email):
+        errors = {"email": "올바른 이메일을 입력해 주세요"}
+        return _render(request, "password_forgot.html", None, email=email, errors=errors)
+    try:
+        ip, window = ratelimit.client_ip(request), auth.RESET_WINDOW_S
+        await ratelimit.check(session, f"reset-ip:{ip}", auth.RESET_IP_LIMIT, window, auth.RESET_LIMIT_MSG)
+        await ratelimit.check(session, f"reset:{email}", auth.RESET_EMAIL_LIMIT, window, auth.RESET_LIMIT_MSG)
+    except ratelimit.RateLimited as e:
+        errors = {"email": e.message}
+        return _render(request, "password_forgot.html", None, email=email, errors=errors, status_code=429)
+    code = await auth.start_reset(session, email)
+    # 가입 여부와 메일 성공 여부는 화면에 드러내지 않는다 (실패는 mail_logs에 남는다)
+    if code is not None and not await mail.send_password_reset_code(http, email, code, session=session):
+        await auth.reset_mail_failed(session, email)
+    request.session["reset_email"] = email
+    return RedirectResponse("/password/reset", status_code=303)
+
+
+async def _reset_page(
+    request: Request,
+    session: AsyncSession,
+    email: str,
+    errors: dict[str, str] | None = None,
+    status_code: int = 200,
+) -> HTMLResponse:
+    pending = await auth.pending_reset(session, email)
+    now = int(time.time())
+    expires_in = max(0, pending.expires_at - now) if pending else 0
+    resend_wait = max(0, auth.RESEND_COOLDOWN_S - (now - pending.sent_at)) if pending else 0
+    return _render(
+        request,
+        "password_reset.html",
+        None,
+        email=email,
+        errors=errors or {},
+        expires_in=expires_in,
+        resend_wait=resend_wait,
+        status_code=status_code,
+    )
+
+
+@router.get("/password/reset", response_class=HTMLResponse, response_model=None)
+async def password_reset_form(
+    request: Request, session: AsyncSession = Depends(get_session)
+) -> HTMLResponse | RedirectResponse:
+    email = request.session.get("reset_email")
+    if not email:
+        return RedirectResponse("/password/forgot", status_code=303)
+    return await _reset_page(request, session, email)
+
+
+@router.post("/password/reset", response_class=HTMLResponse, response_model=None)
+async def password_reset(
+    request: Request,
+    code: str = Form(""),
+    password: str = Form(""),
+    password_confirm: str = Form(""),
+    csrf: str = Form(""),
+    session: AsyncSession = Depends(get_session),
+) -> HTMLResponse | RedirectResponse:
+    auth.check_csrf(request, csrf)
+    email = request.session.get("reset_email")
+    if not email:
+        return RedirectResponse("/password/forgot", status_code=303)
+    errors = auth.password_errors(password, password_confirm)
+    if not code.strip().isdigit() or len(code.strip()) != 6:
+        errors["code"] = "6자리 숫자를 입력해 주세요"
+    if errors:  # 코드를 확인하기 전에 걸러, 비밀번호 실수로 기회를 쓰지 않게 한다
+        return await _reset_page(request, session, email, errors)
+    user, error = await auth.check_reset_code(session, email, code)
+    if user is None:
+        return await _reset_page(request, session, email, {"code": error or ""})
+    await auth.finish_reset(session, user, password)
+    auth.login(request, user, remember=False)  # 이 기기만 새로 로그인 (reset_email도 지워진다)
+    return RedirectResponse("/me?account=reset#account", status_code=303)
+
+
+# --- 내 정보 › 계정 ---
+
+ACCOUNT_NOTICES = {
+    "pw": "비밀번호를 바꿨어요. 다른 기기에서는 로그아웃됐어요",
+    "out": "이 기기를 뺀 다른 기기에서 모두 로그아웃했어요",
+    "reset": "새 비밀번호로 바꿨어요. 다른 기기에서는 로그아웃됐어요",
+}
+ACCOUNT_ERRORS = {
+    "current": "현재 비밀번호가 맞지 않아요",
+    "short": f"새 비밀번호는 {auth.MIN_PASSWORD_CHARS}자 이상이어야 해요",
+    "long": "새 비밀번호가 너무 길어요 (최대 72바이트)",
+    "match": "새 비밀번호가 서로 달라요",
+    "limit": auth.PASSWORD_CHANGE_MSG,
+    "confirm": "확인용 이메일이 계정 이메일과 달라요",
+}
+
+
+def _account_back(code: str, error: bool = False) -> RedirectResponse:
+    key = "account_error" if error else "account"
+    return RedirectResponse(f"/me?{key}={code}#account", status_code=303)
+
+
+@router.post("/me/password")
+async def change_password(
+    request: Request,
+    current: str = Form(""),
+    password: str = Form(""),
+    password_confirm: str = Form(""),
+    csrf: str = Form(""),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(auth.require_user),
+) -> RedirectResponse:
+    auth.check_csrf(request, csrf)
+    try:
+        key, limit = f"pwchange:{user.id}", auth.PASSWORD_CHANGE_LIMIT
+        await ratelimit.check(session, key, limit, ratelimit.WINDOW_S, auth.PASSWORD_CHANGE_MSG)
+    except ratelimit.RateLimited:
+        return _account_back("limit", error=True)
+    if not auth.verify_password(current, user.password_hash):
+        return _account_back("current", error=True)
+    errors = auth.password_errors(password, password_confirm)
+    if "password" in errors:
+        return _account_back("short" if len(password) < auth.MIN_PASSWORD_CHARS else "long", error=True)
+    if errors:
+        return _account_back("match", error=True)
+    await auth.set_password(session, user, password)
+    auth.login(request, user)  # 새 번호로 이 기기만 이어 간다
+    return _account_back("pw")
+
+
+@router.post("/me/logout-all")
+async def logout_everywhere(
+    request: Request,
+    csrf: str = Form(""),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(auth.require_user),
+) -> RedirectResponse:
+    auth.check_csrf(request, csrf)
+    auth.bump_session_version(user)
+    await session.commit()
+    auth.login(request, user)
+    return _account_back("out")
+
+
+@router.post("/me/delete")
+async def delete_my_account(
+    request: Request,
+    confirm_email: str = Form(""),
+    csrf: str = Form(""),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(auth.require_user),
+) -> RedirectResponse:
+    auth.check_csrf(request, csrf)
+    if not user.email or auth.normalize_email(confirm_email) != user.email:
+        return _account_back("confirm", error=True)
+    await auth.delete_account(session, user)
+    request.session.clear()
     return RedirectResponse("/", status_code=303)
 
 
@@ -557,6 +752,8 @@ async def me(
         points=await points_service.summary(session, user.id),
         error=request.query_params.get("error"),
         saved=bool(request.query_params.get("saved")),
+        account_notice=ACCOUNT_NOTICES.get(request.query_params.get("account", "")),
+        account_error=ACCOUNT_ERRORS.get(request.query_params.get("account_error", "")),
     )
 
 

@@ -1,0 +1,24 @@
+{# 로그인·가입·재설정 공통 입력칸: 보이는 라벨 · 유리 입력칸 · 칸 아래 오류(aria-live). 비밀번호는 보기 버튼이 붙는다 #}
+{% macro field(name, label, type='text', value='', error='', autocomplete='', hint='', attrs='') -%}
+<div class="af{% if error %} has-err{% endif %}" data-field="{{ name }}">
+  <label class="af-label" for="{{ name }}">{{ label }}</label>
+  <div class="af-box">
+    <input id="{{ name }}" name="{{ name }}" type="{{ type }}"{% if value %} value="{{ value }}"{% endif %}
+           {%- if autocomplete %} autocomplete="{{ autocomplete }}"{% endif %}
+           aria-describedby="{{ name }}-err{% if hint %} {{ name }}-hint{% endif %}"{% if error %} aria-invalid="true"{% endif %} {{ attrs|safe }}>
+    {%- if type == 'password' %}
+    <button type="button" class="pw-toggle" data-toggle-pw aria-controls="{{ name }}" aria-pressed="false" aria-label="비밀번호 보기">
+      <svg class="eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+      <svg class="eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7a9.6 9.6 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+    </button>
+    {%- endif %}
+  </div>
+  {% if hint %}<p class="af-hint" id="{{ name }}-hint">{{ hint }}</p>{% endif %}
+  <p class="af-err" id="{{ name }}-err" aria-live="polite">{{ error }}</p>
+  {{ caller() if caller else '' }}
+</div>
+{%- endmacro %}
+
+{% macro submit(label, busy='보내는 중…') -%}
+<button class="auth-submit" data-submit data-busy-label="{{ busy }}"><span class="auth-submit-label">{{ label }}</span><i class="auth-spin" aria-hidden="true"></i></button>
+{%- endmacro %}

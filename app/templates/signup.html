@@ -1,23 +1,23 @@
 {% extends "_auth.html" %}
+{% from "_auth_field.html" import field, submit %}
 {% block title %}회원가입 — 偕讀 해독{% endblock %}
 {% block form %}
 {% set e = form.errors if form else {} %}
-<form method="post" action="/signup" class="steps" novalidate data-first-error="{{ (e.keys()|list)[0] if e else '' }}">
+<header class="auth-head">
+  <h1 class="auth-title">함께 읽기 시작해요</h1>
+  <p class="auth-sub">가입하면 이메일로 6자리 인증 코드를 보내 드려요</p>
+</header>
+<form method="post" action="/signup" class="auth-form" novalidate data-auth="signup">
   <input type="hidden" name="csrf" value="{{ csrf }}">
-  {% for name, ph, typ, ac, val in [
-      ('nickname', '이름', 'text', 'nickname', form.nickname if form else ''),
-      ('email', '이메일', 'email', 'email', form.email if form else ''),
-      ('password', '비밀번호 (8자 이상)', 'password', 'new-password', ''),
-      ('password_confirm', '비밀번호 확인', 'password', 'new-password', '')] %}
-  <div class="step" data-step data-name="{{ name }}" data-error="{{ e.get(name, '') }}">
-    <label class="sr" for="{{ name }}">{{ ph }}</label>
-    <div class="pill-field"><input id="{{ name }}" name="{{ name }}" type="{{ typ }}" value="{{ val }}" placeholder="{{ ph }}" autocomplete="{{ ac }}" required {% if name == 'nickname' %}maxlength="40" autofocus{% endif %}{% if name == 'password' %} minlength="8"{% endif %}>
-      {% if loop.last %}<button class="go" aria-label="가입하기">→</button>{% else %}<button type="button" class="go" data-next aria-label="다음">→</button>{% endif %}</div>
-  </div>
-  {% endfor %}
-  <p class="step-msg" role="alert" data-msg></p>
-  <div class="step-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-  <button type="button" class="step-back" data-back hidden>‹ 이전</button>
+  {{ field('nickname', '이름', 'text', form.nickname if form else '', e.get('nickname', ''), 'nickname', attrs='maxlength="40" required' ~ ('' if form else ' autofocus')) }}
+  {{ field('email', '이메일', 'email', form.email if form else '', e.get('email', ''), 'email', attrs='inputmode="email" autocapitalize="off" spellcheck="false" maxlength="255" required') }}
+  {% call field('password', '비밀번호', 'password', '', e.get('password', ''), 'new-password', hint='8자 이상 · 길수록, 섞을수록 안전해요', attrs='minlength="8" required') %}
+  <div class="strength" data-strength data-level="0" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+  <p class="caps" data-caps hidden>Caps Lock이 켜져 있어요</p>
+  {% endcall %}
+  {{ field('password_confirm', '비밀번호 확인', 'password', '', e.get('password_confirm', ''), 'new-password', attrs='minlength="8" required') }}
+  <p class="auth-terms">가입하면 해독의 <b>이용약관</b>과 <b>개인정보 처리방침</b>에 동의하게 돼요. 이메일은 로그인과 인증에만 써요.</p>
+  {{ submit('인증 코드 받기', '메일 보내는 중…') }}
 </form>
 {% endblock %}
 {% block foot %}이미 계정이 있나요? · <a href="/login">로그인</a>{% endblock %}
