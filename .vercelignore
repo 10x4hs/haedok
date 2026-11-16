@@ -9,3 +9,4 @@ migrations
 scripts
 *.pyc
 __pycache__
+/demo

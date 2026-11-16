@@ -23,3 +23,9 @@ app/static/covers/*
 docs/demo/*.mp4
 .vercel
 .env*
+
+# 데모 영상 파이프라인(demo/) — 렌더 결과·음원·노드 모듈은 커밋하지 않는다
+demo/out/
+demo/music/*.mp3
+demo/music/*.wav
+demo/compose/node_modules/

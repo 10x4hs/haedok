@@ -1,0 +1,12 @@
+{
+  "name": "haedok-demo-compose",
+  "private": true,
+  "type": "module",
+  "description": "Renders demo/compose/index.html frame by frame (1080x1920, 30 fps) with headless Chromium.",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "1.56.1"
+  }
+}

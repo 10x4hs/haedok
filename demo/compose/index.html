@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>haedok demo — compose</title>
+<!--
+  해독 데모 영상 합성 — 1080x1920 무대. window.render(t)는 시간 t(초)만으로 한 프레임을 그리는 순수 함수다.
+  박자 상수는 demo/music/beats.json(Starboy, 185.963 BPM, 창 5.438 s + 39.5 s)에서 옮겨 적었다.
+  화면 소스: ../shots/*.jpg(스틸), ../out/clipframes/<clip>/NNNNN.jpg(클립을 30fps로 푼 것 — render.mjs가 만든다).
+-->
+<style>
+@font-face{font-family:"Pretendard Variable";src:url(fonts/PretendardVariable.woff2) format("woff2");font-weight:45 920}
+@font-face{font-family:"Geist Mono";src:url(fonts/GeistMono-latin.woff2) format("woff2");font-weight:100 900}
+@font-face{font-family:"Wordmark";src:url(fonts/NotoSerifKR-wordmark.woff2) format("woff2");font-weight:900}
+:root{--pink:#ff9ec4;--pink2:#ffb3c7;--ink:#f6f2f4;--bg:#09070a}
+*{box-sizing:border-box;margin:0}
+html,body{width:1080px;height:1920px;overflow:hidden;background:var(--bg)}
+#stage{position:relative;width:1080px;height:1920px;overflow:hidden;background:var(--bg);font-family:"Pretendard Variable",sans-serif;color:var(--ink)}
+.glow{position:absolute;inset:0;background:
+  radial-gradient(60% 38% at 50% 58%,rgba(255,120,170,.20),transparent 70%),
+  radial-gradient(90% 50% at 50% 0%,rgba(255,158,196,.10),transparent 70%),
+  radial-gradient(120% 80% at 50% 50%,transparent 55%,rgba(0,0,0,.55))}
+.phone{position:absolute;left:0;top:0;width:800px;height:1694px;transform-origin:0 0;will-change:transform}
+.bezel{position:absolute;inset:0;border-radius:108px;background:linear-gradient(160deg,#2a272c,#0c0b0d 40%,#18161a);
+  box-shadow:0 60px 140px rgba(0,0,0,.65),0 0 0 2px rgba(255,255,255,.07),inset 0 0 0 3px rgba(255,255,255,.06)}
+.screen{position:absolute;left:16px;top:16px;width:768px;height:1662px;border-radius:92px;overflow:hidden;background:#141215}
+.content{position:absolute;left:0;top:0;width:390px;height:844px;transform-origin:0 0;transform:scale(1.969231)}
+.content img.base{position:absolute;inset:0;width:390px;height:844px;display:block}
+.ov{position:absolute;pointer-events:none}
+.tap{width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.25)}
+.tapdot{width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(255,255,255,.85)}
+.buy{left:18px;right:18px;padding:16px 16px;border-radius:22px;display:flex;align-items:center;gap:14px;
+  background:rgba(30,26,30,.86);border:1px solid rgba(255,255,255,.12);box-shadow:0 20px 50px rgba(0,0,0,.5);backdrop-filter:blur(14px)}
+.buy .ck{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--pink2);color:#2a0f1a;font:800 24px/1 "Pretendard Variable"}
+.buy b{display:block;font:800 17px/1.25 "Pretendard Variable";letter-spacing:-.02em}
+.buy span{display:block;margin-top:3px;font:500 12.5px/1.3 "Pretendard Variable";color:rgba(255,255,255,.62)}
+.buy em{margin-left:auto;font:600 10px/1 "Geist Mono";letter-spacing:.12em;color:var(--pink)}
+.prog{height:6px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--pink2);border-radius:3px}
+.progl{font:600 10px/1 "Geist Mono";letter-spacing:.14em;color:var(--pink)}
+.cap{position:absolute;left:0;right:0;top:0;height:420px;padding-top:104px;text-align:center;
+  background:linear-gradient(180deg,rgba(9,7,10,.94) 0,rgba(9,7,10,.86) 56%,rgba(9,7,10,0) 100%)}
+.cap .eb{font:600 26px/1 "Geist Mono";letter-spacing:.34em;color:var(--pink);text-transform:uppercase}
+.cap h1{margin-top:26px;font:820 78px/1.08 "Pretendard Variable";letter-spacing:-.045em;color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.6)}
+.flash{position:absolute;inset:0;background:#fff;opacity:0;mix-blend-mode:soft-light}
+.grain{position:absolute;inset:-64px;opacity:.085;mix-blend-mode:overlay;background-size:256px 256px}
+.outro{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.outro .wm{font:900 300px/1 "Wordmark",serif;letter-spacing:.02em;color:#fff;
+  text-shadow:0 0 40px rgba(255,158,196,.55),0 0 120px rgba(255,120,170,.35)}
+.outro .ko{margin-top:26px;font:600 40px/1 "Pretendard Variable";letter-spacing:.9em;padding-left:.9em;color:rgba(255,255,255,.8)}
+.outro .tag{margin-top:120px;font:820 76px/1.1 "Pretendard Variable";letter-spacing:-.04em}
+.outro .url{margin-top:34px;font:600 36px/1 "Geist Mono";letter-spacing:.08em;color:var(--pink)}
+.fade{position:absolute;inset:0;background:#000;opacity:0}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><filter id="mblur" x="-20%" y="-5%" width="140%" height="110%"><feGaussianBlur id="mblurStd" stdDeviation="0 0"/></filter></svg>
+<div id="stage">
+  <div class="glow"></div>
+  <div id="phones"></div>
+  <div class="outro" id="outro">
+    <div class="wm" id="wm">偕讀</div>
+    <div class="ko" id="wmko">해독</div>
+    <div class="tag" id="tag">같은 책을, 함께.</div>
+    <div class="url" id="url">haedok.vercel.app</div>
+  </div>
+  <div class="cap" id="cap"><div class="eb" id="eb"></div><h1 id="title"></h1></div>
+  <div class="flash" id="flash"></div>
+  <div class="grain" id="grain"></div>
+  <div class="fade" id="fade"></div>
+</div>
+<script>
+// ───────────────────────────── 박자 (demo/music/beats.json) ─────────────────────────────
+const BPM = 185.963, BEAT = 0.32265, BAR = 8 * BEAT;           // 하프타임 한 마디 = 8박
+const LENGTH = 39.5, FPS = 30;                                   // 창: 오디오 5.438 s부터 39.5 s
+const CLIMAX = 96 * BEAT;                                        // 30.974 s — 창 안 70–85% 구간의 프레이즈 경계(역전)
+const DROP = 32 * BEAT;                                          // 10.325 s — 가장 센 드롭(1장 → 2장 휩팬)
+const b = n => n * BEAT;
+
+// ───────────────────────────── 기하 ─────────────────────────────
+const SCR = 768 / 390;                 // 화면 CSS px → 무대 px
+const PHONE_X = 140, PHONE_Y = 316;    // 기본 위치: 폰 높이 1694 px(무대의 88 %), 아래 74 px는 화면 밖
+const CENTER = [540, 1180];            // 밀어 들어갈 때 초점이 모이는 곳
+const ease = {
+  io: p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2,
+  out: p => 1 - Math.pow(1 - p, 3),
+  in: p => p * p * p,
+};
+const clamp = (v, a, c) => Math.max(a, Math.min(c, v));
+const lerp = (a, c, p) => a + (c - a) * p;
+
+let BOX = {}, CLIPS = {};
+const box = (shot, key) => BOX[shot] && BOX[shot][key];
+const ctr = (shot, key, dx = 0, dy = 0) => { const r = box(shot, key); return r ? [r[0] + r[2] / 2 + dx, r[1] + r[3] / 2 + dy] : [195, 422]; };
+const clipBox = (clip, key) => CLIPS[clip] && CLIPS[clip].boxes && CLIPS[clip].boxes[key];
+const clipCtr = (clip, key, dx = 0, dy = 0) => { const r = clipBox(clip, key); return r ? [r[0] + r[2] / 2 + dx, r[1] + r[3] / 2 + dy] : [195, 422]; };
+const mark = (clip, key, fb = 0) => (CLIPS[clip] && CLIPS[clip].marks && CLIPS[clip].marks[key]) ?? fb;
+// 클립 속에서 화면이 눈에 띄게 바뀐 순간(캡처가 프레임 차이로 잰 것). 첫 0.15 s는 시작 프레임이라 뺀다
+const ev = (clip, i, fb = 0, min = 2.0) => {
+  const e = ((CLIPS[clip] && CLIPS[clip].events) || []).filter(([t, d]) => t > 0.15 && d >= min);
+  return e[i] ? e[i][0] : fb;
+};
+
+// ───────────────────────────── 장면표 ─────────────────────────────
+// src: 스틸 이름 또는 {clip, map:[[영상 t, 클립 t], ...]} (조각별 선형 — 클립 속 동작을 박에 맞춘다)
+// cam: [[박, z, fx, fy], ...] — fx, fy는 화면 CSS px(390x844) 초점, z는 폰 배율
+// ov: 덧그림(탭 표시, 구매 카드, 업로드 진행)
+let SHOTS = [];
+function build() {
+  const C = (z, f) => [z, f[0], f[1]];
+  const pop = ev('friendpop', 0, 1.6);
+  const typeK = i => mark('codetype', 'key' + i, 0.43 + i * 0.327);
+  const turn = i => mark('pageturn', 'turn' + i, 0.75 + i * 0.75);
+  const step = i => mark('race', 'step' + i, 1.6 + i * 5);
+  const over = step(3);                      // 지우가 하린을 앞지르는 순간
+  const joinedAt = ev('joined', 0, 3.2);
+  const toastAt = ev('quote', 0, 0.43, 8);
+  const press = mark('upload', 'press', 0.44), landed = mark('upload', 'reader', 2.88);
+  const presence = ctr('presence', 'friends');
+  SHOTS = [
+    // HOOK — 친구가 같은 쪽에 들어오는 순간(0–8박)
+    { id: 'hook', a: 0, z: 8, src: { clip: 'friendpop', map: [[b(0), pop - b(4)], [b(8), pop + b(4)]] },
+      cam: [[0, ...C(1.0, [195, 422])], [8, ...C(1.07, clipCtr('friendpop', 'friends'))]] },
+    // 1장 — 내 책
+    { id: 'store', a: 8, z: 16, src: 'store',
+      cam: [[8, ...C(1.0, [195, 400])], [16, ...C(1.12, ctr('store', 'buy', 0, -60))]],
+      ov: [{ k: 'tap', at: b(11), p: ctr('store', 'buy') }, { k: 'buy', at: b(12), check: b(13) }] },
+    { id: 'upload0', a: 16, z: 18, src: 'upload-empty', cam: [[16, ...C(1.06, ctr('upload-empty', 'drop'))]] },
+    { id: 'upload1', a: 18, z: 20, src: 'upload-picked', cam: [[18, ...C(1.10, ctr('upload-picked', 'drop', 0, 40))]],
+      ov: [{ k: 'tap', at: b(19.5), p: ctr('upload-picked', 'go') }] },
+    { id: 'upload2', a: 20, z: 24, src: { clip: 'upload', map: [[b(20), press + 0.12], [b(24), landed - 0.12]] }, cam: [[20, ...C(1.10, ctr('upload-sending', 'drop', 0, 40))], [24, ...C(1.16, ctr('upload-sending', 'drop', 0, 60))]],
+      ov: [{ k: 'prog', box: box('upload-picked', 'drop'), steps: [b(20), b(21), b(22), b(23)] }] },
+    { id: 'library', a: 24, z: 27, src: 'library', cam: [[24, ...C(1.0, [195, 380])], [27, ...C(1.14, ctr('library', 'mine'))]],
+      ov: [{ k: 'tap', at: b(26.4), p: ctr('library', 'mine') }] },
+    // 쪽 넘김: 첫 넘김은 말리는 동작을 빠르게 보여 주되 가장 어두운 3프레임(turn0+0.10…0.18)을 건너뛰고,
+    // 둘째 넘김은 장(chunk) 경계라 넘긴 뒤 0.4 s 동안 빈 '다음 쪽으로' 화면이 나오므로 박에 맞춰 새 쪽으로 바로 끊는다.
+    { id: 'turn', a: 27, z: 32, src: { clip: 'pageturn', map: [[b(27), turn(0) - b(1)], [b(28), turn(0)], [b(28) + 0.07, turn(0) + 0.085],
+      [b(28) + 0.071, turn(0) + 0.21], [b(28) + 0.3, turn(0) + 0.42], [b(30), turn(1) - 0.03], [b(30) + 0.001, turn(1) + 0.43], [b(32), turn(1) + 0.43 + b(2)]] },
+      cam: [[27, ...C(1.04, [195, 420])], [32, ...C(1.10, [195, 380])]] },
+    // 2장 — 함께 (가장 센 드롭에서 휩팬)
+    { id: 'invite', a: 32, z: 34, src: 'invite', cam: [[32, ...C(1.22, ctr('invite', 'code'))], [34, ...C(1.30, ctr('invite', 'code'))]] },
+    { id: 'code', a: 34, z: 40, src: { clip: 'codetype', map: [[b(34), typeK(0)], [b(35), typeK(1)], [b(36), typeK(2)], [b(37), typeK(3)], [b(38), typeK(4)], [b(39), typeK(5)], [b(40), typeK(5) + b(1)]] },
+      cam: [[34, ...C(1.32, clipCtr('codetype', 'card', 0, 10))]] },
+    { id: 'join', a: 40, z: 43, src: 'join', cam: [[40, ...C(1.12, ctr('join', 'hero'))], [43, ...C(1.2, ctr('join', 'go'))]],
+      ov: [{ k: 'tap', at: b(42.4), p: ctr('join', 'go') }] },
+    { id: 'joined', a: 43, z: 48, src: { clip: 'joined', map: [[b(43), joinedAt - b(2)], [b(48), joinedAt + b(3)]] },
+      cam: [[43, ...C(1.12, clipCtr('joined', 'track'))], [48, ...C(1.2, clipCtr('joined', 'track'))]] },
+    { id: 'presence', a: 48, z: 52, src: 'presence', cam: [[48, ...C(1.0, [195, 422])], [52, ...C(1.06, [195, 440])]] },
+    { id: 'presence2', a: 52, z: 56, src: 'presence-2', cam: [[52, ...C(1.55, [presence[0] - 40, presence[1] - 30])], [56, ...C(1.7, [presence[0] - 40, presence[1] - 30])]] },
+    { id: 'quote0', a: 56, z: 58, src: 'reader-race', cam: [[56, ...C(1.05, [195, 330])]] },
+    { id: 'quote1', a: 58, z: 61, src: 'quote-select', cam: [[58, ...C(1.25, ctr('quote-select', 'sel'))], [61, ...C(1.35, ctr('quote-select', 'sel'))]],
+      ov: [{ k: 'tap', at: b(60.4), p: ctr('quote-select', 'share') }] },
+    { id: 'quote2', a: 61, z: 66, src: { clip: 'quote', map: [[b(61), toastAt - 0.03], [b(66), toastAt + b(5)]] },
+      cam: [[61, ...C(1.25, ctr('quote-select', 'sel'))], [66, ...C(1.18, ctr('quote-select', 'sel', 0, -40))]] },
+    { id: 'race0', a: 66, z: 72, src: 'race-top', cam: [[66, ...C(1.0, [195, 420])], [72, ...C(1.08, ctr('race-top', 'hero'))]] },
+    { id: 'race1', a: 72, z: 85.5, src: { clip: 'race', map: [[b(72), step(0) - b(1)], [b(73), step(0)], [b(77), step(1)], [b(81), step(2)], [b(85.5), step(2) + 1.2]] },
+      cam: [[72, ...C(1.12, clipCtr('race', 'track'))], [85.5, ...C(1.24, clipCtr('race', 'track'))]] },
+    // 가속 컷 1.94 → 0.97 → 0.48 s (역전 직전의 화면), 그다음 역전 프리즈
+    { id: 'acc1', a: 85.5, z: 91.5, src: { clip: 'race', map: [[b(85.5), step(2) + 1.2], [b(91.5), over - 1.2]] },
+      cam: [[85.5, ...C(1.35, clipCtr('race', 'track'))], [91.5, ...C(1.45, clipCtr('race', 'track'))]] },
+    { id: 'acc2', a: 91.5, z: 94.5, src: { clip: 'race', map: [[b(91.5), over - 1.0], [b(94.5), over - 0.4]] },
+      cam: [[91.5, ...C(1.8, clipCtr('race', 'track', 60, -40))]] },
+    { id: 'acc3', a: 94.5, z: 96, src: { clip: 'race', map: [[b(94.5), over - 0.3], [b(96), over - 0.04]] },
+      cam: [[94.5, ...C(2.3, clipCtr('race', 'track', 110, -40))]] },
+    // 역전: 드롭에서 줄이 바뀌는 0.7 s 애니메이션을 0.45 s로 보여 주고 그대로 멈춘다(+3 % 펀치)
+    { id: 'freeze', a: 96, z: 102, src: { clip: 'race', map: [[b(96), over + 0.02], [b(96) + 0.45, over + 0.8], [b(102), over + 0.8]] }, punch: 0.03,
+      cam: [[96, ...C(1.35, clipCtr('race', 'track', 0, -30))]] },
+    // 3장 — 내 방식대로 (휩팬)
+    { id: 'look1', a: 102, z: 104, src: 'look1-home', cam: [[102, ...C(1.0, [195, 422])], [104, ...C(1.05, [195, 422])]] },
+    { id: 'look2', a: 104, z: 106, src: 'look2-reader', cam: [[104, ...C(1.0, [195, 422])], [106, ...C(1.05, [195, 422])]] },
+    { id: 'look3', a: 106, z: 108, src: 'look3-home', cam: [[106, ...C(1.0, [195, 422])], [108, ...C(1.05, [195, 422])]] },
+    { id: 'landing', a: 108, z: 112, src: 'landing', cam: [[108, ...C(1.0, [195, 420])], [112, ...C(1.08, ctr('landing', 'h1'))]] },
+  ].map(s => ({ ...s, t0: b(s.a), t1: b(s.z) }));
+}
+
+const CAPTIONS = [
+  [0, 8, 'LIVE · 偕讀', '친구가 지금 같은 쪽'],
+  [8, 16, '01 · STORE', '읽고 싶은 책을 사고'],
+  [16, 24, '02 · UPLOAD', '내 PDF 그대로'],
+  [24, 32, '03 · READ', '편하게 읽어요'],
+  [32, 40, '04 · INVITE', '코드 하나로 초대'],
+  [40, 48, '05 · JOIN', '친구가 들어왔어요'],
+  [48, 56, '06 · TOGETHER', '지금 같은 페이지'],
+  [56, 66, '07 · QUOTE', '밑줄 친 문장 공유'],
+  [66, 76, '08 · RACE', '각자의 속도로 경주'],
+  [76, 85.5, 'LIVE TRACK', '한 쪽씩 따라잡고'],
+  [85.5, 96, '08 · RACE', '조금만 더'],
+  [96, 102, 'OVERTAKE', '역전!'],
+  [102, 112, '09 · YOURS', '내 방식대로 읽기'],
+].map(([a, z, eb, title]) => ({ t0: b(a), t1: b(z), eb, title }));
+
+// 심장박동: 이야기의 다섯 순간에만 (훅 · 구매 확인 · 친구 참가 · 역전 · 로고)
+const PULSES = [b(4), b(13), b(45), CLIMAX, b(112)];
+const WHIPS = [DROP, b(102)];               // 두 장 바뀜 — 0.24 s 휩팬
+const WHIP = 0.24;
+const OUTRO = b(112);
+const FADE = 0.3;                            // 마지막 0.3 s만 검게(소리는 0.9 s 페이드)
+
+function pulseAt(t) {
+  let s = 0;
+  for (const p of PULSES) {
+    const d = t - p;
+    if (d < 0 || d > 0.34) continue;
+    s += d < 0.05 ? 0.035 * (d / 0.05) : 0.035 * (1 - ease.out((d - 0.05) / 0.29));
+  }
+  return s;
+}
+
+function camAt(shot, t) {
+  const k = shot.cam;
+  const beat = t / BEAT;
+  if (beat <= k[0][0] || k.length === 1) return k[0].slice(1);
+  for (let i = 0; i < k.length - 1; i++) {
+    if (beat <= k[i + 1][0]) {
+      const p = ease.io((beat - k[i][0]) / (k[i + 1][0] - k[i][0]));
+      return [1, 2, 3].map(j => lerp(k[i][j], k[i + 1][j], p));
+    }
+  }
+  return k[k.length - 1].slice(1);
+}
+
+function clipT(map, t) {
+  if (t <= map[0][0]) return map[0][1];
+  for (let i = 0; i < map.length - 1; i++) {
+    if (t <= map[i + 1][0]) return lerp(map[i][1], map[i + 1][1], (t - map[i][0]) / (map[i + 1][0] - map[i][0]));
+  }
+  return map[map.length - 1][1];
+}
+
+function srcAt(shot, t) {
+  if (typeof shot.src === 'string') return `../shots/${shot.src}.jpg`;
+  const c = CLIPS[shot.src.clip];
+  const n = c ? c.n : 1;
+  const i = clamp(Math.round(clipT(shot.src.map, t) * FPS), 0, n - 1);
+  return `../out/clipframes/${shot.src.clip}/${String(i + 1).padStart(5, '0')}.jpg`;
+}
+
+// ───────────────────────────── 폰 그리기 ─────────────────────────────
+const phonesEl = document.getElementById('phones');
+const pool = [];
+function phoneEl(i) {
+  if (!pool[i]) {
+    const el = document.createElement('div');
+    el.className = 'phone';
+    el.innerHTML = '<div class="bezel"></div><div class="screen"><div class="content"><img class="base" alt=""><div class="ovs"></div></div></div>';
+    phonesEl.appendChild(el);
+    pool[i] = { el, img: el.querySelector('img.base'), ovs: el.querySelector('.ovs'), screen: el.querySelector('.screen'), src: '' };
+  }
+  return pool[i];
+}
+
+function overlaysHTML(shot, t) {
+  if (!shot.ov) return '';
+  let h = '';
+  for (const o of shot.ov) {
+    if (o.k === 'tap') {
+      const d = t - o.at;
+      if (d < -0.12 || d > 0.42) continue;
+      const press = d < 0 ? 1 - (-d / 0.12) : 1;
+      const p = clamp(d / 0.42, 0, 1);
+      h += `<div class="ov tapdot" style="left:${o.p[0]}px;top:${o.p[1]}px;opacity:${(press * (1 - p)).toFixed(3)}"></div>`;
+      if (d >= 0) h += `<div class="ov tap" style="left:${o.p[0]}px;top:${o.p[1]}px;opacity:${(1 - ease.out(p)).toFixed(3)};transform:scale(${(0.5 + 1.1 * ease.out(p)).toFixed(3)})"></div>`;
+    } else if (o.k === 'buy') {
+      const d = t - o.at;
+      if (d < 0) continue;
+      const p = ease.out(clamp(d / 0.28, 0, 1));
+      const c = t - o.check;
+      const ck = c < 0 ? 0 : 1 + 0.25 * Math.max(0, 1 - c / 0.3) * Math.sin(Math.min(c / 0.3, 1) * Math.PI);
+      h += `<div class="ov buy" style="top:${(612 + (1 - p) * 120).toFixed(1)}px;opacity:${p.toFixed(3)}">`
+        + `<span class="ck" style="transform:scale(${ck.toFixed(3)});opacity:${c < 0 ? .25 : 1}">${c < 0 ? '' : '✓'}</span>`
+        + `<div><b>${c < 0 ? '결제 확인 중…' : '전자책 구매 완료'}</b><span>데미안 (한글판) · 알라딘</span></div><em>EPUB·PDF</em></div>`;
+    } else if (o.k === 'prog' && o.box) {
+      const steps = o.steps;
+      let v = 0;
+      for (let i = 1; i < steps.length; i++) v += ease.out(clamp((t - steps[i]) / 0.2, 0, 1)) / (steps.length - 1);
+      v = Math.max(v, 0.08 * ease.out(clamp((t - steps[0]) / 0.2, 0, 1)));
+      const [x, y, w, hh] = o.box;
+      h += `<div class="ov" style="left:${x + 18}px;top:${y + hh - 30}px;width:${w - 36}px">`
+        + `<div class="progl" style="margin-bottom:7px">UPLOADING · ${Math.round(v * 100)}%</div><div class="prog"><i style="width:${(v * 100).toFixed(1)}%"></i></div></div>`;
+    }
+  }
+  return h;
+}
+
+function placePhone(slot, shot, t, dx, blur) {
+  const P = phoneEl(slot);
+  const [z0, fx, fy] = camAt(shot, t);
+  let z = z0;
+  const lx = 16 + fx * SCR, ly = 16 + fy * SCR;           // 초점의 폰 안 좌표
+  const bx = PHONE_X + lx, by = PHONE_Y + ly;             // 기본 배치에서 초점의 무대 좌표
+  const m = clamp((z - 1) / 0.5, 0, 1);
+  const tx = lerp(bx, CENTER[0], m), ty = lerp(by, CENTER[1], m);
+  let X = tx - z * lx, Y = ty - z * ly;
+  // 프리즈 펀치 + 심장박동 — 무대 중앙 기준으로 한 번 더 키운다
+  // 확대해도 폰 화면이 캡션 아래부터 무대 바닥까지, 좌우로도 기본 폭 이상을 덮도록 묶는다(빈 배경에 떠 있지 않게)
+  if (z >= 1) {
+    X = clamp(X, 924 - 784 * z, 156 - 16 * z);
+    Y = clamp(Y, 1920 - 1678 * z, 332 - 16 * z);
+  }
+  const s = 1 + (shot.punch && t >= shot.t0 ? shot.punch : 0) + pulseAt(t);
+  X = CENTER[0] + s * (X - CENTER[0]); Y = CENTER[1] + s * (Y - CENTER[1]); z *= s;
+  P.el.style.display = 'block';
+  P.el.style.transform = `translate(${(X + dx).toFixed(2)}px,${Y.toFixed(2)}px) scale(${z.toFixed(5)})`;
+  P.el.style.filter = blur > 0.5 ? 'url(#mblur)' : 'none';
+  if (blur > 0.5) document.getElementById('mblurStd').setAttribute('stdDeviation', `${blur.toFixed(1)} 0`);
+  P.ovs.innerHTML = overlaysHTML(shot, t);
+  const src = srcAt(shot, t);
+  let wait = null;
+  if (P.src !== src) { P.src = src; P.img.src = src; wait = P.img.decode().catch(() => { throw new Error('missing ' + src); }); }
+  return { P, wait };
+}
+
+function shotAt(t) { return SHOTS.find(s => t >= s.t0 && t < s.t1) || null; }
+
+// ───────────────────────────── grain (결정적) ─────────────────────────────
+function makeGrain() {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d'), im = g.createImageData(256, 256);
+  let seed = 7;
+  const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+  for (let i = 0; i < im.data.length; i += 4) { const v = rnd() * 255; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; }
+  g.putImageData(im, 0, 0);
+  document.getElementById('grain').style.backgroundImage = `url(${c.toDataURL()})`;
+}
+
+// ───────────────────────────── render(t) ─────────────────────────────
+async function render(t) {
+  const waits = [];
+  const placed = [];
+  pool.forEach(p => { p.el.style.display = 'none'; });
+  let slot = 0;
+  // 휩팬: 경계 앞 0.12 s는 나가는 폰이 왼쪽으로, 뒤 0.12 s는 들어오는 폰이 오른쪽에서
+  const whip = WHIPS.find(w => Math.abs(t - w) < WHIP / 2);
+  const cur = shotAt(t);
+  if (t < OUTRO && cur) {
+    let dx = 0, blur = 0;
+    if (whip !== undefined) {
+      const p = (t - (whip - WHIP / 2)) / WHIP;           // 0..1
+      if (t < whip) { const q = ease.in(p * 2); dx = -1400 * q; blur = 60 * q; }
+      else { const q = 1 - ease.out((p - .5) * 2); dx = 1400 * q; blur = 60 * q; }
+    }
+    const r = placePhone(slot++, cur, t, dx, blur);
+    if (r.wait) waits.push(r.wait);
+    placed.push(r.P);
+  }
+  // 캡션
+  const cap = CAPTIONS.find(c => t >= c.t0 && t < c.t1);
+  const capEl = document.getElementById('cap');
+  if (cap && t < OUTRO) {
+    capEl.style.display = 'block';
+    document.getElementById('eb').textContent = cap.eb;
+    document.getElementById('title').textContent = cap.title;
+    // 들어올 때 0.12 s 살짝 올라온다(크로스페이드 없음 — 위치만)
+    const d = t - cap.t0;
+    document.getElementById('title').style.transform = `translateY(${(14 * (1 - ease.out(clamp(d / 0.12, 0, 1)))).toFixed(1)}px)`;
+  } else capEl.style.display = 'none';
+  // 아웃트로: 로고 + 한 줄 + 주소
+  const outro = document.getElementById('outro');
+  if (t >= OUTRO) {
+    outro.style.display = 'flex';
+    const d = t - OUTRO;
+    const s = 1 + pulseAt(t) * 1.2;
+    document.getElementById('wm').style.transform = `scale(${s.toFixed(4)})`;
+    document.getElementById('wm').style.opacity = 1;
+    const tagIn = ease.out(clamp((d - b(2)) / 0.2, 0, 1)), urlIn = ease.out(clamp((d - b(4)) / 0.2, 0, 1));
+    document.getElementById('tag').style.cssText = `opacity:${tagIn};transform:translateY(${(20 * (1 - tagIn)).toFixed(1)}px)`;
+    document.getElementById('url').style.cssText = `opacity:${urlIn};transform:translateY(${(16 * (1 - urlIn)).toFixed(1)}px)`;
+  } else outro.style.display = 'none';
+  // 프리즈 순간 아주 짧은 빛
+  const fl = t - CLIMAX;
+  document.getElementById('flash').style.opacity = fl >= 0 && fl < 0.2 ? (0.55 * (1 - fl / 0.2)).toFixed(3) : 0;
+  // 그레인: 프레임마다 위치만 바꾼다(프레임 번호로 정해짐)
+  const f = Math.round(t * FPS);
+  const gx = (f * 97) % 64, gy = (f * 53) % 64;
+  document.getElementById('grain').style.transform = `translate(${gx}px,${gy}px)`;
+  document.getElementById('fade').style.opacity = clamp((t - (LENGTH - FADE)) / FADE, 0, 1).toFixed(3);
+  await Promise.all(waits);
+  // 검사용: 무대에 보이는 폰 화면 사각형
+  const phones = placed.map(P => {
+    const r = P.screen.getBoundingClientRect();
+    const x0 = clamp(r.left, 0, 1080), y0 = clamp(r.top, 0, 1920), x1 = clamp(r.right, 0, 1080), y1 = clamp(r.bottom, 0, 1920);
+    return { x: Math.round(x0), y: Math.round(y0), w: Math.round(x1 - x0), h: Math.round(y1 - y0), src: P.src.replace(/^\.\.\//, '') };
+  }).filter(r => r.w * r.h > 0.05 * 1080 * 1920);
+  const shot = t < OUTRO && cur ? cur.id : (t >= OUTRO ? 'outro' : null);
+  return { t, shot, phones, caption: cap && t < OUTRO ? cap.title : null };
+}
+
+window.ready = (async () => {
+  const [boxes, ...metas] = await Promise.all([
+    fetch('../shots/boxes.json').then(r => r.json()),
+    ...['friendpop', 'pageturn', 'codetype', 'joined', 'quote', 'race', 'upload'].map(n =>
+      fetch(`../clips/${n}.json`).then(r => r.json()).then(m => [n, m])),
+  ]);
+  BOX = boxes;
+  const counts = await fetch('../out/clipframes/counts.json').then(r => r.json()).catch(() => ({}));
+  for (const [n, m] of metas) CLIPS[n] = { ...m, n: counts[n] || Math.round(m.duration * FPS) };
+  build();
+  makeGrain();
+  await document.fonts.load('820 78px "Pretendard Variable"');
+  await document.fonts.load('600 26px "Geist Mono"');
+  await document.fonts.load('900 300px "Wordmark"');
+  window.render = render;
+  window.META = { LENGTH, FPS, BPM, SHOTS: SHOTS.map(s => ({ id: s.id, t0: +s.t0.toFixed(3), t1: +s.t1.toFixed(3), src: typeof s.src === 'string' ? s.src : s.src.clip })), CAPTIONS, PULSES, WHIPS };
+  return true;
+})();
+</script>
+</body>
+</html>
