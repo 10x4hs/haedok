@@ -1,6 +1,6 @@
 {% extends "app.html" %}
 {% from "_ui.html" import book_cover, video_list %}
-{% block title %}{{ book.title }} — 偕讀 해독{% endblock %}
+{% block title %}{{ book.title }} · 서점 — 偕讀 해독{% endblock %}
 {% block content_class %}split{% endblock %}
 {% block heading %}<small>{{ book.author or '' }}</small>{{ book.title }}{% endblock %}
 {% block main %}

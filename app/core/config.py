@@ -93,8 +93,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     # 로그를 JSON 한 줄로 낼지(서버·Vercel) 사람이 읽기 쉬운 텍스트로 낼지(로컬)
     log_json: bool = True
-    # CSP를 Report-Only로 내보낼지. 템플릿 인라인 스크립트가 모두 nonce를 달면 false로 바꿔 강제한다
-    csp_report_only: bool = True
+    # CSP를 Report-Only로 내보낼지. 기본은 강제(false) — 문제를 살펴볼 때만 잠깐 true로 둔다
+    csp_report_only: bool = False
 
 
 @lru_cache

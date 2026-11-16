@@ -38,7 +38,7 @@
       </div>
       <div class="admin-actions">
         {% if u.id != user.id %}
-        <form method="post" action="/admin/users/{{ u.id }}/delete" onsubmit="return confirm('{{ u.email or u.nickname }} 계정과 서재·반응·대결 기록을 모두 지울까요? 되돌릴 수 없어요.')">
+        <form method="post" action="/admin/users/{{ u.id }}/delete" data-confirm="{{ u.email or u.nickname }} 계정과 서재·반응·대결 기록을 모두 지울까요? 되돌릴 수 없어요.">
           <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="confirm" value="1"><button class="pill danger">삭제</button>
         </form>
         {% endif %}
@@ -47,4 +47,10 @@
   {% endfor %}
   </ul>
 </section>
+<script nonce="{{ csp_nonce }}">
+  // 지우기 전에 한 번 더 묻는다(CSP가 인라인 이벤트 속성을 막아 여기서 붙인다)
+  document.querySelectorAll('form[data-confirm]').forEach(f => f.addEventListener('submit', e => {
+    if (!confirm(f.dataset.confirm)) e.preventDefault();
+  }));
+</script>
 {% endblock %}

@@ -18,6 +18,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app import admin, auth, intro, pwa, seo, web
 from app.api import books, me, points, social
+from app.core import csp
 from app.core.config import Settings, get_settings
 from app.core.logging import request_id_var, setup_logging
 from app.db.session import get_session
@@ -103,24 +104,11 @@ SECURITY_HEADERS = {
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
 }
 
-# Content-Security-Policy. 템플릿에 인라인 <script>(14곳)·style="" 속성(다수)·onsubmit(관리자)이 남아 있어
-# 지금은 Report-Only로 내보내 위반만 본다. 인라인을 모두 nonce로 바꾸면 CSP_REPORT_ONLY=false로 강제한다.
-CSP = "; ".join(
-    [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com",
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
-        "font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com",
-        "img-src 'self' data: blob: https:",
-        "media-src 'self' data: blob:",
-        "connect-src 'self' ws: wss:",
-        "worker-src 'self'",
-        "frame-ancestors 'none'",
-        "base-uri 'self'",
-        "form-action 'self'",
-    ]
-)
-CSP_HEADER = "Content-Security-Policy-Report-Only" if _settings.csp_report_only else "Content-Security-Policy"
+# Content-Security-Policy: 요청마다 nonce를 새로 만들어 강제한다(app/core/csp.py).
+# 인라인 <script>는 모두 nonce="{{ csp_nonce }}"를 달고, onclick= 같은 인라인 속성은 쓰지 않는다.
+CSP_HEADER = csp.header_name(_settings.csp_report_only)
+for _env in (web.templates.env, intro.templates.env):
+    _env.globals["csp_nonce"] = csp.NonceProxy()
 
 
 @app.middleware("http")
@@ -128,6 +116,9 @@ async def observe_request(request: Request, call_next):
     """요청 id(x-vercel-id 또는 uuid4)를 로그에 묶고, 응답에 x-request-id와 보안 헤더를 단다."""
     rid = request.headers.get("x-vercel-id") or uuid.uuid4().hex
     token = request_id_var.set(rid)
+    nonce = csp.new_nonce()
+    request.state.csp_nonce = nonce
+    nonce_token = csp.csp_nonce_var.set(nonce)
     started = time.perf_counter()
     status = 500
     try:
@@ -136,6 +127,7 @@ async def observe_request(request: Request, call_next):
     finally:
         duration_ms = round((time.perf_counter() - started) * 1000, 1)
         request_id_var.reset(token)
+        csp.csp_nonce_var.reset(nonce_token)
         if request.url.path != "/health" and not request.url.path.startswith("/static/"):
             access_log.log(
                 logging.WARNING if status >= 500 else logging.INFO,
@@ -151,7 +143,7 @@ async def observe_request(request: Request, call_next):
     response.headers["x-request-id"] = rid
     for key, value in SECURITY_HEADERS.items():
         response.headers.setdefault(key, value)
-    response.headers.setdefault(CSP_HEADER, CSP)
+    response.headers.setdefault(CSP_HEADER, csp.policy(nonce))
     if _settings.cookie_secure:
         response.headers.setdefault(
             "Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload"
@@ -166,6 +158,7 @@ async def to_login(request: Request, exc: auth.LoginRequired) -> RedirectRespons
 
 # --- 오류 화면: 화면 요청에는 앱 디자인의 HTML, API·JSON 요청에는 JSON ---
 error_templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
+error_templates.env.globals["csp_nonce"] = csp.NonceProxy()
 
 
 def _wants_html(request: Request) -> bool:
@@ -179,7 +172,15 @@ def _error_page(request: Request, status: int) -> HTMLResponse:
 
     ctx = {"look": appearance.resolve(None), "user": None, "csrf": "", "path": request.url.path}
     ctx["request_id"] = request_id_var.get() or request.headers.get("x-vercel-id") or ""
-    return error_templates.TemplateResponse(request, f"errors/{status}.html", ctx, status_code=status)
+    # 500 화면은 미들웨어 바깥(ServerErrorMiddleware)에서 그려지므로 nonce와 헤더를 여기서 직접 맞춘다
+    nonce = getattr(request.state, "csp_nonce", None) or csp.new_nonce()
+    token = csp.csp_nonce_var.set(nonce)
+    try:
+        response = error_templates.TemplateResponse(request, f"errors/{status}.html", ctx, status_code=status)
+    finally:
+        csp.csp_nonce_var.reset(token)
+    response.headers[CSP_HEADER] = csp.policy(nonce)
+    return response
 
 
 @app.exception_handler(StarletteHTTPException)

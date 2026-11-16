@@ -304,7 +304,7 @@ a:hover .bk,a:focus-visible .bk,.now:hover .bk,.pick:hover .bk{transform:rotateY
 .reading[data-tone="night"]{--paper:#000;--ink:#a9adb5;--pdim:#5c6068}
 .r-top{position:fixed;z-index:20;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top));width:min(calc(100% - 24px),calc(var(--app) - 24px));display:flex;align-items:center;gap:8px;padding:6px;border-radius:999px}
 .r-top .pill-btn{background:transparent;border:0}
-.r-title{flex:1;display:grid;justify-items:center;min-width:0;line-height:1.25}
+.r-title{flex:1;display:grid;justify-items:center;min-width:0;margin:0;font:inherit;line-height:1.25}
 .r-title b{font-size:14px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .r-title span{font-size:11px;color:var(--dim)}
 .r-sheet{position:fixed;z-index:20;left:50%;transform:translateX(-50%);top:calc(70px + env(safe-area-inset-top));width:min(calc(100% - 24px),360px);display:grid;gap:12px;padding:14px;border-radius:20px}

@@ -76,7 +76,7 @@
   <span class="muted small" id="copied" aria-live="polite"></span>
 </section>
 <script src="/static/palette.js"></script>
-<script>
+<script nonce="{{ csp_nonce }}">
 (() => {
   const share = document.getElementById('share'), note = document.getElementById('copied');
   const text = `해독(偕讀)에서 「${share.dataset.title}」 페이지 레이스 하자! 코드 ${document.getElementById('code').textContent}`;
