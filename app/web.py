@@ -236,8 +236,12 @@ async def signup(
             form.errors["email"] = "이미 가입된 이메일이에요"
         else:
             code = await auth.start_signup(session, form)
-            if code is None or await mail.send_signup_code(http, form.email, code, session=session):
+            sent = (
+                True if code is None else await mail.send_signup_code(http, form.email, code, session=session)
+            )
+            if sent:
                 request.session["signup_email"] = form.email
+                request.session["signup_relayed"] = sent == mail.SENT_ADMIN
                 return RedirectResponse("/signup/verify", status_code=303)
             # 안 나간 메일은 재발송 간격을 풀어 둔다.
             # 안 그러면 60초 안의 재시도가 메일 없이 조용히 인증 화면으로 넘어간다
@@ -251,6 +255,13 @@ MAIL_FAILED = (
     "인증 메일을 보내지 못했어요. 가입 요청은 접수됐으니 관리자가 확인하면 "
     "바로 로그인할 수 있어요. 급하면 잠시 뒤 다시 시도해 주세요"
 )
+
+# Resend 도메인 검증 전에는 관리자 주소로만 메일이 나가서, 코드를 관리자에게 대신 보낸다
+RELAYED = "인증 코드를 관리자 메일로 보냈어요. 관리자에게 코드를 받아 입력해 주세요"
+
+
+def _code_notice(request: Request) -> str:
+    return RELAYED if request.session.get("signup_relayed") else "메일로 받은 6자리 코드를 입력해 주세요"
 
 
 async def _verify_page(
@@ -291,7 +302,7 @@ async def signup_verify_form(
     email = request.session.get("signup_email")
     if not email:
         return RedirectResponse("/signup", status_code=303)
-    return await _verify_page(request, session, email, notice="메일로 받은 6자리 코드를 입력해 주세요")
+    return await _verify_page(request, session, email, notice=_code_notice(request))
 
 
 @router.post("/signup/verify", response_class=HTMLResponse, response_model=None)
@@ -338,10 +349,13 @@ async def signup_resend(
         return await _verify_page(
             request, session, email, error=f"{wait}초 뒤에 다시 받을 수 있어요", kind="wait"
         )
-    if not await mail.send_signup_code(http, email, code, session=session):
+    sent = await mail.send_signup_code(http, email, code, session=session)
+    if not sent:
         await auth.mail_failed(session, email)
         return await _verify_page(request, session, email, error=MAIL_FAILED, kind="mail")
-    return await _verify_page(request, session, email, notice="새 코드를 보냈어요")
+    request.session["signup_relayed"] = sent == mail.SENT_ADMIN
+    notice = RELAYED if sent == mail.SENT_ADMIN else "새 코드를 보냈어요"
+    return await _verify_page(request, session, email, notice=notice)
 
 
 def _login_page(
