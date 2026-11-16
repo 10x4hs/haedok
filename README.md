@@ -119,6 +119,7 @@ Postgres로 돌리려면 `docker compose up -d` 뒤에 `alembic upgrade head`를
 | `KAKAO_REST_API_KEY` · `NAVER_CLIENT_*` · `GOOGLE_BOOKS_API_KEY` | 메타데이터 검색 소스. 키가 없으면 그 소스만 꺼져요 |
 | `SENTRY_DSN` | Sentry 오류 수집(선택). 비우면 꺼져요 |
 | `SITE_URL` | 공개 주소(https://…). canonical·OG·사이트맵·초대 미리보기에 써요. 비우면 Vercel URL → 요청 주소 순 |
+| `CSP_REPORT_ONLY` | 기본 `false` — CSP를 요청마다 새 nonce로 강제해요. 위반을 살펴볼 때만 잠깐 `true`(Report-Only) |
 
 ## 관리자 화면
 

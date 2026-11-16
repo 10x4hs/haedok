@@ -15,7 +15,7 @@
   <a class="card add" href="/upload"><div class="cover add-cover">＋</div><b>파일 올리기</b><span>EPUB · PDF · TXT</span></a>
   {% for b in uploaded %}{{ book_card(b) }}{% endfor %}
 </div>
-<script>
+<script nonce="{{ csp_nonce }}">
 (() => {
   const tabs = [...document.querySelectorAll('.seg [role=tab]')];
   const pick = (btn, focus = false) => {

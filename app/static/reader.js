@@ -485,31 +485,32 @@ async function social() {
   connect();
 }
 
-let retry = 3000;
+// 친구 소식 채널(presence.js 의 haedokLive): WebSocket을 먼저 열어 보고, 4초 안에 안 열리면(서버리스 배포)
+// 20초 폴링으로 내려간다 — 실패하면 간격을 늘리고, 탭이 가려지면 멈춘다
 function connect() {
-  const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/api/v1/ws/books/${bookId}`);
-  const ping = setInterval(() => ws.readyState === 1 && ws.send('ping'), 25000);
-  ws.onmessage = ev => {
-    const m = JSON.parse(ev.data);
-    if (m.type === 'progress.updated') {
-      const before = friendMap.get(m.user_id);
-      const f = { user_id: m.user_id, nickname: m.nickname, avatar: m.avatar, current_chunk: m.current_chunk, verified_chunk: m.verified_chunk };
-      friendMap.set(m.user_id, f);
-      paintFriends();
-      if (m.advanced) {
-        const passed = before && before.verified_chunk <= verifiedUpTo && m.verified_chunk > verifiedUpTo;
-        news(f, passed ? `🏃 ${m.nickname}님이 나를 앞질렀어요` : `${m.nickname}님이 ${m.verified_chunk + 1}쪽을 다 읽었어요`);
-      }
-    } else if (m.type === 'reaction.removed') {
-      if (m.chunk === chunk) loadReactions(chunk);
-    } else if (m.type === 'reaction.added') {
-      news({ user_id: m.user_id, nickname: m.nickname, avatar: m.avatar }, `${m.nickname}님이 ${m.chunk + 1}쪽에 반응을 남겼어요`);
-      if (m.chunk === chunk) loadReactions(chunk, { quiet: true });
+  if (typeof window.haedokLive !== 'function') return;
+  window.haedokLive({
+    url: `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/api/v1/ws/books/${bookId}`,
+    onMessage: onLive,
+    poll: pollFriends,
+  });
+}
+function onLive(m) {
+  if (m.type === 'progress.updated') {
+    const before = friendMap.get(m.user_id);
+    const f = { user_id: m.user_id, nickname: m.nickname, avatar: m.avatar, current_chunk: m.current_chunk, verified_chunk: m.verified_chunk };
+    friendMap.set(m.user_id, f);
+    paintFriends();
+    if (m.advanced) {
+      const passed = before && before.verified_chunk <= verifiedUpTo && m.verified_chunk > verifiedUpTo;
+      news(f, passed ? `🏃 ${m.nickname}님이 나를 앞질렀어요` : `${m.nickname}님이 ${m.verified_chunk + 1}쪽을 다 읽었어요`);
     }
-  };
-  // 서버리스 배포처럼 WebSocket이 없는 곳에서는 점점 드물게 다시 시도하고, 그동안은 주기적으로 물어본다
-  ws.onopen = () => { retry = 3000; stopPolling(); };
-  ws.onclose = () => { clearInterval(ping); startPolling(); setTimeout(connect, retry); retry = Math.min(retry * 2, 60000); };
+  } else if (m.type === 'reaction.removed') {
+    if (m.chunk === chunk) loadReactions(chunk);
+  } else if (m.type === 'reaction.added') {
+    news({ user_id: m.user_id, nickname: m.nickname, avatar: m.avatar }, `${m.nickname}님이 ${m.chunk + 1}쪽에 반응을 남겼어요`);
+    if (m.chunk === chunk) loadReactions(chunk, { quiet: true });
+  }
 }
 
 social();
@@ -542,31 +543,26 @@ document.querySelectorAll('#modes button').forEach(b => b.onclick = () => {
   if (chunkData) open(chunk);
 });
 
-// ---------------- WebSocket이 없을 때: 20초마다 친구 진행을 물어본다 ----------------
-let pollTimer = 0;
-function startPolling() {
-  if (pollTimer) return;
-  pollTimer = setInterval(async () => {
-    if (document.hidden) return;
-    try {
-      const d = await (await fetch(`/api/v1/books/${bookId}/social`)).json();
-      d.friends.forEach(f => {
-        const before = friendMap.get(f.user_id);
-        friendMap.set(f.user_id, f);
-        if (before && f.verified_chunk > before.verified_chunk) {
-          const passed = before.verified_chunk <= verifiedUpTo && f.verified_chunk > verifiedUpTo;
-          news(f, passed ? `🏃 ${f.nickname}님이 나를 앞질렀어요` : `${f.nickname}님이 ${f.verified_chunk + 1}쪽을 다 읽었어요`);
-        }
-      });
-      paintFriends();
-      // 지금 쪽에 새로 달린 친구 반응도 확인한다(WebSocket이 없으면 알림이 오지 않으니)
-      const seen = new Set(reacts.items.map(x => x.id)), at = chunk;
-      await loadReactions(at, { quiet: true });
-      reacts.items.filter(x => !x.mine && !seen.has(x.id) && at === chunk).forEach(x => {
-        const f = [...friendMap.values()].find(v => v.nickname === x.nickname) || { user_id: 0, nickname: x.nickname };
-        news(f, `${x.nickname}님이 이 쪽에 ${x.kind === 'emoji' ? x.body : '💬'} 반응을 남겼어요`);
-      });
-    } catch (e) {}
-  }, 20000);
+// ---------------- WebSocket이 없을 때: 친구 진행과 지금 쪽의 새 반응을 물어본다(haedokLive가 부른다) ----------------
+// 반응 본문은 스포일러 가드가 걸린 /reactions 로만 읽는다. 실패하면 false — 간격이 늘어난다
+async function pollFriends() {
+  const r = await fetch(`/api/v1/books/${bookId}/social`);
+  if (!r.ok) return false;
+  const d = await r.json();
+  d.friends.forEach(f => {
+    const before = friendMap.get(f.user_id);
+    friendMap.set(f.user_id, f);
+    if (before && f.verified_chunk > before.verified_chunk) {
+      const passed = before.verified_chunk <= verifiedUpTo && f.verified_chunk > verifiedUpTo;
+      news(f, passed ? `🏃 ${f.nickname}님이 나를 앞질렀어요` : `${f.nickname}님이 ${f.verified_chunk + 1}쪽을 다 읽었어요`);
+    }
+  });
+  paintFriends();
+  const seen = new Set(reacts.items.map(x => x.id)), at = chunk;
+  await loadReactions(at, { quiet: true });
+  reacts.items.filter(x => !x.mine && !seen.has(x.id) && at === chunk).forEach(x => {
+    const f = [...friendMap.values()].find(v => v.nickname === x.nickname) || { user_id: 0, nickname: x.nickname };
+    news(f, `${x.nickname}님이 이 쪽에 ${x.kind === 'emoji' ? x.body : '💬'} 반응을 남겼어요`);
+  });
+  return true;
 }
-function stopPolling() { clearInterval(pollTimer); pollTimer = 0; }

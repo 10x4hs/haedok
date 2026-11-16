@@ -40,7 +40,7 @@
       <button class="pick">{{ book_cover(b.title, b.author, img=b.cover) }}<b>{{ b.title }}</b></button></form>
   {% endfor %}</div>
 </section>
-<script>
+<script nonce="{{ csp_nonce }}">
 document.querySelectorAll('#days button').forEach(b => b.onclick = () => {
   document.querySelectorAll('#days button').forEach(x => { x.setAttribute('aria-pressed', x === b); x.setAttribute('aria-checked', x === b); });
   document.querySelectorAll('.days-in').forEach(i => i.value = b.dataset.days);

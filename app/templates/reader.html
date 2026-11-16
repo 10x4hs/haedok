@@ -5,7 +5,7 @@
 {% block body %}
 <header class="r-top glass">
   <a href="/library" class="pill-btn" id="back" aria-label="뒤로">{{ icon('back') }}</a>
-  <div class="r-title"><b>{{ book.title }}</b><span>{{ book.author or '' }}</span></div>
+  <h1 class="r-title"><b>{{ book.title }}</b><span>{{ book.author or '' }}</span></h1>
   {% if videos %}<button class="pill-btn" id="vidBtn" aria-label="책 소개 영상">▶</button>{% endif %}
   <button class="pill-btn" id="aa" aria-label="보기 설정" aria-expanded="false">Aa</button>
 </header>
@@ -73,7 +73,7 @@
     {{ video_list(videos) }}
   </section>
 </div>
-<script>
+<script nonce="{{ csp_nonce }}">
 (() => {
   const s = document.getElementById('vids');
   document.getElementById('vidBtn').onclick = () => { s.hidden = false; };

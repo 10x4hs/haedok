@@ -33,7 +33,7 @@
   </div></div>
   <div class="sc-nav"><button type="button" data-sc-step="-1" aria-label="책 띠 앞으로">{{ icon('prev') }}</button><button type="button" data-sc-step="1" aria-label="책 띠 다음으로">{{ icon('next') }}</button></div>
   <div class="sc-toast" id="scToast" role="status" aria-live="polite" hidden>아직 해독에서 읽을 수 없는 책이에요</div>
-  <script>
+  <script nonce="{{ csp_nonce }}">
   (() => {
     const t = document.getElementById('scToast');
     const strip = document.querySelector('.sc-strip');

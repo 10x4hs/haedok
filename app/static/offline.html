@@ -36,12 +36,9 @@
   <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l20 20"/><path d="M5 12.5a11 11 0 0 1 4-2.6M8.5 16a6 6 0 0 1 4-1.5M12 19.5h.01"/><path d="M12 5c3.5 0 6.7 1.3 9 3.5"/></svg></span>
   <h1>인터넷에 연결되어 있지 않아요</h1>
   <p>연결되면 읽던 자리로 바로 돌아가요. 그동안 읽은 쪽은 연결된 뒤에 저장돼요.</p>
-  <button type="button" onclick="location.reload()">다시 시도</button>
+  <button type="button" id="retry">다시 시도</button>
   <span class="st" id="st" role="status" aria-live="polite">연결을 기다리는 중…</span>
 </main>
-<script>
-  // 연결이 돌아오면 알려 주고 1초 뒤 자동으로 다시 연다
-  addEventListener('online', () => { const s = document.getElementById('st'); s.textContent = '연결됐어요 · 다시 여는 중'; s.className = 'st on'; setTimeout(() => location.reload(), 1000); });
-</script>
+<script src="/static/offline.js" defer></script>
 </body>
 </html>

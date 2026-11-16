@@ -1,9 +1,111 @@
 // 함께 읽는 중(presence) + 문장 공유 — reader.js와 따로 동작한다.
 // 지금 쪽은 (1) 'haedok:page' 이벤트(detail.chunk) (2) reader.js의 진행 저장 요청 (3) #stage 의 data-start 순으로 알아낸다.
 // 실시간은 5초 폴링: Vercel 서버리스는 메모리 WebSocket 허브를 붙들 수 없다. 서버는 60초 소식 없는 사람을 뺀다.
+// 실패하면 간격을 두 배씩(최대 60초) 늘리고, 탭이 가려지면 멈췄다가 다시 보이면 곧바로 한 번 묻는다.
+// 아래 haedokLive 는 reader.js 의 친구 소식 채널: WebSocket을 먼저 시도하고, 몇 초 안에 열리지 않으면
+// 폴링으로 내려간다(서버리스 배포). 소켓 재시도는 점점 드물게, 몇 번 실패하면 그 화면에서는 포기한다.
 // 보이는 곳: 쪽 위 가장자리의 색 아바타(같은 쪽이면 이름표·맥박), 하단 막대의 색 점, 오고 갈 때 토스트.
 // 친구마다 색 하나 — reader.js(오른쪽 열·하단 동그라미)도 window.haedokPresence.colorOf 로 같은 색을 쓴다.
+function haedokLive(opts) {
+  const o = Object.assign({
+    wsTimeout: 4000,      // 이 안에 열리지 않으면 실패로 본다(서버리스는 업그레이드가 매달리기도 한다)
+    pollBase: 20000,      // 폴링 기본 간격
+    pollMax: 120000,      // 연달아 실패할 때 늘어나는 상한
+    wsRetry: 30000,       // 소켓 재시도 첫 간격(이후 두 배씩)
+    wsGiveUp: 3,          // 이만큼 실패하면 이 화면에서는 소켓을 다시 시도하지 않는다
+    pingEvery: 25000,
+    doc: typeof document !== 'undefined' ? document : null,
+    WS: typeof WebSocket !== 'undefined' ? WebSocket : null,
+  }, opts);
+  const doc = o.doc;
+  const hidden = () => !!(doc && doc.hidden);
+  let mode = 'connecting', wsFails = 0, stopped = false, ws = null;
+  let polling = false, inFlight = false, pollTimer = 0, retryTimer = 0, pollDelay = o.pollBase;
+
+  function connect() {
+    retryTimer = 0;
+    if (stopped) return;
+    if (!o.WS || wsFails >= o.wsGiveUp) { fail(true); return; }
+    let done = false, ping = 0, sock;
+    const lost = () => {
+      if (done) return;
+      done = true; clearTimeout(timer); clearInterval(ping);
+      if (ws === sock) ws = null;
+      if (!stopped) fail(false);
+    };
+    try { sock = ws = new o.WS(o.url); } catch (e) { done = true; fail(false); return; }
+    const timer = setTimeout(() => {
+      if (sock.readyState === 1) return;
+      sock.onclose = null;
+      try { sock.close(); } catch (e) { /* 이미 닫힘 */ }
+      lost();
+    }, o.wsTimeout);
+    sock.onopen = () => {
+      clearTimeout(timer);
+      wsFails = 0; mode = 'ws'; stopPolling();
+      ping = setInterval(() => { if (sock.readyState === 1) sock.send('ping'); }, o.pingEvery);
+    };
+    sock.onmessage = ev => { try { o.onMessage(JSON.parse(ev.data)); } catch (e) { /* 모르는 메시지는 버린다 */ } };
+    sock.onerror = () => {};  // 곧 onclose 가 온다
+    sock.onclose = lost;
+  }
+
+  function fail(final) {
+    if (!final) wsFails += 1;
+    mode = 'poll';
+    startPolling();
+    if (!final && wsFails < o.wsGiveUp && !retryTimer) {
+      retryTimer = setTimeout(connect, o.wsRetry * 2 ** (wsFails - 1));
+    }
+  }
+
+  function schedule(delay) {
+    clearTimeout(pollTimer); pollTimer = 0;
+    if (!polling || stopped || hidden()) return;  // 가려진 동안은 타이머도 두지 않는다
+    pollTimer = setTimeout(tick, delay);
+  }
+
+  async function tick() {
+    pollTimer = 0;
+    if (!polling || stopped || hidden() || inFlight) return;
+    inFlight = true;
+    let ok = false;
+    try { ok = (await o.poll()) !== false; } catch (e) { ok = false; }
+    inFlight = false;
+    pollDelay = ok ? o.pollBase : Math.min(pollDelay * 2, o.pollMax);
+    schedule(pollDelay);
+  }
+
+  function startPolling() {
+    if (polling || stopped) return;
+    polling = true; pollDelay = o.pollBase;
+    schedule(pollDelay);  // 화면을 열 때 이미 한 번 읽었으니 한 간격 뒤부터
+  }
+  function stopPolling() { polling = false; clearTimeout(pollTimer); pollTimer = 0; }
+
+  const onVisibility = () => {
+    if (hidden()) { clearTimeout(pollTimer); pollTimer = 0; }
+    else if (polling) tick();  // 돌아오면 바로 한 번
+  };
+  if (doc) doc.addEventListener('visibilitychange', onVisibility);
+  connect();
+
+  return {
+    get mode() { return mode; },
+    get pollDelay() { return pollDelay; },
+    get wsFails() { return wsFails; },
+    stop() {
+      stopped = true; stopPolling(); clearTimeout(retryTimer);
+      if (ws) { ws.onclose = null; try { ws.close(); } catch (e) { /* 무시 */ } }
+      if (doc) doc.removeEventListener('visibilitychange', onVisibility);
+    },
+  };
+}
+if (typeof window !== 'undefined') window.haedokLive = haedokLive;
+if (typeof module !== 'undefined') module.exports = { haedokLive };
+
 (() => {
+  if (typeof document === 'undefined') return;
   const stage = document.getElementById('stage');
   if (!stage) return;
   const bookId = stage.dataset.book, csrf = stage.dataset.csrf;
@@ -11,7 +113,8 @@
   let chunk = Math.max(0, Math.min(+stage.dataset.start || 0, total - 1));
   let rooms = [], friends = [], lastOk = 0, primed = false;
   let seenAt = new Map(), seenChunk = chunk;   // 지난 박동 때 친구 위치, 그때 내 쪽
-  const BEAT = 5000, STALE = 60000;
+  const BEAT = 5000, BEAT_MAX = 60000, STALE = 60000;
+  let beatDelay = BEAT, beatTimer = 0, beating = false;
 
   // ── 친구 색: 대결 화면(palette.js / app/services/palette.py)과 같은 목록·규칙 PALETTE[id % 8] ──
   // palette.js가 먼저 불렸으면 그것을 쓰고, 아니면 같은 내용의 사본을 쓴다
@@ -188,28 +291,40 @@
     document.dispatchEvent(new CustomEvent('haedok:presence', { detail: { friends: friends.slice(), chunk } }));
   }
 
-  // ── 심장박동(겸 조회): 5초마다 ──
+  // ── 심장박동(겸 조회): 5초마다, 실패하면 10·20·40·60초로 늦춘다. 가려진 탭에서는 멈춘다 ──
+  const nextBeat = delay => {
+    clearTimeout(beatTimer); beatTimer = 0;
+    if (!document.hidden) beatTimer = setTimeout(beat, delay);
+  };
   async function beat() {
-    if (document.hidden) return;
+    clearTimeout(beatTimer); beatTimer = 0;
+    if (document.hidden || beating) return;
+    beating = true;
+    let ok = false;
     try {
       const r = await origFetch(`/api/v1/books/${bookId}/presence`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
         body: JSON.stringify({ chunk_index: chunk }),
       });
-      if (!r.ok) return;
-      const d = await r.json();
-      rooms = d.rooms || [];
-      lastOk = Date.now();
-      apply(d.friends || []);
-    } catch (e) {
-      // 네트워크가 오래 끊기면 친구 위치는 믿을 수 없다 — 지운다
-      if (friends.length && Date.now() - lastOk > STALE) apply([]);
-    }
+      if (r.ok) {
+        const d = await r.json();
+        rooms = d.rooms || [];
+        lastOk = Date.now();
+        apply(d.friends || []);
+        ok = true;
+      }
+    } catch (e) { /* 아래에서 간격을 늘린다 */ }
+    beating = false;
+    // 오래 소식이 없으면 친구 위치는 믿을 수 없다 — 지운다
+    if (!ok && friends.length && Date.now() - lastOk > STALE) apply([]);
+    beatDelay = ok ? BEAT : Math.min(beatDelay * 2, BEAT_MAX);
+    nextBeat(beatDelay);
   }
-  setInterval(beat, BEAT);
   beat();
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) beat(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { clearTimeout(beatTimer); beatTimer = 0; } else beat();
+  });
 
   // ── 토스트: 친구 색 테두리 + 아바타 ──
   let toastEl = null, toastT = 0;

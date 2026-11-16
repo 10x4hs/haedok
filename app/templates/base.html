@@ -11,7 +11,7 @@
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon-180.png">
-<script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));</script>
+<script nonce="{{ csp_nonce }}">if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));</script>
 <title>{% block title %}偕讀 해독 — 같은 책을 함께 읽다{% endblock %}</title>
 {# ---- 검색·공유 메타: 페이지는 description / og_title / og_image / og_type / robots 블록만 덮어쓰면 된다 ---- #}
 {% set site = public_base(request) if public_base is defined else (request.base_url|string).rstrip('/') %}
