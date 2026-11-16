@@ -77,7 +77,7 @@ class User(Base):
     email: Mapped[str | None] = mapped_column(String(255), unique=True)
     # BCrypt 해시. 소셜 로그인만 쓰는 계정은 비어 있다
     password_hash: Mapped[str | None] = mapped_column(String(60))
-    # 화면 꾸미기 {"mode": "auto|light|dark", "bg": "<배경 id>", "accent": "<색 id>"} — 모든 기기 공통
+    # 화면 테마 {"theme": "<테마 id>", "mode": "auto|light|dark", "bg": "<배경 id>", "accent": "<색 id>"}
     settings: Mapped[dict | None] = mapped_column(JSON)
     # 프로필 사진 — 브라우저에서 256px JPEG로 줄여 올린 것 (수십 KB)
     avatar: Mapped[bytes | None] = mapped_column(LargeBinary)

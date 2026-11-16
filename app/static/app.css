@@ -344,7 +344,6 @@ a:hover .bk,a:focus-visible .bk,.now:hover .bk,.pick:hover .bk{transform:rotateY
 .r-title{flex:1;display:grid;justify-items:center;min-width:0;margin:0;font:inherit;line-height:1.25}
 .r-title b{font-size:14px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .r-title span{font-size:11px;color:var(--dim)}
-.r-sheet{position:fixed;z-index:20;left:50%;transform:translateX(-50%);top:calc(70px + env(safe-area-inset-top));width:min(calc(100% - 24px),360px);display:grid;gap:12px;padding:14px;border-radius:20px}
 .r-row{display:flex;justify-content:space-between;align-items:center;font-size:14px}
 .seg.mini button{height:32px;padding:0 12px;font-size:13px}
 .r-stage{position:fixed;left:50%;transform:translateX(-50%);top:calc(72px + env(safe-area-inset-top));bottom:calc(106px + env(safe-area-inset-bottom));width:min(calc(100% - 24px),calc(var(--app) - 24px))}
@@ -862,7 +861,7 @@ html,body{overflow-x:clip;max-width:100%}
 
   /* 리더: 펼친 두 쪽 + 오른쪽 열(친구 진행 · 이 쪽의 반응) */
   body.reading{--rw:352px}
-  .r-top,.r-foot,.r-stage,.r-sheet,.r-toast{left:calc((100% - var(--rw)) / 2)}
+  .r-top,.r-foot,.r-stage,.r-toast{left:calc((100% - var(--rw)) / 2)}
   .r-top{width:min(calc(100% - var(--rw) - 48px),760px)}
   .r-stage{width:min(calc(100% - var(--rw) - 48px),620px)}
   .spread .r-stage{width:min(calc(100% - var(--rw) - 64px),1180px,calc((100dvh - 170px) * 1.5))}
