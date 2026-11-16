@@ -50,8 +50,9 @@ def _load_catalog() -> list[dict]:
         if key in seen:
             continue
         seen.add(key)
-        if b.get("cover") and not (STATIC / b["cover"].removeprefix("/static/")).exists():
-            b["cover"] = b.get("cover_src")
+        # 출판사(알라딘)·스캔 표지는 쓰지 않는다 — 저작물이고 제목 검색으로 붙여 엉뚱한 표지가 섞였다.
+        # 직접 그린 표지가 있는 책만 아래 SHOWCASE에서 다시 채우고, 나머지는 cover() 기본 표지로 그린다
+        b["cover"] = None
         out.append(b)
     return out
 
@@ -79,6 +80,9 @@ discovery.enrich(CATALOG, discovery.load_lengths())  # 분량 → 예상 시간(
 # 홈·첫 화면 띠: 유명하고 앱에서 바로 무료로 읽을 수 있는 책들 (직접 그린 표지 — app/services/home.py)
 SHOWCASE: list[dict] = home_service.load_showcase()
 SHOWCASE_INDEX = {(b["source"], b["id"]): b for b in SHOWCASE}
+for _b in CATALOG:
+    if _meta := SHOWCASE_INDEX.get((_b["source"], _b["id"])):
+        _b["cover"] = _meta["cover"]
 
 COVER_PALETTES = 8
 
@@ -613,7 +617,7 @@ async def delete_my_account(
 
 def _short_picks(n: int) -> list[dict]:
     """오늘 시작하기 좋은 짧은 책 — 표지 있는 30분 안쪽 책 가운데 날마다 바뀌는 n권."""
-    pool = [b for b in CATALOG if b["minutes"] <= 30 and b.get("cover")]
+    pool = [b for b in CATALOG if b["minutes"] <= 30]
     return random.Random(dt.date.today().toordinal()).sample(pool, min(n, len(pool)))
 
 

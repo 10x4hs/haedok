@@ -45,7 +45,9 @@ def test_enrich_fills_missing_lengths_with_genre_median():
 def test_every_catalog_book_has_a_time_estimate():
     assert all(b["time"].startswith("약 ") and b["minutes"] >= 1 and b["pages"] >= 1 for b in CATALOG)
     # 짧은 책 줄이 비지 않을 만큼 30분 안쪽 책이 있다
-    assert sum(b["minutes"] <= 30 and bool(b.get("cover")) for b in CATALOG) >= 14
+    assert sum(b["minutes"] <= 30 for b in CATALOG) >= 14
+    # 출판사 표지는 쓰지 않는다: 표지는 직접 그린 홈 표지뿐
+    assert all(b["cover"] is None or b["cover"].startswith("/static/covers/home/") for b in CATALOG)
 
 
 async def test_mood_chip_filters_server_side(api):
