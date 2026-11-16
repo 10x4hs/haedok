@@ -68,8 +68,9 @@ def test_css_dark_tone_overrides_text_vars_and_mono_accent():
     assert mono_rules and all('[data-bg-tone="light"]' in ln or ':not([data-bg-tone="dark"])' in ln for ln in mono_rules)
 
 
-def test_home_helix_supports_pointer_drag():
-    js = (STATIC / "helix.js").read_text()
-    for needle in ("pointerdown", "pointermove", "pointerup", "pointercancel", "dragstart"):
+def test_home_carousel_supports_drag_keys_and_vertical_scroll():
+    js = (STATIC / "home.js").read_text()
+    for needle in ("pointerdown", "pointermove", "pointerup", "pointercancel", "dragstart", "ArrowLeft", "ArrowRight"):
         assert needle in js
-    assert "touch-action:none" in (STATIC / "app.css").read_text()
+    css = (STATIC / "css" / "home.css").read_text()
+    assert "touch-action:pan-y" in css and "prefers-reduced-motion" in css
