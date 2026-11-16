@@ -2,18 +2,14 @@
 {% from "_ui.html" import icon, video_list, toast_region %}
 {% block title %}{{ book.title }} — 偕讀 해독{% endblock %}
 {% block body_class %}reading{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/css/reader.css">{% endblock %}
 {% block body %}
 <header class="r-top glass">
   <a href="/library" class="pill-btn" id="back" aria-label="뒤로">{{ icon('back') }}</a>
   <h1 class="r-title"><b>{{ book.title }}</b><span>{{ book.author or '' }}</span></h1>
   {% if videos %}<button class="pill-btn" id="vidBtn" aria-label="책 소개 영상">▶</button>{% endif %}
-  <button class="pill-btn" id="aa" aria-label="보기 설정" aria-expanded="false">Aa</button>
+  <button class="pill-btn" id="aa" aria-label="읽기 설정" aria-haspopup="dialog" aria-expanded="false" aria-controls="readSet">Aa</button>
 </header>
-<div class="r-sheet glass" id="sheet" hidden>
-  <div class="r-row"><span id="lblSize">글자 크기</span><div class="seg mini" role="group" aria-labelledby="lblSize"><button type="button" id="smaller" aria-label="작게">가−</button><button type="button" id="bigger" aria-label="크게">가+</button></div></div>
-  <div class="r-row"><span id="lblMode">넘김</span><div class="seg mini" id="modes" role="group" aria-labelledby="lblMode"><button type="button" data-mode="3d">3D 넘김</button><button type="button" data-mode="scroll">스크롤</button></div></div>
-  <div class="r-row"><span id="lblTone">종이</span><div class="seg mini" id="tones" role="group" aria-labelledby="lblTone"><button type="button" data-tone="">기본</button><button type="button" data-tone="paper">종이</button><button type="button" data-tone="night">밤</button></div></div>
-</div>
 
 <main class="r-stage" id="stage" data-book="{{ book.id }}" data-total="{{ book.total_chunks }}"
       data-start="{{ [[entry.verified_chunk + 1, book.total_chunks - 1]|min, 0]|max }}" data-verified="{{ entry.verified_chunk }}" data-csrf="{{ csrf }}"></main>
@@ -82,6 +78,60 @@
 </script>
 {% endif %}
 {{ toast_region() }}
+
+{# 읽기 설정 — 이 기기에만 저장된다(localStorage). 값은 <html>의 CSS 변수로 쪽에 바로 입혀진다(static/reader.js) #}
+<div class="sheet-wrap rs-wrap" id="readSet" hidden>
+  <section class="sheet rs" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="rsTitle">
+    <span class="grab" aria-hidden="true"></span>
+    <header class="sheet-h"><h2 id="rsTitle">읽기 설정</h2><button type="button" class="x" data-close-rs aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
+    <p class="rs-sample" id="rsSample" aria-hidden="true">메밀꽃이 핀 산허리는 달빛에 숨이 막힐 지경이었다.</p>
+
+    <div class="rs-row">
+      <span class="rs-label" id="lblSize">글자 크기</span>
+      <div class="rs-step" role="group" aria-labelledby="lblSize">
+        <button type="button" id="smaller" aria-label="글자 작게"><span aria-hidden="true">가</span></button>
+        <span class="rs-dots" id="sizeDots" aria-live="polite"></span>
+        <button type="button" id="bigger" aria-label="글자 크게"><span aria-hidden="true">가</span></button>
+      </div>
+    </div>
+    <div class="rs-row">
+      <span class="rs-label" id="lblFont">글꼴</span>
+      <div class="seg rs-seg" id="fonts" role="group" aria-labelledby="lblFont"><button type="button" data-font="serif" class="f-serif">명조</button><button type="button" data-font="sans" class="f-sans">고딕</button></div>
+    </div>
+    <div class="rs-row">
+      <span class="rs-label" id="lblLh">줄 간격</span>
+      <div class="seg rs-seg" id="lhs" role="group" aria-labelledby="lblLh"><button type="button" data-lh="tight">좁게</button><button type="button" data-lh="normal">보통</button><button type="button" data-lh="loose">넓게</button></div>
+    </div>
+    <div class="rs-row">
+      <span class="rs-label" id="lblPad">여백</span>
+      <div class="seg rs-seg" id="pads" role="group" aria-labelledby="lblPad"><button type="button" data-pad="tight">좁게</button><button type="button" data-pad="normal">보통</button><button type="button" data-pad="loose">넓게</button></div>
+    </div>
+    <div class="rs-row rs-col">
+      <span class="rs-label" id="lblTone">종이 색</span>
+      <div class="rs-tones" id="tones" role="group" aria-labelledby="lblTone">
+        <button type="button" data-tone=""><i class="t-theme"></i><span>테마</span></button>
+        <button type="button" data-tone="paper"><i class="t-paper"></i><span>종이</span></button>
+        <button type="button" data-tone="sepia"><i class="t-sepia"></i><span>세피아</span></button>
+        <button type="button" data-tone="gray"><i class="t-gray"></i><span>회색</span></button>
+        <button type="button" data-tone="night"><i class="t-night"></i><span>검정</span></button>
+      </div>
+    </div>
+    <div class="rs-row">
+      <span class="rs-label" id="lblMode">넘기는 방법</span>
+      <div class="seg rs-seg" id="modes" role="group" aria-labelledby="lblMode"><button type="button" data-mode="3d">책장 넘김</button><button type="button" data-mode="scroll">스크롤</button></div>
+    </div>
+    <label class="rs-row rs-wake" id="wakeRow" hidden>
+      <span class="rs-label">화면 켜 두기<small>읽는 동안 화면이 꺼지지 않아요</small></span>
+      <input type="checkbox" role="switch" id="wake" class="rs-switch">
+    </label>
+
+    <footer class="sheet-f">
+      <button type="button" class="btn primary" data-close-rs>이대로 읽기</button>
+      <span class="hint">이 기기에만 저장돼요</span>
+    </footer>
+  </section>
+</div>
+
 
 <div class="sheet-wrap" id="react" hidden>
   <section class="sheet glass react-sheet" role="dialog" aria-modal="true" aria-labelledby="reactTitle">

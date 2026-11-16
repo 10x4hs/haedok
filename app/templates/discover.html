@@ -1,23 +1,19 @@
 {% extends "app.html" %}
-{% from "_ui.html" import catalog_card, store_card %}
-{% block title %}{{ genre or '전체 책' }} · 탐색 — 偕讀 해독{% endblock %}
+{% from "_discover.html" import dcard, scard, mood_chips %}
+{% block title %}{{ mood.title if mood else (genre or '전체 책') }} · 탐색 — 偕讀 해독{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/css/discover.css">{% endblock %}
 {% block content_class %}wide{% endblock %}
-{% block heading %}<small><a href="/discover">‹ 탐색</a></small>{{ genre or "전체" }}{% endblock %}
+{% block heading %}<small><a href="/discover">‹ 탐색</a></small>{{ mood.title if mood else (genre or '전체 책') }}{% endblock %}
 {% block main %}
-<nav class="chips" aria-label="장르">
-  <a href="/discover?g=%EC%84%9C%EC%A0%90" class="{{ 'on' if genre == '서점' }}">서점 <span>{{ store|length }}</span></a>
-  <a href="/discover?g=all" class="{{ 'on' if not genre }}">전체 <span>{{ total }}</span></a>
-  {% for g, books in genres.items() %}<a href="/discover?g={{ g|urlencode }}" class="{{ 'on' if g == genre }}">{{ g }} <span>{{ books|length }}</span></a>{% endfor %}
-</nav>
-<input class="filter" id="filter" placeholder="이 목록에서 제목·저자 거르기" aria-label="목록 거르기">
-{% if genre == '서점' %}
-<p class="hint">본문은 없고 표지·정보만 있어요. 알라딘에서 전자책을 사거나, 가지고 있는 DRM 없는 파일을 올려 읽어요.</p>
-{% endif %}
-<div class="grid" id="grid">
-  {% if genre == '서점' %}{% for b in store %}<div data-q="{{ b.title }} {{ b.author or '' }}">{{ store_card(b) }}</div>{% endfor %}
-  {% else %}{% for b in books %}<div data-q="{{ b.title }} {{ b.author or '' }}">{{ catalog_card(b, True) }}</div>{% endfor %}{% endif %}
+{% set count = store|length if genre == '서점' else books|length %}
+<p class="d-lede">{% if mood %}{{ mood.hint }}{% elif genre == '서점' %}본문은 없고 표지·정보만 있어요. 알라딘에서 전자책을 사거나, 가지고 있는 DRM 없는 파일을 올려 읽어요.{% else %}서가에 있는 책은 모두 무료로 읽을 수 있어요.{% endif %} <b>{{ count }}권</b></p>
+{{ mood_chips(moods, chip_moods, mood.key if mood else None) }}
+<label class="d-filter"><span class="sr">이 목록에서 거르기</span><input id="filter" type="search" placeholder="이 목록에서 제목·저자 거르기" autocomplete="off"></label>
+<div class="grid d-grid" id="grid">
+  {% if genre == '서점' %}{% for b in store %}<div data-q="{{ b.title }} {{ b.author or '' }}">{{ scard(b) }}</div>{% endfor %}
+  {% else %}{% for b in books %}<div data-q="{{ b.title }} {{ b.author or '' }}">{{ dcard(b, friends) }}</div>{% endfor %}{% endif %}
 </div>
-<p class="muted" id="none" hidden>맞는 책이 없어요.</p>
+<div class="empty" id="none" role="status" hidden><b>맞는 책이 없어요</b><p>다른 낱말로 걸러 보거나, 전체 검색에서 찾아보세요.</p><a class="btn ghost" href="/search">전체 검색</a></div>
 <script nonce="{{ csp_nonce }}">
 (() => {
   const rows = [...document.querySelectorAll('#grid > div')];
