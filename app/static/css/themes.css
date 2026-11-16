@@ -1,0 +1,58 @@
+/* 화면 테마 — 테마(한 벌 색) 고르기 시트와 테마가 켜졌을 때의 바탕.
+   색 값은 app/core/appearance.py PRESETS가 <html style="--bg:…">로 내려 준다(대비 4.5:1은 테스트가 잰다). */
+
+/* ---------- 바꿀 때 220ms 겹쳐 바뀌기 (app.js가 document.startViewTransition으로 부른다) ---------- */
+/* 페이지 이동용 전환(app.css)과 섞이지 않게 테마를 바꿀 때만(html.theme-fade) 쓴다. 이름 붙은 조각(탭바 등)도 같이 */
+html.theme-fade::view-transition-old(*),html.theme-fade::view-transition-new(*){animation:theme-fade 220ms cubic-bezier(.2,0,0,1) both}
+html.theme-fade::view-transition-old(*){animation-direction:reverse}
+html.theme-fade::view-transition-group(*){animation-duration:220ms}
+@keyframes theme-fade{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){html.theme-fade::view-transition-old(*),html.theme-fade::view-transition-new(*){animation-duration:160ms}}
+
+/* ---------- 테마 바탕: 무늬 없이 테마 바탕색 + 강조색 빛 한 줌 ---------- */
+.fx[data-bg="theme"]{--base:var(--bg);--b1:color-mix(in srgb,var(--accent) 10%,transparent);--b2:transparent;--b3:color-mix(in srgb,var(--accent) 6%,transparent);filter:none!important}
+/* 테마의 표면은 불투명이라, 위에 뜨는 것들은 유리 대신 표면색 */
+html:root[data-preset] .tabbar{background:color-mix(in srgb,var(--surface) 92%,transparent)}
+/* 책 읽는 화면: 따로 고른 종이색이 없으면 테마의 표면이 종이가 된다 */
+html:root[data-preset] body.reading:not([data-tone]),html:root[data-preset] body.reading[data-tone=""]{--paper:var(--surface);--ink:var(--body);--pdim:var(--dim)}
+
+/* ---------- 시트 ---------- */
+.look-sub{margin:4px 0 0;font-size:15px;line-height:1.45;color:var(--dim)}
+.themes{margin-top:8px}
+.look h3.th-group{display:block;margin:22px 0 10px;font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--dim)}
+.th-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px}
+
+.th-card{display:grid;gap:2px;align-content:start;text-align:left;padding:0;border-radius:18px;min-width:0;transition:transform .1s ease-out}
+.th-card:active{transform:scale(.97)}
+.th-card:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.th-prev{position:relative;display:block;aspect-ratio:1/1;margin-bottom:6px;border-radius:16px;overflow:hidden;background:var(--p-bg);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--p-text) 12%,transparent);transition:box-shadow .15s ease-out}
+.th-card[aria-pressed="true"] .th-prev{box-shadow:inset 0 0 0 2.5px var(--p-accent),0 0 0 3px color-mix(in srgb,var(--p-accent) 22%,transparent)}
+/* 종이 한 장: 표면색 위에 글자(가)와 흐린 줄 두세 개 */
+.th-page{position:absolute;left:14%;right:14%;top:14%;bottom:26%;display:grid;align-content:start;gap:5px;padding:9px 9px 0;border-radius:8px;background:var(--p-surface);
+  box-shadow:0 6px 16px -10px rgba(0,0,0,.45)}
+.th-page b{font:700 20px/1 var(--f-serif);color:var(--p-text);margin-bottom:3px}
+.th-page i{display:block;height:3px;border-radius:2px;background:var(--p-dim);opacity:.75}
+.th-page i.short{width:58%}
+.th-pill{position:absolute;right:12%;bottom:9%;width:36%;height:12%;border-radius:999px;background:var(--p-accent)}
+.th-check{position:absolute;left:8px;top:8px;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--p-accent);color:var(--p-ink);opacity:0;transform:scale(.6);transition:opacity .15s ease-out,transform .15s ease-out}
+.th-check svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.th-card[aria-pressed="true"] .th-check{opacity:1;transform:none}
+.th-name{font-size:15px;font-weight:600;line-height:1.3;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.th-mood{font-size:13px;line-height:1.35;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---------- 직접 고르기 (접힘) ---------- */
+.look-own{margin:26px 0 4px;border-top:1px solid var(--line)}
+.look-own summary{display:flex;align-items:center;gap:8px;min-height:56px;cursor:pointer;list-style:none;font-size:17px;font-weight:600;color:var(--text)}
+.look-own summary::-webkit-details-marker{display:none}
+.look-own summary em{margin-left:auto;font-style:normal;font-size:15px;font-weight:500;color:var(--dim)}
+.look-own .chev{width:20px;height:20px;fill:none;stroke:var(--dim);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s ease-out}
+.look-own[open] .chev{transform:rotate(180deg)}
+.look-own summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:10px}
+.look-own .look-preview{margin-top:4px}
+
+@media (prefers-reduced-motion:reduce){.th-card,.th-prev,.th-check,.look-own .chev{transition:none}.th-card:active{transform:none}}
+@media (min-width:900px){.th-grid{gap:14px 12px}}
+
+/* 밝은 테마의 표면은 반투명이라 시트·아래 버튼 받침에 뒤 칸이 비쳤다 → 바탕색을 한 겹 깔아 불투명하게 */
+.sheet.look,.look .sheet-f{background:linear-gradient(color-mix(in srgb,var(--bg) 82%,var(--surface)),color-mix(in srgb,var(--bg) 82%,var(--surface))),var(--bg)}

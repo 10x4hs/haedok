@@ -46,7 +46,7 @@
 .points-card em{font-style:normal;color:var(--accent-strong);font-size:13px}
 </style>
 <section class="settings">
-  <button class="set-row" type="button" data-open-look>{{ icon('theme') }}<span>화면 꾸미기</span><em>{{ APPEARANCE.MODES[look.mode] }} · ›</em></button>
+  <button class="set-row" type="button" data-open-look>{{ icon('theme') }}<span>화면 테마</span><em data-look-label>{{ look.label }} · ›</em></button>
   <a class="set-row" href="/races">{{ icon('race') }}<span>친구와 대결</span><em>›</em></a>
   <a class="set-row" href="/upload">{{ icon('upload') }}<span>내 파일 올리기</span><em>›</em></a>
   {% if is_admin(user) %}<a class="set-row" href="/admin">{{ icon('admin') }}<span>관리자</span><em>›</em></a>{% endif %}

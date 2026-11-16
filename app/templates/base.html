@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" {% if look and look.mode != 'auto' %}data-theme="{{ look.mode }}"{% endif %} data-accent="{{ look.accent if look else 'pink' }}" data-bg-tone="{{ look.bg_tone if look else 'auto' }}" style="--accent:{{ look.accent_hex if look else '#ffb3c7' }}">
+<html lang="ko" {% if look and look.html_theme != 'auto' %}data-theme="{{ look.html_theme }}"{% endif %}{% if look and look.theme %} data-preset="{{ look.theme }}"{% endif %} data-accent="{{ look.accent_attr if look else 'pink' }}" data-bg-tone="{{ look.bg_tone if look else 'auto' }}" style="{{ look.style if look else '--accent:#ffb3c7' }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -43,9 +43,11 @@
 <meta name="csrf" content="{{ csrf }}">
 <link rel="stylesheet" href="/static/app.css">
 <link rel="stylesheet" href="/static/looks.css">
+<link rel="stylesheet" href="/static/css/themes.css">
+{% block head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
-<div class="fx" id="fx" data-bg="{{ look.bg if look else 'plain' }}" aria-hidden="true"></div>
+<div class="fx" id="fx" data-bg="{{ look.fx_bg if look else 'plain' }}" aria-hidden="true"></div>
 <script src="/static/fx.js" defer></script>
 <script src="/static/motion.js" defer></script>
 {% block body %}{% endblock %}
