@@ -4,37 +4,19 @@
 - /.well-known/assetlinks.json: 안드로이드 TWA 앱이 이 사이트의 것임을 증명 (주소창 없이 열림)
 """
 
-import hashlib
 import mimetypes
-import os
 from pathlib import Path
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse, Response
 
+from app.core.assets import build_stamp
 from app.core.config import get_settings
 
 router = APIRouter(include_in_schema=False)
 # 서버리스 이미지에 따라 .apk 형식을 모를 수 있어 직접 등록한다 (안드로이드가 설치 파일로 알아보게)
 mimetypes.add_type("application/vnd.android.package-archive", ".apk")
 STATIC = Path(__file__).parent / "static"
-
-
-def build_stamp() -> str:
-    """서비스 워커 캐시 이름에 들어가는 빌드 도장.
-
-    Vercel은 배포마다 커밋 SHA를 주므로 그걸 쓰고, 로컬·도커는 정적 파일 내용의 해시를 쓴다.
-    정적 파일이 하나라도 바뀌면 도장이 바뀌어 옛 캐시가 정리된다 (sw.js의 VERSION을 손으로 올릴 필요가 없다).
-    """
-    sha = os.environ.get("VERCEL_GIT_COMMIT_SHA", "")
-    if sha:
-        return sha[:10]
-    h = hashlib.sha1()
-    for f in sorted(STATIC.glob("*.css")) + sorted(STATIC.glob("*.js")) + [STATIC / "offline.html"]:
-        if f.is_file():
-            h.update(f.name.encode())
-            h.update(f.read_bytes())
-    return h.hexdigest()[:10]
 
 
 BUILD_STAMP = build_stamp()

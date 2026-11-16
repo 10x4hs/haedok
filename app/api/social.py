@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import check_csrf, require_api_user, user_of_session
+from app.core.config import get_settings
 from app.db.session import get_session
 from app.models import Book, Room, User
 from app.realtime import broker
@@ -106,6 +107,8 @@ async def book_social(
         "friends": [f.__dict__ for f in await social.friends(session, user, book)],
         "sealed_ahead": await social.sealed_ahead(session, user, book),
         "emojis": social.EMOJIS,
+        # reader.js 가 haedokLive 에 넘긴다 — false 면 소켓을 시도하지 않고 곧바로 짧은 간격으로 폴링한다
+        "live": {"ws": get_settings().realtime_ws_enabled()},
     }
 
 
@@ -231,19 +234,32 @@ async def post_quote(
 async def book_socket(
     websocket: WebSocket, book_id: int, session: AsyncSession = Depends(get_session)
 ) -> None:
-    """같은 책을 읽는 친구의 진행·반응 소식을 받는 연결 (로그인 세션 필요)."""
+    """같은 책을 읽는 친구의 진행·반응 소식을 받는 연결 (로그인 세션 필요).
+
+    REALTIME_WS 가 꺼져 있으면(Vercel 기본) 받지 않는다 — 브로커가 인스턴스 메모리 안에 있어 다른
+    인스턴스의 소식을 못 받으므로, 클라이언트는 폴링만 쓴다. 대결 화면처럼 그래도 붙어 보는 화면은
+    거절당한 뒤 몇 번 만에 포기하고 원래 돌던 폴링을 그대로 쓴다.
+    """
+    if not get_settings().realtime_ws_enabled():
+        await websocket.close(code=4403)
+        return
     # HTTP와 같은 규칙: 30분 유휴 만료와 로그아웃 무효화를 함께 검사
     user = await user_of_session(websocket, session) if "session" in websocket.scope else None
     book = await session.get(Book, book_id)
-    if user is None or book is None or not book_service.can_read(book, user.id):
+    allowed = user is not None and book is not None and book_service.can_read(book, user.id)
+    user_id = user.id if allowed else None
+    # 인증이 끝나면 DB 연결을 바로 풀로 돌려준다. 의존성 정리는 소켓이 닫힐 때에야 돌아서,
+    # 그냥 두면 소켓 하나가 연결 하나(인스턴스 풀은 5개)를 몇 분씩 붙들고 있게 된다
+    await session.close()
+    if user_id is None:
         await websocket.close(code=4401)
         return
     await websocket.accept()
-    broker.join(book_id, user.id, websocket)
+    broker.join(book_id, user_id, websocket)
     try:
         while True:
             await websocket.receive_text()  # 클라이언트는 연결 유지용 핑만 보낸다
     except WebSocketDisconnect:
         pass
     finally:
-        broker.leave(book_id, user.id, websocket)
+        broker.leave(book_id, user_id, websocket)
