@@ -506,47 +506,77 @@ h3.sub,.sheet h3{font-size:14px;font-weight:600;color:var(--dim);margin:22px 0 1
 .sheet-h{display:flex;justify-content:space-between;align-items:center}
 .sheet-h h2{margin:0;font-size:22px;letter-spacing:-.03em;min-width:0}
 .sheet .x{font-size:26px;color:var(--dim);width:44px;height:44px;border-radius:50%}
-.look-preview{position:relative;isolation:isolate;height:150px;margin-top:16px;border-radius:20px;overflow:hidden;border:1px solid var(--glass-line)}
-.look-preview .fx{position:absolute}
-.lp-card{position:absolute;left:16px;top:16px;bottom:16px;width:min(58%,260px);min-width:0;display:grid;align-content:space-between;gap:6px;padding:14px;border-radius:16px}
-.lp-card b{font-size:16px;line-height:1.4;min-height:1.4em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lp-card .mono{color:var(--dim)}
-.lp-btn{justify-self:end;font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;background:var(--accent);color:var(--accent-ink)}
 .hint{font-size:13px;color:var(--dim);margin:8px 0 0;line-height:1.6}
-.look-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:12px}
-.look-tabs button{flex:none;height:32px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:500;color:var(--dim);border:1px solid var(--glass-line)}
-.look-tabs button[aria-pressed="true"]{color:var(--text);border-color:var(--text)}
-.swatches{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 10px}
-.sw{position:relative;isolation:isolate;display:grid;gap:6px;justify-items:center;font-size:13px;color:var(--dim)}
-.sw .fx.mini{position:relative;inset:auto;width:100%;height:64px;border-radius:14px;border:1px solid var(--glass-line);transition:transform .4s var(--ease)}
-.sw .play{position:absolute;right:8px;top:42px;font-style:normal;font-size:10px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.6)}
-.sw[aria-pressed="true"] .fx.mini{outline:2px solid var(--accent);outline-offset:2px}
-.sw[aria-pressed="true"] b{color:var(--text)}
-.sw b{font-weight:500;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.accents{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px 4px}
-.accents button{display:grid;justify-items:center;gap:6px;font-size:12px;color:var(--dim)}
-.accents b{font-weight:500;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dot{width:36px;height:36px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2);transition:transform .4s var(--ease)}
+/* 화면 꾸미기 — 토스식: 큰 미리보기 한 장, 이름 없는 색, 꽉 찬 완료 버튼 하나. 설명 문장은 두지 않는다 */
+.sheet.look{padding:10px 20px 0;background:color-mix(in srgb,var(--bg) 82%,var(--surface));border:1px solid var(--glass-line);border-bottom:0;box-shadow:0 -20px 60px -30px rgba(0,0,0,.6)}
+.sheet.look:focus{outline:none}
+.look .grab{display:block;width:36px;height:5px;margin:0 auto 12px;border-radius:3px;background:var(--glass-line)}
+.look .sheet-h{gap:4px}
+.look .sheet-h h2{flex:1;font-size:20px;font-weight:700}
+.link-btn{height:36px;padding:0 10px;border-radius:10px;font-size:14px;font-weight:500;color:var(--dim);transition:color .3s var(--ease),background .3s var(--ease)}
+.link-btn:hover{color:var(--text);background:var(--sunken)}
+.look .x{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--sunken)}
+.look .x svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.look h3{display:flex;align-items:baseline;gap:8px;margin:24px 0 10px;font-size:15px;font-weight:600;color:var(--text)}
+.h3-val{font-size:13px;font-weight:500;color:var(--dim)}
+
+/* 미리보기 — 홈 화면을 줄여 놓은 모양 */
+.look-preview{position:relative;isolation:isolate;height:188px;margin-top:14px;border-radius:22px;overflow:hidden;border:1px solid var(--glass-line);display:grid;grid-template-rows:auto 1fr auto;padding:14px 14px 10px;gap:10px}
+.look-preview .fx{position:absolute;z-index:-1;transition:background .5s var(--ease)}
+.lp-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700;letter-spacing:-.02em}
+.lp-top i{width:22px;height:22px;border-radius:50%;background:var(--glass);border:1px solid var(--glass-line)}
+.lp-card{align-self:center;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border-radius:16px}
+.lp-cover{width:34px;height:48px;border-radius:4px;background:linear-gradient(160deg,#e9e2d0,#b9ab8c);box-shadow:0 6px 14px -6px rgba(0,0,0,.6)}
+.lp-body{display:grid;gap:3px;min-width:0}
+.lp-body small{font-size:11px;color:var(--dim)}
+.lp-body b{font-size:14px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lp-body .meter{margin-top:3px;height:3px}
+.lp-btn{font-size:12px;font-weight:600;padding:7px 11px;border-radius:999px;background:var(--accent);color:var(--accent-ink);white-space:nowrap;transition:background .4s var(--ease)}
+.lp-tabs{justify-self:center;display:flex;gap:18px;padding:9px 18px;border-radius:999px}
+.lp-tabs i{width:6px;height:6px;border-radius:50%;background:var(--dim);opacity:.6}
+.lp-tabs i.on{background:var(--accent);opacity:1;transition:background .4s var(--ease)}
+
+/* 배경 묶음 탭 — 밑줄 대신 채워진 알약 */
+.look-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -20px 12px;padding:0 20px}
+.look-tabs::-webkit-scrollbar{display:none}
+.look-tabs button{flex:none;height:34px;padding:0 14px;border-radius:999px;font-size:14px;font-weight:500;color:var(--dim);background:var(--sunken);transition:background .3s var(--ease),color .3s var(--ease)}
+.look-tabs button[aria-pressed="true"]{color:var(--bg);background:var(--text)}
+
+/* 배경 칸 — 휴대폰 화면 비율, 이름은 칸 안 아래쪽. 고르면 테두리와 체크 */
+.swatches{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.sw{position:relative;isolation:isolate;display:block;aspect-ratio:4/5;border-radius:16px;overflow:hidden;transition:transform .35s var(--ease)}
+.sw::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1px var(--glass-line);pointer-events:none;transition:box-shadow .3s var(--ease)}
+.sw:active{transform:scale(.97)}
+.sw .fx.mini{position:absolute;inset:0;z-index:-1;filter:brightness(1.35) saturate(1.25)}
+.sw-name{position:absolute;left:0;right:0;bottom:0;padding:18px 10px 8px;font-size:13px;font-weight:600;color:#fff;text-align:left;background:linear-gradient(transparent,rgba(0,0,0,.55));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sw-live{position:absolute;left:10px;top:10px;width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.18)}
+.sw-check{position:absolute;right:8px;top:8px;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);opacity:0;transform:scale(.6);transition:opacity .25s var(--ease),transform .35s var(--ease)}
+.sw-check svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.sw[aria-pressed="true"]::after{box-shadow:inset 0 0 0 2px var(--accent)}
+.sw[aria-pressed="true"] .sw-check{opacity:1;transform:none}
+
+/* 강조 색 — 이름 없이 동그라미만, 고른 색 이름은 제목 옆에 */
+.accents{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px 6px;justify-items:center}
+.accents button{display:grid;place-items:center;width:44px;height:44px;border-radius:50%}
+.dot{position:relative;width:34px;height:34px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2);transition:transform .35s var(--ease),box-shadow .3s var(--ease)}
 .dot.mono{background:linear-gradient(135deg,#fafafa 50%,#0a0a0a 50%)}
 .dot.multi{background:conic-gradient(#ff7a6b,#ffd95a,#7fd99a,#5aa0ff,#c39bff,#ff7a6b)}
-.accents button[aria-pressed="true"] .dot{outline:2px solid var(--accent);outline-offset:3px;transform:scale(1.05)}
-.accents button[aria-pressed="true"] b{color:var(--text)}
-.sheet-f{position:sticky;bottom:0;z-index:2;display:flex;align-items:center;gap:8px;margin:22px -20px 0;padding:14px 20px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--glass-line);background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-.sheet-f .hint{flex:1;min-width:0;margin:0;font-size:12px;line-height:1.4}
-.sheet-f .btn{flex:none;height:44px;padding:0 18px;font-size:14px;white-space:nowrap}
-/* 좁은 휴대폰: ≤374px는 옆 여백을 줄이고, ≤340px는 강조 색을 한 줄 4개·안내 문구를 버튼 위 한 줄로 */
+.accents button:active .dot{transform:scale(.9)}
+.accents button[aria-pressed="true"] .dot{box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--c,var(--text))}
+.accents button[aria-pressed="true"] .dot.mono,.accents button[aria-pressed="true"] .dot.multi{box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--text)}
+
+/* 아래 버튼 — 꽉 찬 '완료' 하나, 안내는 그 아래 작게 */
+.sheet-f{position:sticky;bottom:0;z-index:2;display:grid;gap:8px;justify-items:center;margin:20px -20px 0;padding:12px 20px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,color-mix(in srgb,var(--bg) 92%,transparent) 22%)}
+.sheet-f .btn{width:100%;height:54px;font-size:16px;border-radius:16px}
+.sheet-f .hint{margin:0;font-size:12px;line-height:1.4}
 @media (max-width:374px){
-  .sheet{padding-left:16px;padding-right:16px}
+  .sheet.look{padding-left:16px;padding-right:16px}
   .sheet-f{margin-left:-16px;margin-right:-16px;padding-left:16px;padding-right:16px}
+  .look-tabs{margin-left:-16px;margin-right:-16px;padding:0 16px}
 }
-@media (max-width:340px){
-  .sheet-f{flex-wrap:wrap}
-  .sheet-f .hint{flex-basis:100%}
-  .sheet-f .btn{flex:1;padding:0 12px}
-  .accents{grid-template-columns:repeat(4,minmax(0,1fr))}
-}
+@media (max-width:340px){.accents{grid-template-columns:repeat(4,minmax(0,1fr))}}
 /* 가로로 눕힌 휴대폰: 미리보기를 줄여 고르는 칸이 더 보이게 */
-@media (max-height:500px){.look-preview{height:120px}.lp-card{top:12px;bottom:12px;gap:2px;padding:8px 12px}.lp-card .meter{display:none}.sheet{max-height:96dvh}.sheet-f{padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}}
+@media (max-height:500px){.look-preview{height:132px}.lp-tabs{display:none}.sheet{max-height:96dvh}.sheet-f{padding-top:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom))}}
 
 @media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .reading:not([data-tone]){--paper:#ffffff}}
 :root[data-theme="light"] .reading:not([data-tone]){--paper:#ffffff}
@@ -801,6 +831,9 @@ html,body{overflow-x:clip;max-width:100%}
   /* 아래에서 올라오던 시트는 가운데 창으로 */
   .sheet-wrap{align-items:center;padding:24px}
   .sheet{width:min(520px,100%);border-radius:28px;max-height:86dvh}
+  .sheet.look{width:min(440px,100%);border-bottom:1px solid var(--glass-line)}
+  .look .grab{display:none}
+  .look .sheet-h{margin-top:8px}
 
   /* 리더 */
   .r-top{width:min(calc(100% - 48px),760px)}
@@ -1072,3 +1105,9 @@ html:root[data-theme="dark"] .tabbar,html:root[data-bg-tone="dark"] .tabbar{back
 .code-boxes i.filled{background:rgba(24,12,12,.42)}
 /* 인증 화면 '다른 이메일로 받기' 링크(3.0:1) → 뒤로 링크와 같은 어두운 알약 */
 .auth-switch a{display:inline-block;padding:6px 14px;border-radius:999px;background:rgba(0,0,0,.42);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff}
+
+/* 화면 꾸미기: 밝은 칸(테마를 따르는 '기본'·밝은 배경)은 이름을 어둡게, 뒤 화면은 흐리게 */
+#look{background:rgba(0,0,0,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.sw[data-tone="light"] .sw-name{color:#111;background:linear-gradient(transparent,rgba(255,255,255,.55))}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .sw[data-tone="auto"] .sw-name{color:#111;background:linear-gradient(transparent,rgba(255,255,255,.55))}}
+:root[data-theme="light"] .sw[data-tone="auto"] .sw-name{color:#111;background:linear-gradient(transparent,rgba(255,255,255,.55))}

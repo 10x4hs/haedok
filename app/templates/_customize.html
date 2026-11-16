@@ -1,51 +1,57 @@
-{# 화면 꾸미기 — 고르는 즉시 미리 보이고, '완료'를 누르면 계정에 저장된다 #}
+{# 화면 꾸미기 — 고르는 즉시 위 미리보기와 앱 전체에 보이고, '완료'를 누르면 계정에 저장된다 #}
 <div class="sheet-wrap" id="look" hidden>
-  <section class="sheet glass" role="dialog" aria-modal="true" aria-labelledby="lookTitle">
-    <header class="sheet-h"><h2 id="lookTitle">화면 꾸미기</h2><button class="x" data-close-look aria-label="닫기">×</button></header>
+  <section class="sheet look" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="lookTitle">
+    <span class="grab" aria-hidden="true"></span>
+    <header class="sheet-h">
+      <h2 id="lookTitle">화면 꾸미기</h2>
+      <button type="button" class="link-btn" id="lookReset">기본으로</button>
+      <button type="button" class="x" data-close-look aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </header>
 
-    <div class="look-preview">
+    {# 미리보기: 고른 배경 위에 앱의 유리 카드·탭바가 실제와 같은 모양으로 뜬다 #}
+    <div class="look-preview" aria-hidden="true">
       <div class="fx" data-bg="{{ look.bg }}" id="lookPreviewBg"></div>
+      <div class="lp-top"><span>오늘은 뭘 읽을까요</span><i></i></div>
       <div class="lp-card glass">
-        <span class="mono">지금 읽는 책</span>
-        <b>메밀꽃 필 무렵</b>
-        <span class="meter"><i style="width:62%"></i></span>
+        <span class="lp-cover"></span>
+        <span class="lp-body"><small>지금 읽는 책</small><b>메밀꽃 필 무렵</b><span class="meter"><i style="width:62%"></i></span></span>
         <span class="lp-btn">계속 읽기</span>
       </div>
+      <div class="lp-tabs glass"><i class="on"></i><i></i><i></i><i></i><i></i></div>
     </div>
 
-    <h3>테마</h3>
-    <div class="seg full" id="lookMode">
-      {% for k, label in APPEARANCE.MODES.items() %}<button type="button" data-mode="{{ k }}" aria-pressed="{{ 'true' if look.mode == k else 'false' }}">{{ label }}</button>{% endfor %}
+    <h3 id="lookModeLabel">테마</h3>
+    <div class="seg full" id="lookMode" role="group" aria-labelledby="lookModeLabel">
+      {% for k, label in APPEARANCE.MODES.items() %}<button type="button" data-mode="{{ k }}" aria-pressed="{{ 'true' if look.mode == k else 'false' }}"{% if k == 'auto' %} title="기기 설정(밝게 · 어둡게)을 따라가요"{% endif %}>{{ label }}</button>{% endfor %}
     </div>
-    <p class="hint">자동은 기기 설정(밝게 · 어둡게)을 따라가요.</p>
 
-    <h3>배경화면</h3>
-    <nav class="look-tabs" id="bgTabs">
+    <h3 id="lookBgLabel">배경</h3>
+    <nav class="look-tabs" id="bgTabs" aria-labelledby="lookBgLabel">
       {% for group in APPEARANCE.BACKGROUNDS %}<button type="button" data-group="{{ group }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ group }}</button>{% endfor %}
     </nav>
     {% for group, items in APPEARANCE.BACKGROUNDS.items() %}
     <div class="swatches" data-group-panel="{{ group }}" {% if not loop.first %}hidden{% endif %}>
       {% for bid, name, moving in items %}
-      <button type="button" class="sw" data-bgpick="{{ bid }}" data-tone="{{ APPEARANCE.tone_of(bid) }}" aria-pressed="{{ 'true' if look.bg == bid else 'false' }}">
-        <span class="fx mini" data-bg="{{ bid }}"></span>{% if moving %}<i class="play">▶</i>{% endif %}
-        <b>{{ name }}</b>
+      <button type="button" class="sw" data-bgpick="{{ bid }}" data-tone="{{ APPEARANCE.tone_of(bid) }}" aria-pressed="{{ 'true' if look.bg == bid else 'false' }}" aria-label="{{ name }}{% if moving %}, 천천히 움직여요{% endif %}">
+        <span class="fx mini" data-bg="{{ bid }}"></span>
+        <span class="sw-name">{{ name }}</span>
+        {% if moving %}<span class="sw-live" aria-hidden="true"></span>{% endif %}
+        <span class="sw-check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
       </button>
       {% endfor %}
     </div>
     {% endfor %}
-    <p class="hint">고른 배경이 유리 너머로 비쳐서 앱 전체 색이 은은하게 바뀌어요. ▶ 표시는 아주 천천히 움직여요 (움직임 줄이기 설정 중엔 멈춰요).</p>
 
-    <h3>강조 색</h3>
-    <div class="accents" id="lookAccent">
+    <h3 id="lookAccentLabel">강조 색 <span class="h3-val" id="lookAccentName"></span></h3>
+    <div class="accents" id="lookAccent" role="group" aria-labelledby="lookAccentLabel">
       {% for k, (label, hexv) in APPEARANCE.ACCENTS.items() %}
-      <button type="button" data-accent="{{ k }}" data-hex="{{ hexv }}" aria-pressed="{{ 'true' if look.accent == k else 'false' }}"><span class="dot {{ k }}" style="--c:{{ hexv }}"></span><b>{{ label }}</b></button>
+      <button type="button" data-accent="{{ k }}" data-hex="{{ hexv }}" aria-label="{{ label }}" aria-pressed="{{ 'true' if look.accent == k else 'false' }}"><span class="dot {{ k }}" style="--c:{{ hexv }}"></span></button>
       {% endfor %}
     </div>
 
     <footer class="sheet-f">
-      <span class="hint">모든 기기에 저장돼요</span>
-      <button type="button" class="btn ghost" id="lookReset">기본으로</button>
       <button type="button" class="btn primary" id="lookDone">완료</button>
+      <span class="hint">모든 기기에 저장돼요</span>
     </footer>
   </section>
 </div>
