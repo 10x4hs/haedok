@@ -5,6 +5,8 @@
 - 세션은 서명된 HttpOnly·SameSite=Lax 쿠키, 30분 동안 요청이 없으면 만료
 - 로그인 시 세션을 새로 만들고(고정 공격 방지), 모든 POST는 CSRF 토큰을 검사
 - 가입은 이메일로 받은 6자리 코드를 확인한 뒤에야 계정이 생긴다 (10분 유효, 5번까지, 재발송 60초 간격)
+- "로그인 상태 유지"를 고르면 쿠키·유휴 만료가 30일로 늘어난다
+- 비밀번호 재설정도 같은 코드 규칙을 쓰고, 가입 여부는 응답으로 드러내지 않는다
 """
 
 import hashlib
@@ -15,13 +17,13 @@ from dataclasses import dataclass, field
 
 import bcrypt
 from fastapi import Depends, HTTPException, Request
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.db.session import get_session
-from app.models import SignupVerification, User
+from app.models import PasswordReset, Room, SignupVerification, Team, User
 
 BCRYPT_COST = 12
 MIN_PASSWORD_CHARS = 8
@@ -36,6 +38,18 @@ class LoginRequired(Exception):
 
 def normalize_email(email: str) -> str:
     return email.strip().lower()
+
+
+def password_errors(password: str, confirm: str) -> dict[str, str]:
+    """새 비밀번호 규칙 — 가입·재설정·변경 공통. 칸 이름(password, password_confirm) → 문구."""
+    errors: dict[str, str] = {}
+    if len(password) < MIN_PASSWORD_CHARS:
+        errors["password"] = f"비밀번호는 {MIN_PASSWORD_CHARS}자 이상이어야 해요"
+    elif len(password.encode()) > MAX_PASSWORD_BYTES:
+        errors["password"] = "비밀번호가 너무 길어요 (최대 72바이트)"
+    if password != confirm:
+        errors["password_confirm"] = "비밀번호가 서로 달라요"
+    return errors
 
 
 @dataclass
@@ -53,12 +67,7 @@ class SignupForm:
             self.errors["nickname"] = "이름은 1~40자로 입력해 주세요"
         if "@" not in self.email or len(self.email) > 255 or self.email.startswith("@"):
             self.errors["email"] = "올바른 이메일을 입력해 주세요"
-        if len(self.password) < MIN_PASSWORD_CHARS:
-            self.errors["password"] = f"비밀번호는 {MIN_PASSWORD_CHARS}자 이상이어야 해요"
-        elif len(self.password.encode()) > MAX_PASSWORD_BYTES:
-            self.errors["password"] = "비밀번호가 너무 길어요 (최대 72바이트)"
-        if self.password != self.password_confirm:
-            self.errors["password_confirm"] = "비밀번호가 서로 달라요"
+        self.errors |= password_errors(self.password, self.password_confirm)
         return not self.errors
 
 
@@ -85,9 +94,11 @@ def new_code() -> str:
     return f"{secrets.randbelow(10**6):06d}"
 
 
-def _code_hash(email: str, code: str) -> str:
+def _code_hash(email: str, code: str, purpose: str = "") -> str:
+    """purpose로 가입 코드와 재설정 코드를 갈라, 한쪽 코드를 다른 쪽에 쓰지 못하게 한다."""
     key = get_settings().secret_key.encode()
-    return hmac.new(key, f"{email}:{code}".encode(), hashlib.sha256).hexdigest()
+    msg = f"{purpose}:{email}:{code}" if purpose else f"{email}:{code}"
+    return hmac.new(key, msg.encode(), hashlib.sha256).hexdigest()
 
 
 async def email_taken(session: AsyncSession, email: str) -> bool:
@@ -174,6 +185,107 @@ async def verify_signup(session: AsyncSession, email: str, code: str) -> tuple[U
     return user, None
 
 
+# --- 비밀번호 재설정 ---
+# 가입 코드와 같은 규칙(HMAC 저장 · CODE_TTL_S · MAX_CODE_ATTEMPTS · RESEND_COOLDOWN_S).
+# 없는 이메일에도 대기 행을 만들어(코드는 보내지 않는다) 화면·문구·횟수가 똑같이 흘러가게 한다.
+
+RESET_PURPOSE = "reset"
+RESET_WINDOW_S = 600
+RESET_EMAIL_LIMIT = 5
+RESET_IP_LIMIT = 20
+RESET_LIMIT_MSG = "재설정 메일을 너무 자주 요청했어요. 10분 뒤에 다시 해 주세요"
+PASSWORD_CHANGE_LIMIT = 10
+PASSWORD_CHANGE_MSG = "비밀번호 확인을 너무 여러 번 시도했어요. 10분 뒤에 다시 해 주세요"
+
+
+async def pending_reset(session: AsyncSession, email: str) -> PasswordReset | None:
+    return await session.scalar(select(PasswordReset).where(PasswordReset.email == normalize_email(email)))
+
+
+async def start_reset(session: AsyncSession, email: str) -> str | None:
+    """재설정 코드를 새로 만든다. 가입된 이메일이면 보낼 코드를, 아니면(또는 재발송 간격 안이면) None."""
+    email, now = normalize_email(email), int(time.time())
+    # 하루 넘게 지난 대기는 치운다 (없는 이메일 행이 쌓이지 않게)
+    await session.execute(delete(PasswordReset).where(PasswordReset.expires_at < now - 86400))
+    pending = await pending_reset(session, email)
+    if pending is not None and now - pending.sent_at < RESEND_COOLDOWN_S:
+        await session.commit()
+        return None
+    code = new_code()
+    if pending is None:
+        pending = PasswordReset(email=email)
+        session.add(pending)
+    pending.code_hash, pending.attempts = _code_hash(email, code, RESET_PURPOSE), 0
+    pending.sent_at, pending.expires_at = now, now + CODE_TTL_S
+    try:
+        await session.commit()
+    except IntegrityError:  # 같은 이메일로 동시에 두 번
+        await session.rollback()
+        return None
+    return code if await email_taken(session, email) else None
+
+
+async def reset_mail_failed(session: AsyncSession, email: str) -> None:
+    pending = await pending_reset(session, email)
+    if pending is not None:
+        pending.sent_at = 0
+        await session.commit()
+
+
+async def check_reset_code(session: AsyncSession, email: str, code: str) -> tuple[User | None, str | None]:
+    """코드가 맞으면 (user, None). 틀리면 (None, 문구) — 없는 이메일도 '틀린 코드'와 같게 흘러간다."""
+    pending = await pending_reset(session, email)
+    if pending is None:
+        return None, "재설정 요청을 찾을 수 없어요. 처음부터 다시 해 주세요"
+    if int(time.time()) > pending.expires_at:
+        return None, "코드가 만료됐어요. 새 코드를 받아 주세요"
+    if pending.attempts >= MAX_CODE_ATTEMPTS:
+        return None, "코드를 너무 많이 틀렸어요. 새 코드를 받아 주세요"
+    user = await session.scalar(select(User).where(User.email == pending.email))
+    ok = hmac.compare_digest(pending.code_hash, _code_hash(pending.email, code.strip(), RESET_PURPOSE))
+    if not ok or user is None:
+        pending.attempts += 1
+        await session.commit()
+        left = MAX_CODE_ATTEMPTS - pending.attempts
+        if left <= 0:
+            return None, "코드를 너무 많이 틀렸어요. 새 코드를 받아 주세요"
+        return None, f"코드가 맞지 않아요 (남은 기회 {left}번)"
+    return user, None
+
+
+async def finish_reset(session: AsyncSession, user: User, password: str) -> None:
+    """새 비밀번호로 바꾸고, 다른 기기의 쿠키를 모두 무효로 만든 뒤 대기를 지운다."""
+    await set_password(session, user, password, commit=False)
+    await session.execute(delete(PasswordReset).where(PasswordReset.email == user.email))
+    await session.commit()
+
+
+# --- 계정 관리 ---
+
+
+async def set_password(session: AsyncSession, user: User, password: str, commit: bool = True) -> None:
+    user.password_hash = hash_password(password)
+    bump_session_version(user)
+    if commit:
+        await session.commit()
+
+
+def bump_session_version(user: User) -> None:
+    """이 사용자의 모든 기존 쿠키를 무효로 만든다. 지금 기기는 login()을 다시 불러 이어 간다."""
+    user.session_version = (user.session_version or 0) + 1
+
+
+async def delete_account(session: AsyncSession, user: User) -> None:
+    """관리자 삭제(app/admin.py delete_user)와 같은 순서로 지운다.
+    rooms.owner_id · teams.created_by 는 CASCADE가 아니라 먼저 지우고, 나머지는 FK CASCADE."""
+    for room in await session.scalars(select(Room).where(Room.owner_id == user.id)):
+        await session.delete(room)
+    for team in await session.scalars(select(Team).where(Team.created_by == user.id)):
+        await session.delete(team)
+    await session.delete(user)
+    await session.commit()
+
+
 # 로그인 횟수 제한은 app/core/ratelimit.py(DB 고정창)가 맡는다 — 서버리스 인스턴스 사이에도 공유된다
 
 
@@ -186,7 +298,14 @@ async def authenticate(session: AsyncSession, email: str, password: str) -> User
 # --- 세션 ---
 
 
-def login(request: Request, user: User) -> None:
+REMEMBER_DAYS = 30
+REMEMBER_S = REMEMBER_DAYS * 86400
+
+
+def login(request: Request, user: User, remember: bool | None = None) -> None:
+    """remember가 None이면 지금 세션의 '로그인 상태 유지' 선택을 그대로 이어 간다."""
+    if remember is None:
+        remember = bool(request.session.get("rm"))
     request.session.clear()  # 기존 세션 내용·CSRF 토큰을 버리고 새로 시작
     request.session.update(
         {
@@ -196,6 +315,53 @@ def login(request: Request, user: User) -> None:
             "csrf": secrets.token_urlsafe(32),
         }
     )
+    if remember:
+        request.session["rm"] = 1
+
+
+def idle_limit_s(session_data) -> int:
+    return REMEMBER_S if session_data.get("rm") else get_settings().session_idle_minutes * 60
+
+
+class SessionCookieAge:
+    """세션 쿠키의 Max-Age를 세션마다 정한다.
+
+    SessionMiddleware는 서명 유효기간과 쿠키 Max-Age에 같은 max_age(= REMEMBER_S)를 쓴다.
+    '로그인 상태 유지'를 고르지 않은 세션은 이 미들웨어가 쿠키 Max-Age를 유휴 시간으로 줄인다.
+    실제 만료는 서버의 session_uid()가 'seen' 시각으로 판단하므로 쿠키를 고쳐도 늘어나지 않는다.
+    SessionMiddleware 바깥에 둬야 한다(main.py에서 그 뒤에 add_middleware).
+    """
+
+    def __init__(self, app, cookie: str = "session") -> None:
+        self.app, self.prefix = app, f"{cookie}=".encode()
+
+    async def __call__(self, scope, receive, send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_wrapper(message) -> None:
+            if message["type"] == "http.response.start":
+                data = scope.get("session") or {}
+                short = f"Max-Age={idle_limit_s(data)};".encode()
+                message["headers"] = [
+                    (k, _set_max_age(v, short) if self._is_session_cookie(k, v) else v)
+                    for k, v in message.get("headers", [])
+                ]
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
+
+    def _is_session_cookie(self, key: bytes, value: bytes) -> bool:
+        return key.lower() == b"set-cookie" and value.startswith(self.prefix)
+
+
+def _set_max_age(cookie: bytes, value: bytes) -> bytes:
+    start = cookie.find(b"Max-Age=")
+    if start < 0:
+        return cookie
+    end = cookie.find(b";", start)
+    return cookie[:start] + value + (cookie[end + 1 :] if end >= 0 else b"")
 
 
 async def logout(request: Request, session: AsyncSession) -> None:
@@ -203,7 +369,7 @@ async def logout(request: Request, session: AsyncSession) -> None:
     uid = request.session.get("uid")
     request.session.clear()
     if uid and (user := await session.get(User, uid)):
-        user.session_version = (user.session_version or 0) + 1
+        bump_session_version(user)
         await session.commit()
 
 
@@ -225,7 +391,7 @@ def session_uid(request) -> int | None:
     if uid is None:
         return None
     now = int(time.time())
-    if now - seen > get_settings().session_idle_minutes * 60:
+    if now - seen > idle_limit_s(request.session):
         request.session.clear()
         return None
     request.session["seen"] = now  # 요청이 있을 때마다 만료 시각을 미룬다

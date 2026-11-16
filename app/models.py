@@ -113,6 +113,22 @@ class SignupVerification(Base):
     sent_at: Mapped[int] = mapped_column(BigInteger)
 
 
+class PasswordReset(Base):
+    """비밀번호 재설정 대기 — 가입 코드와 같은 규칙(HMAC 저장 · 10분 · 5번 · 60초 간격).
+
+    가입 여부를 드러내지 않으려고 없는 이메일에도 행을 만든다(코드는 보내지 않는다).
+    """
+
+    __tablename__ = "password_resets"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True)
+    code_hash: Mapped[str] = mapped_column(String(64))
+    attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    expires_at: Mapped[int] = mapped_column(BigInteger)
+    sent_at: Mapped[int] = mapped_column(BigInteger)
+
+
 class MailLog(Base):
     """메일 발송 시도 기록 — 관리 화면에서 왜 안 갔는지 본다. 코드 원문은 절대 남기지 않는다."""
 

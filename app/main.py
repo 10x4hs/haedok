@@ -90,10 +90,13 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=_settings.secret_key,
     session_cookie="session",
-    max_age=_settings.session_idle_minutes * 60,
+    # 서명 유효기간은 '로그인 상태 유지'의 최대치. 유지를 안 고른 세션은 아래 SessionCookieAge가
+    # 쿠키 Max-Age를 줄이고, 실제 유휴 만료는 auth.session_uid()가 판단한다
+    max_age=auth.REMEMBER_S,
     same_site="lax",
     https_only=_settings.cookie_secure,
 )
+app.add_middleware(auth.SessionCookieAge, cookie="session")
 
 
 SECURITY_HEADERS = {
