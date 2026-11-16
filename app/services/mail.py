@@ -15,6 +15,7 @@ import ssl
 import time
 from dataclasses import dataclass
 from email.message import EmailMessage
+from html import escape
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,39 +39,83 @@ class Attempt:
     duration_ms: int | None = None
 
 
+# 발송 결과. 둘 다 참으로 평가돼 "보냈다"로 쓰이고, 실패는 False
+SENT_USER = "user"  # 받는 사람에게 바로 갔다
+SENT_ADMIN = "admin"  # 받는 사람에게는 못 가고 관리자 주소로 대신 갔다
+
+
 async def send_signup_code(
     client: httpx.AsyncClient, email: str, code: str, session: AsyncSession | None = None
-) -> bool:
-    """가입 인증 코드를 보낸다. 받는 사람에게 갔다고 볼 수 있으면 True, 아니면 False."""
-    subject = f"[해독] 가입 인증 코드 {code}"
-    text = f"해독(偕讀) 가입 인증 코드는 {code} 이에요.\n10분 안에 입력해 주세요."
-    html = (
-        '<div style="font-family:sans-serif;line-height:1.6">'
-        "<p>해독(偕讀) 가입 인증 코드예요.</p>"
-        f'<p style="font-size:28px;font-weight:700;letter-spacing:6px">{code}</p>'
-        "<p>10분 안에 입력해 주세요. 직접 요청하지 않았다면 이 메일을 무시해도 돼요.</p></div>"
-    )
-    attempts = await deliver(client, email, subject, text, html, secret=code)
-    await record(session, email, "signup_code", attempts)
-    return attempts[-1].ok
+) -> str | bool:
+    """가입 인증 코드를 보낸다. SENT_USER, SENT_ADMIN(관리자에게 대신 감) 또는 False."""
+    return await _send_code(client, email, code, session, kind="signup_code", what="가입 인증 코드")
 
 
 async def send_password_reset_code(
     client: httpx.AsyncClient, email: str, code: str, session: AsyncSession | None = None
-) -> bool:
-    """비밀번호 재설정 코드를 보낸다. 가입 코드와 같은 전송 순서·기록을 쓴다."""
-    subject = f"[해독] 비밀번호 재설정 코드 {code}"
-    text = f"해독(偕讀) 비밀번호 재설정 코드는 {code} 이에요.\n10분 안에 입력해 주세요."
+) -> str | bool:
+    """비밀번호 재설정 코드를 보낸다. 가입 코드와 같은 전송 순서·기록·관리자 대신 받기를 쓴다."""
+    return await _send_code(
+        client,
+        email,
+        code,
+        session,
+        kind="password_reset",
+        what="비밀번호 재설정 코드",
+        tail="비밀번호는 바뀌지 않아요.",
+    )
+
+
+async def _send_code(
+    client: httpx.AsyncClient,
+    email: str,
+    code: str,
+    session: AsyncSession | None,
+    *,
+    kind: str,
+    what: str,
+    tail: str = "",
+) -> str | bool:
+    subject = f"[해독] {what} {code}"
+    text = f"해독(偕讀) {what}는 {code} 이에요.\n10분 안에 입력해 주세요."
     html = (
         '<div style="font-family:sans-serif;line-height:1.6">'
-        "<p>해독(偕讀) 비밀번호 재설정 코드예요.</p>"
+        f"<p>해독(偕讀) {what}예요.</p>"
         f'<p style="font-size:28px;font-weight:700;letter-spacing:6px">{code}</p>'
-        "<p>10분 안에 입력해 주세요. 직접 요청하지 않았다면 이 메일을 무시해도 돼요. "
-        "비밀번호는 바뀌지 않아요.</p></div>"
+        f"<p>10분 안에 입력해 주세요. 직접 요청하지 않았다면 이 메일을 무시해도 돼요. {tail}</p></div>"
     )
     attempts = await deliver(client, email, subject, text, html, secret=code)
-    await record(session, email, "password_reset", attempts)
-    return attempts[-1].ok
+    await record(session, email, kind, attempts)
+    if attempts[-1].ok:
+        return SENT_USER
+    return await _relay_to_admin(client, email, code, session, kind=kind, what=what)
+
+
+async def _relay_to_admin(
+    client: httpx.AsyncClient, email: str, code: str, session: AsyncSession | None, *, kind: str, what: str
+) -> str | bool:
+    """받는 사람에게 못 보낸 코드를 관리자 주소로 대신 보낸다.
+    Resend는 도메인 검증 전엔 계정 주인(관리자)에게만 보내지므로, 관리자가 코드를 전해 줄 수 있게 한다."""
+    admins = sorted(get_settings().admin_email_set() - {email.lower()})
+    if not admins:
+        return False
+    subject = f"[해독] {email} 님의 {what} {code}"
+    text = (
+        f"{email} 님에게 {what}를 보내지 못해 관리자에게 대신 보내요.\n"
+        f"코드: {code}\n본인이 맞는지 확인한 뒤 전해 주세요. 10분 동안 쓸 수 있어요."
+    )
+    html = (
+        '<div style="font-family:sans-serif;line-height:1.6">'
+        f"<p><b>{escape(email)}</b> 님에게 {what}를 보내지 못해 관리자에게 대신 보내요.</p>"
+        f'<p style="font-size:28px;font-weight:700;letter-spacing:6px">{code}</p>'
+        "<p>본인이 맞는지 확인한 뒤 전해 주세요. 10분 동안 쓸 수 있어요.</p></div>"
+    )
+    for admin in admins:
+        attempts = await deliver(client, admin, subject, text, html, secret=code)
+        await record(session, admin, f"{kind}_relay", attempts)
+        if attempts[-1].ok:
+            return SENT_ADMIN
+    return False
 
 
 def transports(settings: Settings) -> list[str]:
