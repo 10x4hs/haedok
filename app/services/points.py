@@ -1,14 +1,15 @@
 """포인트 원장(points_log) — 적립 규칙과 집계.
 
-원장은 append-only 라서 잔액은 늘 SUM(amount)로 센다. 같은 일로 두 번 주지 않도록
-(user_id, source, ref_id) 를 넣기 전에 먼저 찾아본다(스키마에 unique 제약이 없어 코드로 지킨다).
+원장은 append-only 라서 잔액은 늘 SUM(amount)로 센다. 같은 일로 두 번 주지 않는 것은
+(user_id, source, ref_id) unique 제약이 지킨다 — 먼저 찾아보지 않고 넣어 보고, 막히면 "이미 받음".
 날짜 경계(주간 순위·하루 상한·연속 일수)는 모두 한국 시간(KST) 기준이고, 저장은 UTC 다.
 """
 
 import datetime as dt
 from dataclasses import dataclass
 
-from sqlalchemy import func, select
+from sqlalchemy import func, literal_column, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Book, LibraryEntry, PointsLog, Room, RoomMember, User
@@ -34,7 +35,7 @@ LABELS = {
 }
 REACTION_DAILY_CAP = 20
 STREAK_DAYS = 7
-STREAK_MAX = 400  # 연속 일수 계산 상한(하루에 쿼리 하나)
+STREAK_MAX = 400  # 연속 일수 계산 상한(이만큼의 KST 날짜만 읽어 온다)
 LEADERBOARD_SIZE = 50
 LEDGER_SIZE = 20
 
@@ -64,38 +65,20 @@ async def award(
 ) -> PointsLog | None:
     """한 번만 적립한다. 이미 같은 (user, source, ref) 가 있으면 None.
 
-    unique 제약이 없어 select-before-insert 로 지킨다. 서버리스에서 같은 요청이 동시에
-    두 번 와도 insert 는 commit 직전에 한 번 더 확인하므로 겹칠 틈이 매우 좁다.
+    먼저 찾아보지 않고 SAVEPOINT 안에서 넣어 본다. 동시 요청이 먼저 넣었으면 unique 제약이
+    IntegrityError 를 내고, 그 SAVEPOINT 만 되돌린다 — 호출한 쪽이 올려 둔 변경은 그대로 남는다.
     """
-    if await _exists(session, user_id, source, ref_id):
-        return None
     row = PointsLog(
         user_id=user_id, source=source, amount=RULES[source] if amount is None else amount, ref_id=ref_id
     )
     row.created_at = clock()
-    session.add(row)
-    await session.flush()
-    if await _count(session, user_id, source, ref_id) > 1:  # 동시 요청이 먼저 넣었다
-        await session.delete(row)
-        await session.commit()
+    try:
+        async with session.begin_nested():
+            session.add(row)
+    except IntegrityError:
         return None
     await session.commit()
     return row
-
-
-async def _exists(session: AsyncSession, user_id: int, source: str, ref_id: str) -> bool:
-    return await _count(session, user_id, source, ref_id) > 0
-
-
-async def _count(session: AsyncSession, user_id: int, source: str, ref_id: str) -> int:
-    return (
-        await session.scalar(
-            select(func.count(PointsLog.id)).where(
-                PointsLog.user_id == user_id, PointsLog.source == source, PointsLog.ref_id == ref_id
-            )
-        )
-        or 0
-    )
 
 
 # --- 적립 지점 ---
@@ -169,31 +152,49 @@ async def award_quote(session: AsyncSession, user_id: int, quote_id: int) -> Poi
     return await award(session, user_id, QUOTE, None, str(quote_id))
 
 
-async def _active_on(session: AsyncSession, user_id: int, now: dt.datetime, days_ago: int) -> bool:
-    """그날(KST) 검증된 쪽이 하나라도 있나."""
-    start, end = day_start(now, days_ago), day_start(now, days_ago - 1)
-    return (
-        await session.scalar(
-            select(PointsLog.id)
-            .where(
-                PointsLog.user_id == user_id,
-                PointsLog.source == CHUNK,
-                PointsLog.created_at >= start,
-                PointsLog.created_at < end,
-            )
-            .limit(1)
+def _kst_day(session: AsyncSession):
+    """created_at 의 KST 날짜(YYYY-MM-DD 문자열) — DB마다 표현이 다르다."""
+    if session.get_bind().dialect.name == "postgresql":
+        # 상수는 리터럴로 — 바인드 인자로 두면 SELECT 와 GROUP BY 가 서로 다른 식으로 보인다
+        local = func.timezone(literal_column("'Asia/Seoul'"), PointsLog.created_at)
+        return func.to_char(local, literal_column("'YYYY-MM-DD'"))
+    # SQLite 는 시간대 없이 UTC 문자열로 저장한다
+    return func.strftime(literal_column("'%Y-%m-%d'"), PointsLog.created_at, literal_column("'+9 hours'"))
+
+
+async def _reading_days(session: AsyncSession, user_id: int, now: dt.datetime) -> list[dt.date]:
+    """검증된 쪽이 있는 KST 날짜들(최근 것부터) — 날짜별로 묶은 쿼리 하나."""
+    day = _kst_day(session).label("day")
+    rows = await session.scalars(
+        select(day)
+        .where(
+            PointsLog.user_id == user_id,
+            PointsLog.source == CHUNK,
+            PointsLog.created_at >= day_start(now, STREAK_MAX),
         )
-    ) is not None
+        .group_by(day)
+        .order_by(day.desc())
+    )
+    return [dt.date.fromisoformat(d) for d in rows]
+
+
+def _run_from(days: list[dt.date], start: dt.date) -> int:
+    """start 부터 하루씩 거슬러 올라가며 빠짐없이 이어진 날 수."""
+    have = set(days)
+    n = 0
+    while n < STREAK_MAX and start - dt.timedelta(days=n) in have:
+        n += 1
+    return n
 
 
 async def streak_days(session: AsyncSession, user_id: int, now: dt.datetime | None = None) -> int:
     """오늘(아직 안 읽었으면 어제)부터 거슬러 올라가며 하루도 빠지지 않은 날 수."""
     now = now or clock()
-    offset = 0 if await _active_on(session, user_id, now, 0) else 1
-    n = 0
-    while n < STREAK_MAX and await _active_on(session, user_id, now, offset + n):
-        n += 1
-    return n
+    today = now.astimezone(KST).date()
+    days = await _reading_days(session, user_id, now)
+    if not days:
+        return 0
+    return _run_from(days, today if days[0] >= today else today - dt.timedelta(days=1))
 
 
 async def check_streak(session: AsyncSession, user_id: int) -> PointsLog | None:
@@ -201,12 +202,11 @@ async def check_streak(session: AsyncSession, user_id: int) -> PointsLog | None:
     now = clock()
     if await _count_on(session, user_id, now) > 1:
         return None  # 오늘 첫 쪽에서만 계산한다(쪽마다 7번 묻지 않도록)
-    days = 0
-    while days < STREAK_MAX and await _active_on(session, user_id, now, days):
-        days += 1
+    today = now.astimezone(KST).date()
+    days = _run_from(await _reading_days(session, user_id, now), today)
     if days < STREAK_DAYS or days % STREAK_DAYS:
         return None
-    return await award(session, user_id, STREAK, None, now.astimezone(KST).date().isoformat())
+    return await award(session, user_id, STREAK, None, today.isoformat())
 
 
 async def _count_on(session: AsyncSession, user_id: int, now: dt.datetime) -> int:

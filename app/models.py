@@ -337,6 +337,8 @@ class PointsLog(Base):
     """append-only 원장. 잔액은 SUM(amount)로 계산하고 행을 수정·삭제하지 않는다."""
 
     __tablename__ = "points_log"
+    # 같은 일로 두 번 주지 않는다 — award()는 이 제약에 기대어 IntegrityError를 "이미 받음"으로 본다
+    __table_args__ = (UniqueConstraint("user_id", "source", "ref_id", name="uq_points_log_user_source_ref"),)
 
     id: Mapped[int] = mapped_column(BigId, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
