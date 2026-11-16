@@ -27,7 +27,7 @@ async def test_request_id_echoed_and_security_headers(api):
     assert len(r2.headers["x-request-id"]) == 32  # uuid4 hex
     assert r.headers["x-content-type-options"] == "nosniff"
     assert r.headers["x-frame-options"] == "DENY"
-    csp = r.headers["content-security-policy-report-only"]
+    csp = r.headers["content-security-policy"]  # hardening: 기본이 강제
     assert "default-src 'self'" in csp and "cdn.jsdelivr.net" in csp and "fonts.gstatic.com" in csp
     assert "frame-ancestors 'none'" in csp
     assert "strict-transport-security" not in r.headers  # cookie_secure=false 인 테스트 기본값

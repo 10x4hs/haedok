@@ -91,10 +91,28 @@ app/templates/leaderboard.html  GET /leaderboard?range=week|all — 상위 50 + 
 
 | 결정 | 이유 |
 |---|---|
-| **points_log 는 append-only, 잔액은 SUM** | 행을 고치지 않으니 감사가 쉽고, 멱등성은 (user, source, ref_id) 를 select-before-insert 로 지킨다 — 이번 라운드엔 스키마를 못 바꿔 unique 제약이 없다. insert 뒤 commit 직전에 한 번 더 세어 겹치면 내 행을 지운다 |
+| **points_log 는 append-only, 잔액은 SUM** | 행을 고치지 않으니 감사가 쉽다. 멱등성은 unique (user_id, source, ref_id) 제약이 지킨다(hardening, 마이그레이션 `c2d4e6f8a013` 이 기존 중복을 먼저 지움). `award()` 는 먼저 찾아보지 않고 SAVEPOINT 안에서 넣어 보고, IntegrityError 면 "이미 받음" — 동시 요청이 겹쳐도 한 번만, 호출한 쪽의 다른 변경은 그대로 |
 | **모든 날짜 경계는 KST** — 주간은 월요일 00:00, 하루 상한·연속 일수도 KST 날짜 | 저장은 UTC, 경계만 `week_start()` / `day_start()` 가 KST→UTC 로 바꿔서 쿼리 |
 | **응답은 그대로** — 적립은 기존 API 응답 뒤에 붙고 아무것도 바꾸지 않는다 | 리더·대결 화면의 계약을 건드리지 않기 위해 |
-| **연속 일수는 하루에 쿼리 하나씩 거슬러 센다** | SQLite·Postgres 공통으로 KST 날짜 그룹핑을 하려면 방언별 SQL 이 필요해서, 당장은 단순하게. 길어지면 날짜별 집계 테이블로 옮긴다 |
+| **연속 일수는 KST 날짜별 GROUP BY 쿼리 하나** | 최근 400일 안의 "쪽 읽은 KST 날짜"를 한 번에 읽고 파이썬이 이어진 날을 센다. KST 날짜 식만 방언별(Postgres `to_char(timezone('Asia/Seoul', …))`, SQLite `strftime(…, '+9 hours')`) — 상수를 리터럴로 둬서 SELECT·GROUP BY 가 같은 식이 된다 |
+
+## 보안 헤더 · 실시간 폴백 (hardening, 2026-11)
+
+```
+app/core/csp.py          요청마다 nonce, 정책 문자열, Jinja 전역 csp_nonce(NonceProxy)
+app/main.py              observe_request 미들웨어가 request.state.csp_nonce + contextvar 를 채우고 CSP 헤더를 단다
+app/static/presence.js   haedokLive(): 친구 소식 채널(WebSocket → 폴링 폴백) + presence 박동
+tests/js/live_fallback.test.cjs  가짜 시계·소켓으로 폴백·백오프·숨김 정지를 확인(pytest 가 node 로 돌린다)
+```
+
+| 결정 | 이유 |
+|---|---|
+| **CSP 는 강제(`CSP_REPORT_ONLY=false`), script-src 에 nonce, `'unsafe-inline'` 없음** | 인라인 `<script>` 는 모두 `nonce="{{ csp_nonce }}"`, `onclick=`·`onsubmit=` 같은 인라인 속성은 쓰지 않는다(관리자 삭제 확인은 `data-confirm` + 리스너, 오프라인 화면은 `offline.js`). 테스트가 모든 화면 HTML 을 파싱해 확인한다 |
+| **style-src 는 `'unsafe-inline'` 유지** | `style=""` 속성(테마 변수 등)이 많고, 스타일 주입은 스크립트 실행보다 위험이 훨씬 작다 |
+| **500 화면은 nonce·헤더를 직접 맞춘다** | 예외 처리기가 미들웨어 바깥(ServerErrorMiddleware)에서 돌아 미들웨어 헤더가 붙지 않는다 |
+| **WebSocket 이 4초 안에 안 열리면 폴링** | Vercel 서버리스는 업그레이드가 응답 없이 매달리기도 해서 onclose 를 기다리지 않는다. 폴링은 20초, 실패하면 두 배씩 최대 2분, 성공하면 20초로. 소켓은 30초·60초 뒤 다시 시도하고 3번 실패하면 그 화면에서는 포기 |
+| **가려진 탭은 타이머 자체를 멈춘다** | 숨김 동안 아무 요청·타이머가 없고, 다시 보이면 곧바로 한 번 묻는다. presence 박동(5초)도 같은 규칙에 실패 시 60초까지 늦춘다 |
+| **폴링 응답도 스포일러 가드를 지난다** | `/social` 은 친구 위치와 봉인 개수만, 반응 본문은 `/reactions` 가 검증 위치로 거른다 — 소켓 이벤트와 같은 원칙 |
 
 ## 다음 Phase에서 채울 자리
 

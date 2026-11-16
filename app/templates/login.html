@@ -1,19 +1,25 @@
 {% extends "_auth.html" %}
+{% from "_auth_field.html" import field, submit %}
 {% block title %}로그인 — 偕讀 해독{% endblock %}
 {% block form %}
-<form method="post" action="/login" class="steps" novalidate>
+{% set e = errors or {} %}
+<header class="auth-head">
+  <h1 class="auth-title">다시 만나서 반가워요</h1>
+  <p class="auth-sub">이어 읽던 책이 기다리고 있어요</p>
+</header>
+<p class="auth-alert" role="alert" data-alert{% if not alert %} hidden{% endif %}>{{ alert or '' }}</p>
+<form method="post" action="/login" class="auth-form" novalidate data-auth="login">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <input type="hidden" name="next" value="{{ next }}">
-  <div class="step" data-step>
-    <label class="sr" for="email">이메일</label>
-    <div class="pill-field"><input id="email" name="email" type="email" value="{{ email }}" placeholder="이메일" autocomplete="email" required autofocus><button type="button" class="go" data-next aria-label="다음">→</button></div>
+  {{ field('email', '이메일', 'email', email, e.get('email', ''), 'username', attrs='inputmode="email" autocapitalize="off" spellcheck="false" required' ~ (' autofocus' if not email else '')) }}
+  {% call field('password', '비밀번호', 'password', '', e.get('password', ''), 'current-password', attrs='required' ~ (' autofocus' if email else '')) %}
+  <p class="caps" data-caps hidden>Caps Lock이 켜져 있어요</p>
+  {% endcall %}
+  <div class="auth-row">
+    <label class="check"><input type="checkbox" name="remember" value="1"{% if remember %} checked{% endif %}><span>로그인 상태 유지</span></label>
+    <a class="auth-link" href="/password/forgot{% if email %}?email={{ email|urlencode }}{% endif %}">비밀번호를 잊었어요</a>
   </div>
-  <div class="step" data-step>
-    <label class="sr" for="password">비밀번호</label>
-    <div class="pill-field"><input id="password" name="password" type="password" placeholder="비밀번호" autocomplete="current-password" required minlength="1"><button class="go" aria-label="로그인">→</button></div>
-  </div>
-  <p class="step-msg" role="alert" data-msg>{{ error or '' }}</p>
-  <button type="button" class="step-back" data-back hidden>‹ 이메일 다시 입력</button>
+  {{ submit('로그인', '로그인하는 중…') }}
 </form>
 {% endblock %}
-{% block foot %}같은 책을, 각자의 속도로 · <a href="/signup">가입하기</a>{% endblock %}
+{% block foot %}아직 계정이 없나요? · <a href="/signup{% if next and next != '/' %}?next={{ next|urlencode }}{% endif %}">가입하기</a>{% endblock %}

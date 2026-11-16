@@ -92,7 +92,7 @@
   </li>
   {% endfor %}
 </ul>
-<script>
+<script nonce="{{ csp_nonce }}">
 document.querySelectorAll('.yt').forEach(b => b.addEventListener('click', () => {
   const f = document.createElement('iframe');
   f.src = `https://www.youtube-nocookie.com/embed/${b.dataset.yt}?autoplay=1&playsinline=1&rel=0`;
