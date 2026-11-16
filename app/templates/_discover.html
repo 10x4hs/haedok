@@ -1,0 +1,62 @@
+{# 탐색 영역 전용 조각: 칩 아이콘 · 책 카드(예상 시간 + 친구 아바타) · 큐레이션 줄 · 분위기 칩 #}
+{% from "_ui.html" import flat_cover, avatar %}
+
+{% macro dicon(name) -%}
+<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+{%- if name == 'clock' %}<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>
+{%- elif name == 'moon' %}<path d="M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z"/>
+{%- elif name == 'leaf' %}<path d="M5 19c0-8 5-14 14-14 0 9-6 14-14 14z"/><path d="M5 19l8-8"/>
+{%- elif name == 'globe' %}<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.5 3.5 5.5 3.5 8.5s-1 6-3.5 8.5c-2.5-2.5-3.5-5.5-3.5-8.5s1-6 3.5-8.5z"/>
+{%- elif name == 'feather' %}<path d="M19 5c-7 0-12 5-12 12v2"/><path d="M19 5c0 6-4 10-10 10"/><path d="M11 13h5"/>
+{%- elif name == 'lens' %}<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>
+{%- elif name == 'book' %}<path d="M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2z"/><path d="M4 20a2 2 0 0 1 2-2h13"/>
+{%- elif name == 'search' %}<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+{%- elif name == 'chev' %}<path d="M9 5l7 7-7 7"/>
+{%- elif name == 'store' %}<path d="M4 9h16l-1.5 11h-13z"/><path d="M8.5 9V7a3.5 3.5 0 0 1 7 0v2"/>
+{%- endif %}</svg>
+{%- endmacro %}
+
+{# 겹쳐 놓은 작은 친구 아바타(최대 3명 + 나머지 수) #}
+{% macro faces(users, cls='') -%}
+{% if users %}<span class="d-faces {{ cls }}" aria-label="읽는 친구 {{ users|length }}명">
+  {%- for u in users[:3] %}{{ avatar(u, 'sm') }}{% endfor %}
+  {%- if users|length > 3 %}<span class="avatar sm more">+{{ users|length - 3 }}</span>{% endif -%}
+</span>{% endif %}
+{%- endmacro %}
+
+{# 서가 책 카드: 표지(친구 아바타가 왼쪽 아래에) · 제목 · 저자 · 예상 시간 #}
+{% macro dcard(b, friends=None, i=0) -%}
+{% set readers = (friends or {}).get((b.source, b.id), []) -%}
+<a class="card" href="/book/{{ b.source }}/{{ b.id|urlencode }}" style="--i:{{ i }}">
+  <span class="d-cover">{{ flat_cover(b.title, b.author, b.cover|small_cover) }}{{ faces(readers, 'pin') }}</span>
+  <b>{{ b.title }}</b>
+  <span>{{ b.author or b.genre }}</span>
+  <span class="d-time">{{ b.time }}</span>
+</a>
+{%- endmacro %}
+
+{% macro scard(b, i=0) -%}
+<a class="card" href="/store/{{ b.id }}" style="--i:{{ i }}">
+  <span class="d-cover">{{ flat_cover(b.title, b.author, b.cover|small_cover) }}</span>
+  <b>{{ b.title }}</b>
+  <span>{{ b.author or '' }}</span>
+  <span class="d-time">알라딘 전자책</span>
+</a>
+{%- endmacro %}
+
+{# 큐레이션 줄 머리: 모노 눈썹 + 제목 + 전체 보기 #}
+{% macro row_head(eyebrow, title, href='', label='전체 보기') -%}
+<header class="d-row-h">
+  <div><span class="d-eye">{{ eyebrow }}</span><h2>{{ title }}</h2></div>
+  {% if href %}<a href="{{ href }}">{{ label }}{{ dicon('chev') }}</a>{% endif %}
+</header>
+{%- endmacro %}
+
+{# 스크롤 없는 분위기 칩 — 고른 칩은 다시 누르면 꺼진다 #}
+{% macro mood_chips(moods, keys, active=None) -%}
+<nav class="d-chips" aria-label="분위기로 고르기">
+  {% for k in keys %}{% set m = moods[k] %}
+  <a href="{{ '/discover' if active == k else '/discover?mood=' ~ k }}"{% if active == k %} class="on" aria-current="page"{% endif %}>{{ dicon(m.icon) }}{{ m.label }}</a>
+  {% endfor %}
+</nav>
+{%- endmacro %}

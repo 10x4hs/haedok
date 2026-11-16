@@ -1,34 +1,45 @@
 {% extends "app.html" %}
 {% from "_ui.html" import book_cover, video_list %}
+{% from "_discover.html" import row_head %}
 {% block title %}{{ book.title }} · 서점 — 偕讀 해독{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/css/discover.css">{% endblock %}
 {% block content_class %}split{% endblock %}
-{% block heading %}<small>{{ book.author or '' }}</small>{{ book.title }}{% endblock %}
+{% block heading %}<small><a href="/discover?g=%EC%84%9C%EC%A0%90">‹ 서점</a></small>책 소개{% endblock %}
 {% block main %}
-<section class="store-hero">
-  <div class="store-cover" data-tilt="14">{{ book_cover(book.title, book.author, 'lg', img=book.cover) }}</div>
-  <div class="store-info">
-    <span class="eyebrow mono">전자책 · 알라딘</span>
-    <h2>{{ book.title }}</h2>
-    <p class="muted">{{ book.author or '' }}</p>
-    {% if book.price %}<p class="store-price"><b>{{ '{:,}'.format(book.price) }}원</b></p>{% endif %}
-  </div>
+<div class="bd-cover" data-tilt="10">{{ book_cover(book.title, book.author, 'lg', img=book.cover, eager=True) }}</div>
+
+<section class="bd-head">
+  <span class="d-eye">BOOKSTORE · 알라딘 전자책</span>
+  <h2>{{ book.title }}</h2>
+  <p class="bd-author">{{ book.author or '' }}</p>
+  <p class="bd-pitch">저작권이 살아 있는 책이라 해독에는 본문이 없어요. 전자책을 사서 DRM 없는 파일이면 올려 친구와 함께 읽을 수 있어요.</p>
 </section>
 
-<ol class="steps-guide">
-  <li><span class="mono">1</span><div><b>알라딘에서 전자책 사기</b><p>구매·다운로드는 알라딘에서 해요.</p></div></li>
-  <li><span class="mono">2</span><div><b>받은 파일 올리기</b><p>DRM 없는 EPUB·PDF면 여기로 올려 친구와 함께 읽어요.</p></div></li>
-  <li><span class="mono">3</span><div><b>친구에게 초대 코드 보내기</b><p>같은 책을 산 친구와 대결·반응을 나눠요.</p></div></li>
-</ol>
+<dl class="bd-stats two">
+  {% if book.price %}<div><dt>가격</dt><dd>{{ '{:,}'.format(book.price) }}<small>원</small></dd></div>
+  {% else %}<div><dt>형식</dt><dd>전자책</dd></div>{% endif %}
+  <div><dt>소개 영상</dt><dd>{{ videos|length }}<small>개</small></dd></div>
+</dl>
 
-<div class="store-actions">
+<div class="bd-actions">
   <a class="btn primary wide" id="buy" href="{{ book.url }}" target="_blank" rel="noopener">알라딘에서 전자책 사기 ↗</a>
   <a class="btn ghost wide" id="toUpload" href="/upload?store={{ book.id }}">산 파일 올리기</a>
 </div>
+
+<section class="bd-sec">
+  {{ row_head('HOW IT WORKS', '해독에서 함께 읽는 방법') }}
+  <ol class="bd-steps">
+    <li><b>알라딘에서 전자책 사기</b><span>구매·다운로드는 알라딘에서 해요.</span></li>
+    <li><b>받은 파일 올리기</b><span>DRM 없는 EPUB·PDF면 여기로 올려 친구와 함께 읽어요.</span></li>
+    <li><b>친구에게 초대 코드 보내기</b><span>같은 책을 산 친구와 대결·반응을 나눠요.</span></li>
+  </ol>
+</section>
+
 {% if videos %}
-<section class="row">
-  <div class="row-h"><h2>이 책을 소개하는 영상</h2><span class="mono muted">YouTube</span></div>
+<section class="bd-sec">
+  {{ row_head('YOUTUBE', '이 책을 소개하는 영상') }}
   {{ video_list(videos) }}
 </section>
 {% endif %}
-<p class="drm-note">알라딘에서 산 전자책은 대부분 복제 방지(DRM)가 걸려 알라딘 앱에서만 열려요. DRM이 걸린 파일은 올려도 열 수 없고, DRM을 푸는 건 법으로 금지돼 있어요. 출판사 직판 등 DRM 없는 파일만 열 수 있어요.</p>
+<p class="bd-note">알라딘에서 산 전자책은 대부분 복제 방지(DRM)가 걸려 알라딘 앱에서만 열려요. DRM이 걸린 파일은 올려도 열 수 없고, DRM을 푸는 건 법으로 금지돼 있어요. 출판사 직판 등 DRM 없는 파일만 열 수 있어요.</p>
 {% endblock %}

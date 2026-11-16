@@ -20,7 +20,8 @@ PUBLIC_PATHS = ("/", "/intro", "/signup", "/login")
 ALLOW = ("/", "/intro", "/join/", "/signup", "/login", "/static/", "/og/", "/manifest.webmanifest")
 DISALLOW = (
     "/admin", "/api/", "/books/", "/races", "/library", "/me", "/discover", "/search",
-    "/upload", "/store/", "/open/", "/shelf/", "/avatars/", "/signup/verify", "/logout", "/welcome/",
+    "/upload", "/store/", "/book/", "/open/", "/shelf/", "/avatars/", "/signup/verify", "/logout",
+    "/welcome/",
 )  # fmt: skip
 SITE_DESCRIPTION = "같은 책을 각자의 속도로 함께 읽는 소셜 독서 앱. 고전은 무료, 친구와 페이지 레이스."
 CACHE = {"Cache-Control": "public, max-age=3600"}
