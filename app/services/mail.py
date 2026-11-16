@@ -55,6 +55,24 @@ async def send_signup_code(
     return attempts[-1].ok
 
 
+async def send_password_reset_code(
+    client: httpx.AsyncClient, email: str, code: str, session: AsyncSession | None = None
+) -> bool:
+    """비밀번호 재설정 코드를 보낸다. 가입 코드와 같은 전송 순서·기록을 쓴다."""
+    subject = f"[해독] 비밀번호 재설정 코드 {code}"
+    text = f"해독(偕讀) 비밀번호 재설정 코드는 {code} 이에요.\n10분 안에 입력해 주세요."
+    html = (
+        '<div style="font-family:sans-serif;line-height:1.6">'
+        "<p>해독(偕讀) 비밀번호 재설정 코드예요.</p>"
+        f'<p style="font-size:28px;font-weight:700;letter-spacing:6px">{code}</p>'
+        "<p>10분 안에 입력해 주세요. 직접 요청하지 않았다면 이 메일을 무시해도 돼요. "
+        "비밀번호는 바뀌지 않아요.</p></div>"
+    )
+    attempts = await deliver(client, email, subject, text, html, secret=code)
+    await record(session, email, "password_reset", attempts)
+    return attempts[-1].ok
+
+
 def transports(settings: Settings) -> list[str]:
     """설정에 따라 시도할 순서. 배포(Vercel)에서는 HTTP(Resend)를 먼저."""
     smtp = ["smtp465", "smtp587"] if settings.smtp_user and settings.smtp_password else []

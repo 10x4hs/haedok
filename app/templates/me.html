@@ -52,7 +52,93 @@
   {% if is_admin(user) %}<a class="set-row" href="/admin">{{ icon('admin') }}<span>관리자</span><em>›</em></a>{% endif %}
   <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="set-row danger">로그아웃</button></form>
 </section>
-<script>
+{% set acct_err = request.query_params.get('account_error', '') %}
+<section class="account" id="account" aria-labelledby="account-h">
+  <h2 class="account-h" id="account-h">계정</h2>
+  {% if account_notice %}<p class="acct-msg ok" role="status">{{ account_notice }}</p>{% endif %}
+  {% if account_error %}<p class="acct-msg bad" role="alert">{{ account_error }}</p>{% endif %}
+  <div class="settings acct-list">
+    <details class="acct"{% if acct_err in ('current', 'short', 'long', 'match', 'limit') %} open{% endif %}>
+      <summary class="set-row"><span>비밀번호 바꾸기</span><em aria-hidden="true">›</em></summary>
+      <form class="acct-form" method="post" action="/me/password" data-acct="password">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="email" name="username" value="{{ user.email }}" autocomplete="username" hidden>
+        <label for="acct-current">현재 비밀번호</label>
+        <input id="acct-current" name="current" type="password" autocomplete="current-password" required>
+        <label for="acct-new">새 비밀번호 <small>8자 이상</small></label>
+        <input id="acct-new" name="password" type="password" autocomplete="new-password" minlength="8" required>
+        <label for="acct-new2">새 비밀번호 확인</label>
+        <input id="acct-new2" name="password_confirm" type="password" autocomplete="new-password" minlength="8" required aria-describedby="acct-new2-err">
+        <p class="acct-err" id="acct-new2-err" aria-live="polite"></p>
+        <p class="acct-note">바꾸면 이 기기를 뺀 다른 기기에서는 로그아웃돼요.</p>
+        <button class="btn primary wide">비밀번호 바꾸기</button>
+      </form>
+    </details>
+    <form method="post" action="/me/logout-all">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="set-row"><span>다른 기기에서 모두 로그아웃</span><em>이 기기는 그대로</em></button>
+    </form>
+    <details class="acct"{% if acct_err == 'confirm' %} open{% endif %}>
+      <summary class="set-row acct-danger"><span>계정 삭제</span><em aria-hidden="true">›</em></summary>
+      <form class="acct-form" method="post" action="/me/delete" data-acct="delete" data-email="{{ user.email }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <p class="acct-note">서재·읽은 기록·포인트·대결방이 모두 지워지고 되돌릴 수 없어요.</p>
+        <label for="acct-confirm">확인을 위해 <b>{{ user.email }}</b>을(를) 입력해 주세요</label>
+        <input id="acct-confirm" name="confirm_email" type="email" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+        <button class="btn wide acct-delete">계정 영구 삭제</button>
+      </form>
+    </details>
+  </div>
+</section>
+<style>
+.account{margin-top:28px}
+.account-h{margin:0 0 10px 4px;font-size:13px;font-weight:600;color:var(--dim);letter-spacing:.02em}
+.acct-list{margin-top:0}
+.acct summary{list-style:none;cursor:pointer}
+.acct summary::-webkit-details-marker{display:none}
+.acct summary em{transition:transform .3s var(--ease)}
+.acct[open] summary em{transform:rotate(90deg)}
+.acct[open] summary{border-bottom-color:transparent}
+.acct-danger{color:var(--bad)}
+.acct-form{display:grid;gap:6px;padding:4px 18px 18px;border-bottom:1px solid var(--line)}
+.acct-form label{font-size:13px;color:var(--dim);margin-top:6px}
+.acct-form label small{font-size:12px;opacity:.8}
+.acct-form label b{color:var(--text);font-weight:600;word-break:break-all}
+.acct-form input{height:48px;font:inherit;font-size:16px;color:var(--text);background:var(--sunken);border:1px solid var(--glass-line);border-radius:12px;padding:0 14px;min-width:0}
+.acct-form input:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent)}
+.acct-form input[aria-invalid="true"]{border-color:var(--bad)}
+.acct-form .btn{margin-top:10px}
+.acct-note{margin:4px 0 0;font-size:13px;color:var(--dim);line-height:1.5}
+.acct-err{margin:0;min-height:0;font-size:13px;color:var(--bad)}
+.acct-err:empty{display:none}
+.acct-delete{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad);border:1px solid color-mix(in srgb,var(--bad) 45%,transparent)}
+.acct-delete:disabled{opacity:.45;cursor:not-allowed}
+.acct-msg{margin:0 0 10px;padding:12px 14px;border-radius:12px;font-size:14px}
+.acct-msg.ok{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+.acct-msg.bad{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+</style>
+<script nonce="{{ csp_nonce|default('') }}">
+(() => {
+  // 비밀번호 바꾸기: 두 칸이 다르면 바로 알려 준다
+  const pw = document.querySelector('[data-acct="password"]');
+  if (pw) {
+    const a = pw.querySelector('#acct-new'), b = pw.querySelector('#acct-new2'), err = pw.querySelector('#acct-new2-err');
+    const same = () => { const bad = b.value && a.value !== b.value; err.textContent = bad ? '새 비밀번호가 서로 달라요' : ''; b.toggleAttribute('aria-invalid', !!bad); return !bad; };
+    b.addEventListener('input', same); a.addEventListener('input', () => b.value && same());
+    pw.addEventListener('submit', e => { if (!same()) { e.preventDefault(); b.focus(); } });
+  }
+  // 계정 삭제: 계정 이메일을 그대로 적어야 버튼이 켜진다
+  const del = document.querySelector('[data-acct="delete"]');
+  if (del) {
+    const input = del.querySelector('input[name="confirm_email"]'), btn = del.querySelector('button');
+    const want = del.dataset.email.trim().toLowerCase();
+    const sync = () => { btn.disabled = input.value.trim().toLowerCase() !== want; };
+    input.addEventListener('input', sync); sync();
+    del.addEventListener('submit', e => { if (btn.disabled) e.preventDefault(); });
+  }
+})();
+</script>
+<script nonce="{{ csp_nonce|default('') }}">
 (() => {
   // 고른 사진을 가운데 정사각형으로 잘라 256px JPEG로 줄인 뒤 폼 파일로 넣는다
   const pick = document.getElementById('photoPick'), out = document.getElementById('photoOut');
