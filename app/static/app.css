@@ -1127,3 +1127,21 @@ img.pending{opacity:0}
 .sw-check{box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.3)}
 .btn.ghost.copied{color:var(--ok)}
 @media (prefers-reduced-motion:reduce){.chips a,.card,.card .bk-front.real img,.flatbook img,.list img.thumb{transition:none}.chips a:active,.card:active{transform:none}}
+
+/* ---------- 탭을 고르면 배경이 그 자리로 미끄러져 간다 (motion.js가 .slide와 .pill을 붙인다) ---------- */
+.slide{position:relative}
+.slide > button{position:relative;z-index:1}
+.slide > button[aria-selected="true"],.slide > button[aria-pressed="true"]{background:transparent}
+.slide > .pill{position:absolute;left:0;top:0;width:var(--w,0);height:var(--h,0);border-radius:999px;background:var(--text);transform:translate(var(--x,0),var(--y,0));transition:transform .4s var(--ease),width .4s var(--ease);pointer-events:none}
+.slide.snap > .pill{transition:none}
+@media (prefers-reduced-motion:reduce){.slide > .pill{transition:none}}
+
+/* ---------- 화면 꾸미기 손질: 움직임 태그 · 색 동그라미 윤기 (구조는 그대로) ---------- */
+.sw-live{left:8px;top:8px;width:auto;height:22px;display:inline-flex;align-items:center;gap:5px;padding:0 8px 0 7px;border-radius:999px;background:rgba(0,0,0,.42);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.3);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.sw-live::before{content:"";border-left:6px solid #fff;border-top:4px solid transparent;border-bottom:4px solid transparent}
+.sw-live::after{content:"움직임";font-size:11px;font-weight:600;color:#fff;line-height:1}
+.dot::after{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.42),transparent 44%);pointer-events:none}
+.sw:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* 탐색: 칩 줄 자리의 검색창 */
+.big-search.at-top input{margin:6px 0 12px}
+

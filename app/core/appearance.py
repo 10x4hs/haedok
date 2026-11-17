@@ -11,6 +11,17 @@ BACKGROUNDS: dict[str, list[tuple[str, str, bool]]] = {
         ("sage", "세이지", False),
         ("fog", "안개", False),
     ],
+    # 빛 — 채도가 있는 그라데이션. 색 덩어리 여러 겹과 고운 입자로 만든다 (looks.css '빛')
+    "빛": [
+        ("rosedawn", "장밋빛 새벽", False),
+        ("abyss", "심해", False),
+        ("lavender", "라벤더", False),
+        ("mint", "민트 유리", False),
+        ("amber", "호박빛", False),
+        ("inkgold", "먹과 금", False),
+        ("neon", "자정의 네온", True),
+        ("opal", "오팔", True),
+    ],
     "책": [
         ("study", "서재", False),
         ("paper", "종이", False),
@@ -67,6 +78,12 @@ ACCENTS = {
     "green": ("초록", "#7fd99a"),
     "teal": ("청록", "#5fd3d3"),
     "gray": ("회색", "#b7bcc6"),
+    "rose": ("장미", "#ff8fab"),
+    "peach": ("복숭아", "#ffc2a8"),
+    "gold": ("금빛", "#e6c36a"),
+    "lime": ("라임", "#c5f04a"),
+    "mint": ("민트", "#9be7c4"),
+    "sky": ("하늘", "#8fd3ff"),
 }
 
 DEFAULT = {"mode": "auto", "bg": "plain", "accent": "pink"}
