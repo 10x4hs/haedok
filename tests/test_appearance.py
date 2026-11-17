@@ -82,3 +82,13 @@ def test_overlays_keep_home_smooth_scroll_from_stealing_the_wheel():
     assert 'id="menu" data-lenis-prevent' in (templates / "app.html").read_text()
     helix = (STATIC / "helix.js").read_text()
     assert "classList.contains('locked')" in helix and "lenis.stop()" in helix
+
+
+def test_every_background_and_accent_has_its_style():
+    """고를 수 있는 배경은 모두 looks.css에 모양이 있고, '빛' 묶음과 늘어난 강조 색이 들어 있다."""
+    looks = (STATIC / "looks.css").read_text()
+    for bid in appearance.BG_IDS:
+        assert f'.fx[data-bg="{bid}"]' in looks, bid
+    assert len(appearance.BACKGROUNDS["빛"]) == 8 and all(appearance.tone_of(b) == "dark" for b, _, _ in appearance.BACKGROUNDS["빛"])
+    assert len(appearance.ACCENTS) == 18 and {"rose", "lime", "sky"} <= set(appearance.ACCENTS)
+    assert all(re.fullmatch(r"#[0-9a-f]{6}", hexv) for _, hexv in appearance.ACCENTS.values())

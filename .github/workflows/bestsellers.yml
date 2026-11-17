@@ -1,0 +1,44 @@
+name: Bestsellers
+
+# 하루 한 번 Yes24 분야별 베스트(소설·인문·에세이)를 읽어 app/data/bestsellers.json을 고친다.
+# 순위가 바뀐 날에만 커밋하고, main에 올라가면 Vercel이 다시 배포한다.
+on:
+  schedule:
+    - cron: "10 21 * * *" # 매일 06:10 KST
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bestsellers
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --locked --extra dev
+      - name: Refresh the list
+        run: uv run python scripts/build_bestsellers.py
+      - name: Check the data still passes its tests
+        run: uv run pytest -q tests/test_bestsellers.py tests/test_home_drum.py
+      - name: Commit when the ranking changed
+        run: |
+          if git diff --quiet -- app/data/bestsellers.json; then
+            echo "no change"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/data/bestsellers.json
+          git commit -m "chore(data): refresh bestsellers"
+          git push

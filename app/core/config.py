@@ -40,6 +40,13 @@ class Settings(BaseSettings):
     google_books_api_key: str | None = None
     wikisource_lang: str = "ko"
 
+    # 서점 검색(app/services/bookstore.py) — 고른 책(app/data/store.json) 밖의 책을 찾아 온다.
+    # 카카오 책 검색 API 키(KAKAO_REST_API_KEY)가 있으면 그걸 쓴다(공식, 무료).
+    # bookstore_live=true는 키 없이 알라딘 검색 화면을 읽는 방식이다.
+    # 알라딘 robots.txt가 막는 경로라 기본은 꺼 둔다.
+    # 둘 다 없으면 고른 책 안에서만 찾는다
+    bookstore_live: bool = False
+
     # 세션 쿠키 서명 키. 운영에서는 반드시 .env로 바꾼다
     secret_key: str = "dev-only-change-me"
     session_idle_minutes: int = 30

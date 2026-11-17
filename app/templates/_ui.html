@@ -46,7 +46,7 @@
 <a class="card" href="/books/{{ book.id }}">
   {{ book_cover(book.title, book.author, img=cover_of(book)|small_cover, eager=eager) }}
   <b>{{ book.title }}</b>
-  {% if entry %}<span class="meter"><i style="width:{{ entry.progress_pct }}%"></i></span><span class="mono">{{ entry.progress_pct }}%</span>
+  {% if entry %}<span class="meter"><i style="width:{{ entry.progress_pct }}%"></i></span><span class="mono">{{ entry.progress_pct }}% · {{ entry.current_chunk + 1 }}/{{ book.total_chunks }}쪽</span>
   {% else %}<span>{{ book.author or '' }}</span>{% endif %}
 </a>
 {%- endmacro %}

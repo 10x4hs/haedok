@@ -1,0 +1,105 @@
+{
+ "source": "Yes24 분야별 베스트 (소설·인문·에세이)",
+ "updated": "2026-11-17",
+ "books": [
+  {
+   "id": "y197068949",
+   "title": "가호",
+   "author": "무라카미 하루키",
+   "publisher": "문학동네",
+   "price": 16650,
+   "cover": "https://image.yes24.com/goods/197068949/XL",
+   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EA%B0%80%ED%98%B8",
+   "rank": 1,
+   "category": "소설"
+  },
+  {
+   "id": "y257435",
+   "title": "싯다르타",
+   "author": "헤르만 헤세",
+   "publisher": "민음사",
+   "price": 7200,
+   "cover": "https://image.yes24.com/goods/257435/XL",
+   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EC%8B%AF%EB%8B%A4%EB%A5%B4%ED%83%80",
+   "rank": 2,
+   "category": "소설"
+  },
+  {
+   "id": "y8759796",
+   "title": "모순",
+   "author": "양귀자",
+   "publisher": "쓰다",
+   "price": 11700,
+   "cover": "https://image.yes24.com/goods/8759796/XL",
+   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EB%AA%A8%EC%88%9C",
+   "rank": 3,
+   "category": "소설"
+  },
+  {
+   "id": "y192474512",
+   "title": "세네카, 오늘을 빼앗기고 있는 당신에게",
+   "author": "루키우스 안나이우스 세네카",
+   "publisher": "논픽션",
+   "price": 16200,
+   "cover": "https://image.yes24.com/goods/192474512/XL",
+   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EC%84%B8%EB%84%A4%EC%B9%B4%2C+%EC%98%A4%EB%8A%98%EC%9D%84+%EB%B9%BC%EC%95%97%EA%B8%B0%EA%B3%A0+%EC%9E%88%EB%8A%94+%EB%8B%B9%EC%8B%A0%EC%97%90%EA%B2%8C",
+   "rank": 1,
+   "category": "인문"
+  },
+  {
+   "id": "y195225852",
+   "title": "옥스브리지의 철학 수업",
+   "author": "고요엘",
+   "publisher": "상상스퀘어",
+   "price": 25200,
+   "cover": "https://image.yes24.com/goods/195225852/XL",
+   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EC%98%A5%EC%8A%A4%EB%B8%8C%EB%A6%AC%EC%A7%80%EC%9D%98+%EC%B2%A0%ED%95%99+%EC%88%98%EC%97%85",
+   "rank": 2,
+   "category": "인문"
+  },
+  {
+   "id": "y125085536",
+   "title": "쇼펜하우어 인생수업 (30만 부 기념 개정증보판)",
+   "author": "아르투어 쇼펜하우어",
+   "publisher": "하이스트",
+   "price": 15750,
+   "cover": "https://image.yes24.com/goods/125085536/XL",
+   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EC%87%BC%ED%8E%9C%ED%95%98%EC%9A%B0%EC%96%B4+%EC%9D%B8%EC%83%9D%EC%88%98%EC%97%85+%2830%EB%A7%8C+%EB%B6%80+%EA%B8%B0%EB%85%90+%EA%B0%9C%EC%A0%95%EC%A6%9D%EB%B3%B4%ED%8C%90%29",
+   "rank": 3,
+   "category": "인문"
+  },
+  {
+   "id": "y195028168",
+   "title": "마음의 어휘력",
+   "author": "조아란, 권희, 이정윤",
+   "publisher": "페이지2북스",
+   "price": 15120,
+   "cover": "https://image.yes24.com/goods/195028168/XL",
+   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EB%A7%88%EC%9D%8C%EC%9D%98+%EC%96%B4%ED%9C%98%EB%A0%A5",
+   "rank": 1,
+   "category": "에세이"
+  },
+  {
+   "id": "y140125515",
+   "title": "한 말씀만 하소서",
+   "author": "박완서",
+   "publisher": "세계사",
+   "price": 15300,
+   "cover": "https://image.yes24.com/goods/140125515/XL",
+   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%ED%95%9C+%EB%A7%90%EC%94%80%EB%A7%8C+%ED%95%98%EC%86%8C%EC%84%9C",
+   "rank": 2,
+   "category": "에세이"
+  },
+  {
+   "id": "y196261854",
+   "title": "박완서의 낱말들",
+   "author": "박완서",
+   "publisher": "웅진지식하우스",
+   "price": 17820,
+   "cover": "https://image.yes24.com/goods/196261854/XL",
+   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EB%B0%95%EC%99%84%EC%84%9C%EC%9D%98+%EB%82%B1%EB%A7%90%EB%93%A4",
+   "rank": 3,
+   "category": "에세이"
+  }
+ ]
+}

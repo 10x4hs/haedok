@@ -114,5 +114,30 @@
     };
   }
 
+  // 표지가 늦게 도착해도 툭 튀어나오지 않게: 아직 안 온 그림만 숨겼다가 도착하면 떠오른다 (못 받아도 그대로 보인다)
+  document.querySelectorAll('.card .bk-front.real img, .flatbook img, .list img.thumb').forEach(img => {
+    if (img.complete) return;
+    img.classList.add('pending');
+    const show = () => img.classList.remove('pending');
+    img.addEventListener('load', show, { once: true });
+    img.addEventListener('error', show, { once: true });
+  });
+
+  // 탭을 고르면 배경이 그 자리로 미끄러져 간다 (.seg, .look-tabs)
+  document.querySelectorAll('.seg, .look-tabs').forEach(box => {
+    const pill = document.createElement('i'); pill.className = 'pill'; pill.setAttribute('aria-hidden', 'true');
+    box.classList.add('slide', 'snap'); box.prepend(pill);
+    const place = () => {
+      const on = box.querySelector(':scope > button[aria-selected="true"], :scope > button[aria-pressed="true"]');
+      if (!on || !on.offsetWidth) return;
+      pill.style.setProperty('--x', on.offsetLeft + 'px'); pill.style.setProperty('--y', on.offsetTop + 'px');
+      pill.style.setProperty('--w', on.offsetWidth + 'px'); pill.style.setProperty('--h', on.offsetHeight + 'px');
+      requestAnimationFrame(() => box.classList.remove('snap'));
+    };
+    new MutationObserver(place).observe(box, { attributes: true, subtree: true, attributeFilter: ['aria-selected', 'aria-pressed'] });
+    new ResizeObserver(() => { box.classList.add('snap'); place(); }).observe(box);
+    place();
+  });
+
   window.haedok = { fly };
 })();

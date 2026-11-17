@@ -1113,3 +1113,52 @@ html:root[data-theme="dark"] .tabbar,html:root[data-bg-tone="dark"] .tabbar{back
 .sw[data-tone="light"] .sw-name{color:#111;background:linear-gradient(transparent,rgba(255,255,255,.55))}
 @media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .sw[data-tone="auto"] .sw-name{color:#111;background:linear-gradient(transparent,rgba(255,255,255,.55))}}
 :root[data-theme="light"] .sw[data-tone="auto"] .sw-name{color:#111;background:linear-gradient(transparent,rgba(255,255,255,.55))}
+
+/* ---------- 작은 손질: 모양은 그대로 두고 반응만 더한다 (눌림 · 떠오름 · 개수 배지) ---------- */
+.chips a{transition:background .3s var(--ease),color .15s ease,border-color .15s ease,transform .4s var(--ease)}
+.chips a:active{transform:scale(.97)}
+@media (hover:hover){.chips a:not(.on):hover{color:var(--text);border-color:var(--glass-line)}}
+.chips a.on span{padding:1px 6px;border-radius:8px;border:1px solid color-mix(in srgb,var(--accent-ink) 30%,transparent);opacity:1}
+.card{transition:transform .4s var(--ease)}
+.card:active{transform:scale(.98)}
+/* 표지가 늦게 와도 툭 튀어나오지 않게 — 아직 안 온 그림만 숨겼다가 떠오른다 (motion.js가 .pending을 붙였다 뗀다) */
+.card .bk-front.real img,.flatbook img,.list img.thumb{transition:opacity .5s var(--ease)}
+img.pending{opacity:0}
+.sw-check{box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.3)}
+.btn.ghost.copied{color:var(--ok)}
+@media (prefers-reduced-motion:reduce){.chips a,.card,.card .bk-front.real img,.flatbook img,.list img.thumb{transition:none}.chips a:active,.card:active{transform:none}}
+
+/* ---------- 탭을 고르면 배경이 그 자리로 미끄러져 간다 (motion.js가 .slide와 .pill을 붙인다) ---------- */
+.slide{position:relative}
+.slide > button{position:relative;z-index:1}
+.slide > button[aria-selected="true"],.slide > button[aria-pressed="true"]{background:transparent}
+.slide > .pill{position:absolute;left:0;top:0;width:var(--w,0);height:var(--h,0);border-radius:999px;background:var(--text);transform:translate(var(--x,0),var(--y,0));transition:transform .4s var(--ease),width .4s var(--ease);pointer-events:none}
+.slide.snap > .pill{transition:none}
+@media (prefers-reduced-motion:reduce){.slide > .pill{transition:none}}
+
+/* ---------- 화면 꾸미기 손질: 움직임 태그 · 색 동그라미 윤기 (구조는 그대로) ---------- */
+.sw-live{left:8px;top:8px;width:auto;height:22px;display:inline-flex;align-items:center;gap:5px;padding:0 8px 0 7px;border-radius:999px;background:rgba(0,0,0,.42);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.3);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.sw-live::before{content:"";border-left:6px solid #fff;border-top:4px solid transparent;border-bottom:4px solid transparent}
+.sw-live::after{content:"움직임";font-size:11px;font-weight:600;color:#fff;line-height:1}
+.dot::after{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.42),transparent 44%);pointer-events:none}
+.sw:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* 탐색: 칩 줄 자리의 검색창 */
+.big-search.at-top input{margin:6px 0 12px}
+
+/* ---------- 홈: 분야 베스트셀러 1위 표시 · 검색 ---------- */
+/* 표지 왼쪽 위에 '소설 | 1위' — 분야는 작게, 순위는 크게. 앞에 선 책에만 보인다(.hx-rank 규칙 그대로) */
+.hx-rank.best{left:-10px;top:-16px;height:36px;padding:0 14px 0 12px;display:inline-flex;align-items:center;gap:8px;font:800 17px/1 var(--f-ui);letter-spacing:-.02em;white-space:nowrap;box-shadow:0 10px 24px -6px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.35)}
+.hx-rank.best i{font-style:normal;font-weight:600;font-size:13px;padding-right:8px;border-right:1px solid color-mix(in srgb,var(--accent-ink) 30%,transparent)}
+.hx-caption .mono.best{font:700 14px/1 var(--f-ui);letter-spacing:-.01em;color:var(--accent-ink);background:var(--accent);padding:7px 12px;border-radius:999px}
+/* 홈 머리말의 검색: 좁은 화면은 돋보기 단추, 넓은 화면은 검색창 모양 — 누르면 검색 화면으로 */
+.top-search{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;width:44px;height:44px;border-radius:999px;color:var(--text);background:var(--glass);border:1px solid var(--glass-line);backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%);transition:transform .4s var(--ease),border-color .15s ease}
+.top-search .ic{width:20px;height:20px}
+.top-search span{display:none;font-size:14px;color:var(--dim)}
+.top-search:active{transform:scale(.96)}
+@media (min-width:768px) and (min-height:520px){
+  .top-search{width:auto;min-width:260px;justify-content:flex-start;padding:0 18px 0 14px}
+  .top-search span{display:inline}
+  .top-search:hover{border-color:var(--text)}
+}
+@media (prefers-reduced-motion:reduce){.top-search{transition:none}.top-search:active{transform:none}}
+

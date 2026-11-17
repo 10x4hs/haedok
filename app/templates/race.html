@@ -86,13 +86,19 @@
     if (!t) { t = document.createElement('div'); t.id = 'rcToast'; t.className = 'r-toast glass-card'; t.setAttribute('role', 'status'); t.style.cssText = 'background:var(--surface);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)'; document.body.appendChild(t); }
     t.textContent = msg; t.classList.remove('in'); void t.offsetWidth; t.classList.add('in'); t.hidden = false;
     clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 2200); };
-  const copy = async v => { try { await navigator.clipboard.writeText(v); note.textContent = '복사했어요'; toast('초대 링크를 복사했어요'); } catch (e) { note.textContent = v; } };
+  const copy = async v => { try { await navigator.clipboard.writeText(v); note.textContent = '복사했어요'; toast('초대 링크를 복사했어요'); return true; } catch (e) { note.textContent = v; return false; } };
   share.onclick = async () => {
     // 카카오톡 SDK는 앱 키가 필요해 쓰지 않는다 — 기기 공유 시트(navigator.share)로 카카오톡·메시지에 보낸다
     if (navigator.share) { try { await navigator.share({ title: '해독 대결', text, url: share.dataset.url }); toast('초대 링크를 보냈어요'); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
     copy(`${text}\n${share.dataset.url}`);
   };
-  document.getElementById('copy').onclick = () => copy(document.getElementById('code').textContent);
+  // 복사되면 버튼이 1.6초 동안 '복사했어요 ✓'로 바뀐다
+  const copyBtn = document.getElementById('copy');
+  copyBtn.onclick = async () => {
+    if (!(await copy(document.getElementById('code').textContent))) return;
+    copyBtn.textContent = '복사했어요 ✓'; copyBtn.classList.add('copied');
+    clearTimeout(copyBtn.t); copyBtn.t = setTimeout(() => { copyBtn.textContent = '코드 복사'; copyBtn.classList.remove('copied'); }, 1600);
+  };
   // 남은 시간: 히어로와 트랙 머리말 두 곳(.js-left)을 같이 센다
   const fmtLeft = s => s <= 0 ? '곧 끝나요'
     : s >= 86400 ? `${Math.floor(s / 86400)}일 ${Math.floor(s % 86400 / 3600)}시간`

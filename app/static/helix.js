@@ -84,10 +84,12 @@
     cap.classList.add('fading');
     clearTimeout(hudTimer);
     hudTimer = setTimeout(() => {
-      $('capRank').textContent = el.dataset.rank ? `인기 ${el.dataset.rank}위` : '';
+      const best = el.dataset.best;   // 예: '소설 1위'
+      $('capRank').textContent = best ? best.replace(/ (\d+위)$/, ' 베스트셀러 $1') : el.dataset.rank ? `인기 ${el.dataset.rank}위` : '';
+      $('capRank').classList.toggle('best', !!best);
       $('capTitle').textContent = el.dataset.title;
       $('capAuthor').textContent = el.dataset.author;
-      $('capMeta').textContent = +el.dataset.readers ? `해독 독자 ${el.dataset.readers}명이 읽는 중` : '눌러서 바로 읽기';
+      $('capMeta').textContent = +el.dataset.readers ? `해독 독자 ${el.dataset.readers}명이 읽는 중` : el.getAttribute('href').startsWith('/store/') ? (best ? 'Yes24 오늘 순위 · 눌러서 책 정보 보기' : '눌러서 책 정보 보기') : '눌러서 바로 읽기';
       cap.classList.remove('fading');
     }, 180);
   }
