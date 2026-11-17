@@ -13,11 +13,15 @@
 <section class="row"><div class="row-h"><h2>바로 읽을 수 있는 책</h2><span class="mono muted">{{ readable|length }}</span></div>
 <ul class="list">{% for m in readable %}<li><a href="/open/{{ m.source }}/{{ m.external_id|urlencode }}">{{ book_cover(m.title, m.authors|join(', '), 'xs') }}<div><b>{{ m.title }}</b><span>{{ m.authors|join(', ') or m.source }}</span></div><em class="mono">읽기</em></a></li>{% endfor %}</ul></section>
 {% endif %}
+{% if store_hits %}
+<section class="row"><div class="row-h"><h2>서점</h2><span class="mono muted">{{ store_hits|length }}</span></div>
+<ul class="list">{% for b in store_hits %}<li><a href="/store/{{ b.id }}">{% if b.cover %}<img class="thumb" src="{{ b.cover|small_cover }}" alt="" width="44" height="66" loading="lazy" decoding="async">{% else %}{{ book_cover(b.title, b.author, 'xs') }}{% endif %}<div><b>{{ b.title }}</b><span>{{ b.author or b.publisher or '' }}</span></div><em class="mono">서점</em></a></li>{% endfor %}</ul></section>
+{% endif %}
 {% if others %}
 <section class="row"><div class="row-h"><h2>정보만 있는 책</h2><span class="mono muted">저작권 보호</span></div>
 <ul class="list">{% for m in others %}<li><a href="{{ m.link or '#' }}" target="_blank" rel="noopener">{% if m.cover_url %}<img class="thumb" src="{{ m.cover_url }}" alt="" width="44" height="66" loading="lazy" decoding="async">{% else %}{{ book_cover(m.title, m.authors|join(', '), 'xs') }}{% endif %}<div><b>{{ m.title }}</b><span>{{ m.authors|join(', ') }}</span></div><em class="mono">원문 ↗</em></a></li>{% endfor %}</ul></section>
 {% endif %}
-{% if q and not (in_catalog or readable or others) %}{{ empty_state('search', '찾은 책이 없어요', '제목이나 저자 이름을 조금 다르게 써 보세요. 내 파일이라면 직접 올릴 수도 있어요.', '/upload', '내 파일 올리기') }}
+{% if q and not (in_catalog or readable or store_hits or others) %}{{ empty_state('search', '찾은 책이 없어요', '제목이나 저자 이름을 조금 다르게 써 보세요. 내 파일이라면 직접 올릴 수도 있어요.', '/upload', '내 파일 올리기') }}
 {% elif not q %}{{ empty_state('search', '어떤 책을 찾을까요?', '제목이나 저자를 넣으면 서가와 공개 도서관에서 함께 찾아요.') }}{% endif %}
 {% if errors %}<p class="muted mono">응답 없는 소스: {{ errors.keys()|join(', ') }}</p>{% endif %}
 {% endblock %}
