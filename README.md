@@ -119,6 +119,7 @@ Postgres로 돌리려면 `docker compose up -d` 뒤에 `alembic upgrade head`를
 | `KAKAO_REST_API_KEY` · `NAVER_CLIENT_*` · `GOOGLE_BOOKS_API_KEY` | 메타데이터 검색 소스. 키가 없으면 그 소스만 꺼져요 |
 | `KAKAO_REST_API_KEY` (서점 검색) | 있으면 검색의 ‘서점’ 구역과 `/store/{ISBN}`이 카카오 책 검색 API(공식, 무료)로 고른 책 밖의 책도 찾아요. 없으면 고른 책(`app/data/store.json`) 안에서만 찾아요 |
 | `BOOKSTORE_LIVE` | 기본 `false`. `true`면 키 없이 알라딘 전자책 검색·상품 화면을 읽어요 — 알라딘 `robots.txt`가 막는 경로라 권하지 않아요(알라딘 공식 OpenAPI는 2026-10-30에 종료) |
+| `REALTIME_WS` | 친구 소식을 WebSocket으로 받을지. 비우면 로컬은 켜고 Vercel은 꺼요(3초마다 받아 와요) |
 | `SENTRY_DSN` | Sentry 오류 수집(선택). 비우면 꺼져요 |
 | `SITE_URL` | 공개 주소(https://…). canonical·OG·사이트맵·초대 미리보기에 써요. 비우면 Vercel URL → 요청 주소 순 |
 | `CSP_REPORT_ONLY` | 기본 `false` — CSP를 요청마다 새 nonce로 강제해요. 위반을 살펴볼 때만 잠깐 `true`(Report-Only) |
