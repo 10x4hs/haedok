@@ -475,21 +475,27 @@ function toast(text, kind = 'info') {
 
 async function social() {
   renderEmojis();
+  let live = {};
   try {
     const d = await (await fetch(`/api/v1/books/${bookId}/social`)).json();
+    live = d.live || {};
     emojis = d.emojis || emojis; renderEmojis();
     d.friends.forEach(f => friendMap.set(f.user_id, f));
     paintFriends();
     if (d.sealed_ahead) setTimeout(() => toast(`🔒 앞에서 ${d.sealed_ahead}개의 반응이 기다리고 있어요`), 1200);
   } catch (e) {}
-  connect();
+  connect(live.ws === true);
 }
 
-// 친구 소식 채널(presence.js 의 haedokLive): WebSocket을 먼저 열어 보고, 4초 안에 안 열리면(서버리스 배포)
-// 20초 폴링으로 내려간다 — 실패하면 간격을 늘리고, 탭이 가려지면 멈춘다
-function connect() {
+// 친구 소식 채널(presence.js 의 haedokLive). 서버가 소켓을 끈 배포(Vercel 기본)는 곧바로 3초 폴링,
+// 켠 배포는 WebSocket을 먼저 열어 보고 4초 안에 안 열리면 3초 폴링으로 내려간다. 소켓이 열려 있어도
+// 30초마다 안전망 폴링을 한다. 실패하면 간격을 늘리고, 탭이 가려지면 멈췄다가 돌아오면 바로 한 번 묻는다
+function connect(ws) {
   if (typeof window.haedokLive !== 'function') return;
   window.haedokLive({
+    ws,
+    pollBase: 3000,
+    pollSafety: 30000,
     url: `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/api/v1/ws/books/${bookId}`,
     onMessage: onLive,
     poll: pollFriends,

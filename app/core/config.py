@@ -106,6 +106,17 @@ class Settings(BaseSettings):
     # CSP를 Report-Only로 내보낼지. 기본은 강제(false) — 문제를 살펴볼 때만 잠깐 true로 둔다
     csp_report_only: bool = False
 
+    # --- realtime ---
+    # 친구 소식을 WebSocket으로 밀어 줄지(REALTIME_WS). 비워 두면 로컬·도커는 켜고 Vercel(VERCEL_ENV)은 끈다.
+    # Vercel Python 함수도 이제 소켓을 열 수 있지만, app/realtime.py 브로커는 인스턴스 메모리 안에만 있어서
+    # 다른 인스턴스에 붙은 친구의 소식은 오지 않는다. 브로커를 Redis 등으로 바꾸기 전까지는 폴링이 정답이다
+    realtime_ws: bool | None = None
+
+    def realtime_ws_enabled(self) -> bool:
+        if self.realtime_ws is not None:
+            return self.realtime_ws
+        return not self.vercel_env
+
 
 @lru_cache
 def get_settings() -> Settings:
