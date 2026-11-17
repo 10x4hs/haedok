@@ -1,6 +1,6 @@
 name: Bestsellers
 
-# 하루 한 번 Yes24 종합 베스트를 읽어 app/data/bestsellers.json을 고친다.
+# 하루 한 번 Yes24 분야별 베스트(소설·인문·에세이)를 읽어 app/data/bestsellers.json을 고친다.
 # 순위가 바뀐 날에만 커밋하고, main에 올라가면 Vercel이 다시 배포한다.
 on:
   schedule:

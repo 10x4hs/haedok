@@ -6,6 +6,7 @@ import re
 import httpx
 
 from app import web
+from app.services import bestsellers
 from tests.conftest import signup
 
 SAPIENS, CARNEGIE = "310032628", "213576574"  # 사피엔스 · 데일 카네기 인간관계론
@@ -39,8 +40,13 @@ async def test_home_helix_shows_bestsellers_then_famous_books_without_duplicates
     free = [h for h in links if h.startswith("/open/")]
     assert len(links) == len(set(links)) == len(store) + len(free)  # 같은 책이 두 번 걸리지 않는다
     # 맨 앞 세 권은 지금의 베스트셀러, 순위 배지가 붙고 서점 화면으로 열린다
-    assert links[:3] == [f"/store/{b['id']}" for b in web.BESTSELLERS[:3]]
-    assert home.text.count('data-best="1"') == 1 and 'data-best="3"' in home.text
+    leaders = bestsellers.leaders(web.BESTSELLERS)
+    assert links[:3] == [f"/store/{b['id']}" for b in leaders]
+    assert [b["category"] for b in leaders] == ["소설", "인문", "에세이"] and all(b["rank"] == 1 for b in leaders)
+    for cat in ("소설", "인문", "에세이"):  # 분야와 순위가 표지 배지와 설명 양쪽에 실린다
+        assert f'data-best="{cat} 1위"' in home.text
+        assert f'<span class="hx-rank best"><i>{cat}</i>1위</span>' in home.text
+    assert 'class="top-search" href="/search"' in home.text  # 홈에서 바로 검색으로
     assert best_page.status_code == 200 and web.BESTSELLERS[0]["title"] in best_page.text
     assert 40 <= len(store) <= 43 and 1 <= len(free) <= 4
     assert f"/store/{SAPIENS}" in links[:8] and f"/store/{CARNEGIE}" in links[:8]
@@ -50,6 +56,7 @@ async def test_home_helix_shows_bestsellers_then_famous_books_without_duplicates
 def test_drum_drops_a_pick_that_is_already_a_bestseller():
     same = {"id": "y1", "title": web.HOME_PICKS[0]["title"] + " (리커버 특별판)", "cover": "https://x/y.jpg"}
     drum = web._drum([], [same, {"id": "y2", "title": "다른 책", "cover": "https://x/z.jpg"}])
-    assert [b["id"] for b in drum[:2]] == ["y1", "y2"] and [b["best"] for b in drum[:2]] == [1, 2]
+    assert [b["id"] for b in drum[:2]] == ["y1", "y2"]
+    assert [b["best"] for b in drum[:2]] == ["베스트셀러 1위", "베스트셀러 2위"]  # 분야 표시가 없는 옛 파일
     assert web.HOME_PICKS[0]["id"] not in [b["id"] for b in drum]  # 같은 책은 베스트셀러 자리 하나만
     assert len(drum) == len(web.HOME_PICKS) + 1

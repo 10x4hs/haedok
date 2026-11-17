@@ -23,11 +23,35 @@ def test_broken_or_empty_page_gives_nothing():
     assert bestsellers.parse_yes24("<html><body>점검 중</body></html>") == []
 
 
-def test_saved_file_has_at_least_three_books_with_covers():
+def test_author_and_title_noise_is_cleaned_and_bundles_are_skipped():
+    def item(no, name, auth):
+        return (
+            f'<li data-goods-no="{no}"><a class="gd_name" href="#">{name}</a>'
+            f'<span class="authPub info_auth">{auth}</span></li>'
+        )
+
+    page = (
+        item(1, "[예스리커버] 너를 아끼며 살아라", "나태주 저")
+        + item(2, "100일의 거짓말 대본집 세트", "작가 저")
+        + item(3, "트렌드 코리아 2027", "김난도, 전미영 저 외 8명 정보 더 보기")
+    )
+    books = bestsellers.parse_yes24(page)
+    assert [b["title"] for b in books] == ["너를 아끼며 살아라", "트렌드 코리아 2027"]  # 묶음 상품은 건너뛴다
+    assert [b["author"] for b in books] == ["나태주", "김난도, 전미영"]
+    assert [b["rank"] for b in books] == [1, 2]
+
+
+def test_saved_file_has_three_books_per_category_and_one_leader_each():
     data = json.loads(bestsellers.DATA.read_text(encoding="utf-8"))
     assert data["source"] and data["updated"]
     books = bestsellers.load()
-    assert len(books) >= 3 and [b["rank"] for b in books[:3]] == [1, 2, 3]
+    names = [name for name, _ in bestsellers.CATEGORIES]
+    assert names == ["소설", "인문", "에세이"]
+    for name in names:
+        ranks = [b["rank"] for b in books if b["category"] == name]
+        assert ranks[:1] == [1] and ranks == sorted(ranks)
+    leaders = bestsellers.leaders(books)
+    assert [b["category"] for b in leaders] == names and all(b["rank"] == 1 for b in leaders)
     assert all(b["id"].startswith("y") and b["cover"].startswith("https://image.yes24.com/") for b in books)
 
 

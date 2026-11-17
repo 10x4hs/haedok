@@ -3,6 +3,7 @@
 {% block title %}홈 — 偕讀 해독{% endblock %}
 {% block heading %}<small>{{ user.nickname }}님,</small>오늘은 뭘 읽을까요{% endblock %}
 
+{% block top_extra %}<a class="top-search" href="/search" aria-label="책 검색">{{ icon('search') }}<span>제목이나 저자로 찾기</span></a>{% endblock %}
 {% block main %}
 {% if first_run %}{% include "_welcome.html" %}{% endif %}
 {% if not drum %}
@@ -27,7 +28,7 @@
       <a class="hx-book" href="{{ '/store/' ~ b.id if b.store else '/open/' ~ b.source ~ '/' ~ (b.id|urlencode) }}" data-title="{{ b.title }}" data-author="{{ b.author or '' }}"
          data-rank="{{ b.rank or '' }}" data-best="{{ b.best or '' }}" data-readers="{{ b.readers or 0 }}" data-race="/races/start/{{ b.source }}/{{ b.id|urlencode }}"
          data-hi="{{ b.cover or '' }}">
-        {% if b.best %}<span class="hx-rank mono">{{ b.best }}</span>{% elif b.rank %}<span class="hx-rank mono">{{ b.rank }}</span>{% endif %}
+        {% if b.best %}<span class="hx-rank best"><i>{{ b.best.rsplit(' ', 1)[0] }}</i>{{ b.best.rsplit(' ', 1)[1] }}</span>{% elif b.rank %}<span class="hx-rank mono">{{ b.rank }}</span>{% endif %}
         {{ book_cover(b.title, b.author, 'solid', img=b.cover|small_cover) }}
       </a>
       {% endfor %}
