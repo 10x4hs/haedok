@@ -114,5 +114,14 @@
     };
   }
 
+  // 표지가 늦게 도착해도 툭 튀어나오지 않게: 아직 안 온 그림만 숨겼다가 도착하면 떠오른다 (못 받아도 그대로 보인다)
+  document.querySelectorAll('.card .bk-front.real img, .flatbook img, .list img.thumb').forEach(img => {
+    if (img.complete) return;
+    img.classList.add('pending');
+    const show = () => img.classList.remove('pending');
+    img.addEventListener('load', show, { once: true });
+    img.addEventListener('error', show, { once: true });
+  });
+
   window.haedok = { fly };
 })();

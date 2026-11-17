@@ -1113,3 +1113,17 @@ html:root[data-theme="dark"] .tabbar,html:root[data-bg-tone="dark"] .tabbar{back
 .sw[data-tone="light"] .sw-name{color:#111;background:linear-gradient(transparent,rgba(255,255,255,.55))}
 @media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .sw[data-tone="auto"] .sw-name{color:#111;background:linear-gradient(transparent,rgba(255,255,255,.55))}}
 :root[data-theme="light"] .sw[data-tone="auto"] .sw-name{color:#111;background:linear-gradient(transparent,rgba(255,255,255,.55))}
+
+/* ---------- 작은 손질: 모양은 그대로 두고 반응만 더한다 (눌림 · 떠오름 · 개수 배지) ---------- */
+.chips a{transition:background .3s var(--ease),color .15s ease,border-color .15s ease,transform .4s var(--ease)}
+.chips a:active{transform:scale(.97)}
+@media (hover:hover){.chips a:not(.on):hover{color:var(--text);border-color:var(--glass-line)}}
+.chips a.on span{padding:1px 6px;border-radius:8px;border:1px solid color-mix(in srgb,var(--accent-ink) 30%,transparent);opacity:1}
+.card{transition:transform .4s var(--ease)}
+.card:active{transform:scale(.98)}
+/* 표지가 늦게 와도 툭 튀어나오지 않게 — 아직 안 온 그림만 숨겼다가 떠오른다 (motion.js가 .pending을 붙였다 뗀다) */
+.card .bk-front.real img,.flatbook img,.list img.thumb{transition:opacity .5s var(--ease)}
+img.pending{opacity:0}
+.sw-check{box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.3)}
+.btn.ghost.copied{color:var(--ok)}
+@media (prefers-reduced-motion:reduce){.chips a,.card,.card .bk-front.real img,.flatbook img,.list img.thumb{transition:none}.chips a:active,.card:active{transform:none}}
