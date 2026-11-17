@@ -4,7 +4,9 @@
 - 영어 고전: Open Library 검색의 cover_i
 
 출시하지 않는 프로토타입 전용이다. 받은 이미지는 git에 올리지 않는다(.gitignore).
-실행: python scripts/fetch_covers.py [--verify]   (이미 받은 표지는 건너뛴다. --verify는 다시 검사)
+표지를 이미 아는 책(cover·cover_src가 적힌 책)은 다시 찾지 않는다 — 이미지 파일이 없는 곳(배포·새로 받은
+저장소)에서는 앱이 cover_src의 원본 주소를 쓴다.
+실행: python scripts/fetch_covers.py [--verify]   (--verify는 한국어 표지의 제목 일치를 다시 검사)
 """
 
 import asyncio
@@ -16,6 +18,7 @@ import sys
 from pathlib import Path
 
 import httpx
+from build_catalog import dump  # 같은 scripts/ 폴더 — catalog.json을 같은 모양으로 적는다
 
 ROOT = Path(__file__).resolve().parent.parent
 CATALOG = ROOT / "app" / "data" / "catalog.json"
@@ -36,8 +39,17 @@ _BOX = re.compile(r'<div class="ss_book_box" itemId="\d+">(.*?)(?=<div class="ss
 _TITLE = re.compile(r'class="bo3">([^<]+)</a>')
 
 
+_KO_FIRST = re.compile(r"^[가-힣 ]+ \((.+)\)$")  # 「오만과 편견 (Pride and Prejudice)」
+
+
 def _norm(s: str) -> str:
     return re.sub(r"[\W_]+", "", html.unescape(s)).lower()
+
+
+def search_title(book: dict) -> str:
+    """표지를 찾을 때 쓸 제목 — 한국어 제목을 앞세운 영어 고전은 괄호 안의 원제로 찾는다."""
+    m = _KO_FIRST.match(book["title"]) if book["source"] == "gutendex" else None
+    return m.group(1) if m else book["title"]
 
 
 async def aladin_cover(client: httpx.AsyncClient, book: dict) -> str | None:
@@ -60,7 +72,7 @@ async def aladin_cover(client: httpx.AsyncClient, book: dict) -> str | None:
 
 
 async def openlibrary_cover(client: httpx.AsyncClient, book: dict) -> str | None:
-    params = {"title": book["title"], "limit": 1, "fields": "cover_i"}
+    params = {"title": search_title(book), "limit": 1, "fields": "cover_i"}
     if book["author"]:
         params["author"] = book["author"]
     docs = (await client.get("https://openlibrary.org/search.json", params=params)).json().get("docs", [])
@@ -85,6 +97,8 @@ async def fetch_one(client: httpx.AsyncClient, sem: asyncio.Semaphore, book: dic
             book.pop("cover_src", None)
             if not url:
                 return False
+    if not VERIFY and book.get("cover") and book.get("cover_src"):
+        return True  # 이미 표지를 아는 책
     if path.exists() and book.get("cover_src"):
         book["cover"] = f"/static/covers/{path.name}"
         return True
@@ -116,7 +130,7 @@ async def main() -> None:
     sem = asyncio.Semaphore(CONCURRENCY)
     async with httpx.AsyncClient(headers=UA, timeout=20, follow_redirects=True) as client:
         found = await asyncio.gather(*(fetch_one(client, sem, b) for b in books))
-    CATALOG.write_text(json.dumps(books, ensure_ascii=False, indent=1) + "\n")
+    CATALOG.write_text(dump(books))
     print(f"표지 {sum(found)} / {len(books)}권")
 
 

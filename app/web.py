@@ -170,6 +170,25 @@ def _fill(ranked: list[dict], n: int) -> list[dict]:
     return (ranked + extra)[:n]
 
 
+# 홈 나선에 거는 유명한 책(서점) — app/data/home_picks.json에 적힌 순서대로. 서점에 없는 id는 건너뛴다
+HOME_PICKS: list[dict] = [
+    STORE_INDEX[i] | {"store": True}
+    for i in json.loads((DATA / "home_picks.json").read_text())["store"]
+    if i in STORE_INDEX
+]
+HOME_FREE = 14  # 그 사이사이에 섞는, 앱에서 바로 읽는 고전 수 — 나선은 모두 40권쯤
+
+
+def _drum(free: list[dict]) -> list[dict]:
+    """유명한 책 두 권마다 바로 읽는 고전 한 권을 끼워, 한 종류의 표지가 몰려 보이지 않게 한다."""
+    out, free = [], list(free)
+    for n, book in enumerate(HOME_PICKS, 1):
+        out.append(book)
+        if n % 2 == 0 and free:
+            out.append(free.pop(0))
+    return out + free
+
+
 # --- 소개 · 가입 · 로그인 ---
 
 
@@ -182,12 +201,12 @@ async def home(
     if user is None:
         picks = await popular(session, 9)
         return _render(request, "landing.html", None, picks=picks, showcase=SHOWCASE, total=len(CATALOG))
-    top = await popular(session, 30)
+    top = await popular(session, HOME_FREE)
     return _render(
         request,
         "home.html",
         user,
-        drum=[b | {"store": True} for b in STORE[:14]] + _fill(top, 30),
+        drum=_drum(_fill(top, HOME_FREE)),
         first_run=bool(request.session.get("first_run")),
     )
 
