@@ -8,6 +8,7 @@ import datetime as dt
 import hashlib
 import json
 import random
+import re
 import time
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -25,8 +26,8 @@ from app.core import appearance, ratelimit
 from app.core.config import Settings, get_settings
 from app.db.session import get_session
 from app.models import Book, LibraryEntry, Room, Shelf, User
+from app.services import bestsellers, bookstore, mail, social
 from app.services import books as book_service
-from app.services import bookstore, mail, social
 from app.services import points as points_service
 from app.services import races as race_service
 from app.services.search import FULLTEXT_SOURCES, search_all
@@ -177,11 +178,23 @@ HOME_PICKS: list[dict] = [
     if i in STORE_INDEX
 ]
 HOME_FREE = 4  # 맨 뒤에 붙이는, 앱에서 바로 읽는 고전 수 — 나선 앞쪽은 모두 유명한 책이다
+HOME_BEST = 3  # 맨 앞에 거는 지금의 베스트셀러 수
+# 지금 많이 팔리는 책(app/data/bestsellers.json — 하루 한 번 갱신, app/services/bestsellers.py)
+BESTSELLERS: list[dict] = bestsellers.load()
+BEST_INDEX = {b["id"]: b for b in BESTSELLERS}
 
 
-def _drum(free: list[dict]) -> list[dict]:
-    """유명한 책을 정해 둔 순서로 걸고, 바로 읽는 고전은 맨 뒤에 붙인다."""
-    return HOME_PICKS + list(free)
+def _same_book(title: str) -> str:
+    """판 이름·부제를 떼고 견준다: '소년이 온다 (개정판)' == '소년이 온다'."""
+    return re.sub(r"\s*[(\[:\-–—].*$", "", title).replace(" ", "").lower()
+
+
+def _drum(free: list[dict], best: list[dict] | None = None) -> list[dict]:
+    """맨 앞에 지금의 베스트셀러 세 권, 그 뒤로 유명한 책을 정해 둔 순서로, 바로 읽는 고전은 맨 뒤에."""
+    top = [b | {"store": True, "best": n, "rank": None} for n, b in enumerate((best or [])[:HOME_BEST], 1)]
+    taken = {_same_book(b["title"]) for b in top}
+    picks = [b for b in HOME_PICKS if _same_book(b["title"]) not in taken]  # 같은 책이 두 번 걸리지 않게
+    return top + picks + list(free)
 
 
 # --- 소개 · 가입 · 로그인 ---
@@ -201,7 +214,7 @@ async def home(
         request,
         "home.html",
         user,
-        drum=_drum(_fill(top, HOME_FREE)),
+        drum=_drum(_fill(top, HOME_FREE), BESTSELLERS),
         first_run=bool(request.session.get("first_run")),
     )
 
@@ -697,7 +710,7 @@ async def _store_book(
 
     없는 책이거나 한도를 넘으면 None."""
     item_id = item_id or ""
-    if book := STORE_INDEX.get(item_id):
+    if book := STORE_INDEX.get(item_id) or BEST_INDEX.get(item_id):
         return book
     if not bookstore.valid_id(item_id):
         return None

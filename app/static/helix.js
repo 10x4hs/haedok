@@ -84,7 +84,7 @@
     cap.classList.add('fading');
     clearTimeout(hudTimer);
     hudTimer = setTimeout(() => {
-      $('capRank').textContent = el.dataset.rank ? `인기 ${el.dataset.rank}위` : '';
+      $('capRank').textContent = el.dataset.best ? `베스트셀러 ${el.dataset.best}위` : el.dataset.rank ? `인기 ${el.dataset.rank}위` : '';
       $('capTitle').textContent = el.dataset.title;
       $('capAuthor').textContent = el.dataset.author;
       $('capMeta').textContent = +el.dataset.readers ? `해독 독자 ${el.dataset.readers}명이 읽는 중` : el.getAttribute('href').startsWith('/store/') ? '눌러서 책 정보 보기' : '눌러서 바로 읽기';
