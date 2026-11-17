@@ -176,17 +176,12 @@ HOME_PICKS: list[dict] = [
     for i in json.loads((DATA / "home_picks.json").read_text())["store"]
     if i in STORE_INDEX
 ]
-HOME_FREE = 14  # 그 사이사이에 섞는, 앱에서 바로 읽는 고전 수 — 나선은 모두 40권쯤
+HOME_FREE = 4  # 맨 뒤에 붙이는, 앱에서 바로 읽는 고전 수 — 나선 앞쪽은 모두 유명한 책이다
 
 
 def _drum(free: list[dict]) -> list[dict]:
-    """유명한 책 두 권마다 바로 읽는 고전 한 권을 끼워, 한 종류의 표지가 몰려 보이지 않게 한다."""
-    out, free = [], list(free)
-    for n, book in enumerate(HOME_PICKS, 1):
-        out.append(book)
-        if n % 2 == 0 and free:
-            out.append(free.pop(0))
-    return out + free
+    """유명한 책을 정해 둔 순서로 걸고, 바로 읽는 고전은 맨 뒤에 붙인다."""
+    return HOME_PICKS + list(free)
 
 
 # --- 소개 · 가입 · 로그인 ---
