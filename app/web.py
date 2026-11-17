@@ -3,6 +3,7 @@
 서버 렌더링(Jinja2)이 기본이고, 리더만 작은 JS가 붙는다.
 """
 
+import asyncio
 import datetime as dt
 import hashlib
 import json
@@ -25,7 +26,7 @@ from app.core.config import Settings, get_settings
 from app.db.session import get_session
 from app.models import Book, LibraryEntry, Room, Shelf, User
 from app.services import books as book_service
-from app.services import mail, social
+from app.services import bookstore, mail, social
 from app.services import points as points_service
 from app.services import races as race_service
 from app.services.search import FULLTEXT_SOURCES, search_all
@@ -642,9 +643,69 @@ async def discover(
     )
 
 
+# 서점 실시간 조회(알라딘) 한도 — 사용자별, 5분 창. 캐시에 있는 것은 세지 않는다
+STORE_WINDOW_S = 300
+STORE_SEARCH_LIMIT = 30
+STORE_LOOKUP_LIMIT = 60
+
+
+async def _store_live_allowed(session: AsyncSession, user: User, kind: str, limit: int) -> bool:
+    """한도 안이면 True. 한도를 셀 수 없을 때(DB 오류)도 화면은 살리고 알라딘에는 묻지 않는다."""
+    try:
+        await ratelimit.check(session, f"store-{kind}:{user.id}", limit, STORE_WINDOW_S, "")
+    except ratelimit.RateLimited:
+        return False
+    except Exception:
+        # 여기서 rollback하면 같은 세션의 user가 만료돼 화면을 그릴 수 없다 — 세션은 요청이 끝날 때 닫힌다
+        bookstore.log.exception("bookstore rate limit check failed")
+        return False
+    return True
+
+
+async def _store_search(
+    session: AsyncSession, client: httpx.AsyncClient, user: User, term: str
+) -> list[bookstore.StoreItem]:
+    """알라딘 전자책 검색 결과. 캐시에 없을 때만 한도를 세고, 한도를 넘으면 빈 목록(고른 책만 보여 준다)."""
+    cached = bookstore.cached_search(term)
+    if cached is not None:
+        return cached
+    if not bookstore.live_enabled():
+        return []
+    if not await _store_live_allowed(session, user, "search", STORE_SEARCH_LIMIT):
+        return []
+    return await bookstore.search(client, term)
+
+
+async def _store_book(
+    session: AsyncSession, client: httpx.AsyncClient, user: User, item_id: str | None
+) -> dict | None:
+    """서점의 책 한 권: 고른 책 → (알라딘 ItemId 모양이면) 캐시 → 알라딘 상품 화면.
+
+    없는 책이거나 한도를 넘으면 None."""
+    item_id = item_id or ""
+    if book := STORE_INDEX.get(item_id):
+        return book
+    if not bookstore.valid_id(item_id):
+        return None
+    hit, cached = bookstore.cached_lookup(item_id)
+    if hit:
+        return cached
+    if not bookstore.live_enabled():
+        return None
+    if not await _store_live_allowed(session, user, "lookup", STORE_LOOKUP_LIMIT):
+        return None
+    return await bookstore.lookup(client, item_id)
+
+
 @router.get("/store/{item_id}", response_class=HTMLResponse)
-async def store_item(request: Request, item_id: str, user: User = Depends(auth.require_user)) -> HTMLResponse:
-    book = STORE_INDEX.get(item_id)
+async def store_item(
+    request: Request,
+    item_id: str,
+    session: AsyncSession = Depends(get_session),
+    client: httpx.AsyncClient = Depends(get_http_client),
+    user: User = Depends(auth.require_user),
+) -> HTMLResponse:
+    book = await _store_book(session, client, user, item_id)
     if book is None:
         raise HTTPException(404, "책을 찾을 수 없어요")
     return _render(request, "store.html", user, book=book, videos=VIDEOS.get(f"store:{item_id}", []))
@@ -679,13 +740,20 @@ async def search(
     q: str = Query("", max_length=100),
     sources: dict[str, BookSource] = Depends(get_sources),
     settings: Settings = Depends(get_settings),
+    session: AsyncSession = Depends(get_session),
+    client: httpx.AsyncClient = Depends(get_http_client),
     user: User = Depends(auth.require_user),
 ) -> HTMLResponse:
-    readable, others, errors = [], [], {}
+    readable, others, errors, store_hits = [], [], {}, []
     term = q.strip()
     in_catalog = [b for b in CATALOG if term and (term in b["title"] or term in (b["author"] or ""))]
     if term:
-        result = await search_all(list(sources.values()), term, 20, settings.http_timeout_seconds)
+        # 공개 도서관 소스와 서점(알라딘)을 함께 기다린다. 서점은 실패해도 []만 돌려주고 6초 안에 끝난다
+        result, live = await asyncio.gather(
+            search_all(list(sources.values()), term, 20, settings.http_timeout_seconds),
+            _store_search(session, client, user, term),
+        )
+        store_hits = bookstore.merge(bookstore.local_search(STORE, term), live, STORE_INDEX)
         errors = result.errors
         known = {(b["source"], b["id"]) for b in in_catalog}
         for h in result.hits:
@@ -699,6 +767,7 @@ async def search(
         q=q,
         in_catalog=in_catalog[:30],
         readable=readable,
+        store_hits=store_hits,
         others=others,
         errors=errors,
     )
@@ -706,14 +775,18 @@ async def search(
 
 @router.get("/upload", response_class=HTMLResponse)
 async def upload_form(
-    request: Request, store: str | None = None, user: User = Depends(auth.require_user)
+    request: Request,
+    store: str | None = None,
+    session: AsyncSession = Depends(get_session),
+    client: httpx.AsyncClient = Depends(get_http_client),
+    user: User = Depends(auth.require_user),
 ) -> HTMLResponse:
     return _render(
         request,
         "upload.html",
         user,
         error=None,
-        for_book=STORE_INDEX.get(store or ""),
+        for_book=await _store_book(session, client, user, store),
         max_mb=get_settings().max_upload_mb,
     )
 
@@ -725,10 +798,11 @@ async def upload(
     csrf: str = Form(""),
     store: str = Form(""),
     session: AsyncSession = Depends(get_session),
+    client: httpx.AsyncClient = Depends(get_http_client),
     user: User = Depends(auth.require_user),
 ) -> HTMLResponse | RedirectResponse:
     auth.check_csrf(request, csrf)
-    for_book = STORE_INDEX.get(store)
+    for_book = await _store_book(session, client, user, store)
     limit = get_settings().max_upload_mb * 1024 * 1024
     data = await file.read(limit + 1)
     try:
