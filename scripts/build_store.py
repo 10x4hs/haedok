@@ -320,6 +320,16 @@ class Pick(NamedTuple):
 
 PICKS = [Pick(*p) for p in FAMOUS + MORE]
 
+# 제목만 같은 다른 책·체험판 — 검색에 다시 걸려도 싣지 않는다 (2026-11 정리)
+EXCLUDE_IDS = {
+    "92129600",  # 상실의 시대 — 정관용 (하루키의 책이 아님)
+    "404359764",  # 죽음의 수용소에서 모든 것을… — 김프로랩 (프랭클의 책이 아님)
+    "297832187",  # 난장이가 쏘아올린 작은 공 — 홍파 (조세희의 소설이 아님)
+    "17451197",  # 누구를 위하여 종은 울리나 (체험판)
+    "150018204",  # 나는 왜 이 일을 하는가 — 피터 도커 (사이먼 시넥의 책이 아님)
+    "403474860",  # 트렌드 코리아 2027 — 문지수 (김난도의 책이 아님)
+}
+
 _BOX = re.compile(r'<div class="ss_book_box" itemId="(\d+)">(.*?)(?=<div class="ss_book_box"|$)', re.S)
 _COVER = re.compile(r'<img src="(https://image\.aladin\.co\.kr/product/[^"]+?/cover\d*/[^"]+?\.(?:jpg|png))"')
 _TITLE = re.compile(r'class="bo3">([^<]+)</a>')
@@ -457,7 +467,7 @@ async def main(dry_run: bool = False) -> None:
                 book = await find(client, pick)
             except httpx.HTTPError:
                 book = None
-            if book and book["id"] not in seen:
+            if book and book["id"] not in seen and book["id"] not in EXCLUDE_IDS:
                 seen.add(book["id"])
                 books.append(book)
                 print("✓", pick.query, "→", book["id"], book["title"], "/", book["author"])
