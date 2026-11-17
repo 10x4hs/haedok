@@ -1148,6 +1148,8 @@ img.pending{opacity:0}
 /* ---------- 홈: 분야 베스트셀러 1위 표시 · 검색 ---------- */
 /* 표지 왼쪽 위에 '소설 | 1위' — 분야는 작게, 순위는 크게. 앞에 선 책에만 보인다(.hx-rank 규칙 그대로) */
 .hx-rank.best{left:-10px;top:-16px;height:36px;padding:0 14px 0 12px;display:inline-flex;align-items:center;gap:8px;font:800 17px/1 var(--f-ui);letter-spacing:-.02em;white-space:nowrap;box-shadow:0 10px 24px -6px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.35)}
+/* 표지 앞면은 책 두께의 절반(.08w)에 맨 앞 책의 14px만큼 앞으로 나와 있다. 배지가 표지와 겹치는 자리에서 가려지지 않게 그보다 앞에 둔다 */
+.hx-rank.best{transform:translateZ(calc(var(--w) * .1 + 28px))}
 .hx-rank.best i{font-style:normal;font-weight:600;font-size:13px;padding-right:8px;border-right:1px solid color-mix(in srgb,var(--accent-ink) 30%,transparent)}
 .hx-caption .mono.best{font:700 14px/1 var(--f-ui);letter-spacing:-.01em;color:var(--accent-ink);background:var(--accent);padding:7px 12px;border-radius:999px}
 /* 홈 머리말의 검색: 좁은 화면은 돋보기 단추, 넓은 화면은 검색창 모양 — 누르면 검색 화면으로 */
