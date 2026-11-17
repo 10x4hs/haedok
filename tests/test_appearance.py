@@ -73,3 +73,12 @@ def test_home_helix_supports_pointer_drag():
     for needle in ("pointerdown", "pointermove", "pointerup", "pointercancel", "dragstart"):
         assert needle in js
     assert "touch-action:none" in (STATIC / "app.css").read_text()
+
+
+def test_overlays_keep_home_smooth_scroll_from_stealing_the_wheel():
+    """홈은 Lenis로 스크롤을 굴린다. 화면 꾸미기·메뉴가 떠 있을 때 휠이 뒤의 홈이 아니라 창 안을 스크롤해야 한다."""
+    templates = STATIC.parent / "templates"
+    assert 'id="look" data-lenis-prevent' in (templates / "_customize.html").read_text()
+    assert 'id="menu" data-lenis-prevent' in (templates / "app.html").read_text()
+    helix = (STATIC / "helix.js").read_text()
+    assert "classList.contains('locked')" in helix and "lenis.stop()" in helix

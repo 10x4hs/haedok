@@ -188,6 +188,10 @@
       lenis = new Lenis({ lerp: 0.06, wheelMultiplier: 0.6, touchMultiplier: 1.1 });
       const loop = t => { if (lenis) { lenis.raf(t); requestAnimationFrame(loop); } };
       requestAnimationFrame(loop);
+      // 화면 꾸미기 같은 창이 떠 있는 동안(body.locked)에는 홈을 굴리지 않는다 — 휠이 창 안을 스크롤하게
+      const syncLock = () => (document.body.classList.contains('locked') ? lenis.stop() : lenis.start());
+      new MutationObserver(syncLock).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+      syncLock();
     }
     cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
   }
