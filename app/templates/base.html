@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" {% if look and look.html_theme != 'auto' %}data-theme="{{ look.html_theme }}"{% endif %}{% if look and look.theme %} data-preset="{{ look.theme }}"{% endif %} data-accent="{{ look.accent_attr if look else 'pink' }}" data-bg-tone="{{ look.bg_tone if look else 'auto' }}" style="{{ look.style if look else '--accent:#ffb3c7' }}">
+<html lang="ko" {% if look and look.mode != 'auto' %}data-theme="{{ look.mode }}"{% endif %} data-accent="{{ look.accent if look else 'pink' }}" data-bg-tone="{{ look.bg_tone if look else 'auto' }}" style="--accent:{{ look.accent_hex if look else '#ffb3c7' }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -43,21 +43,9 @@
 <meta name="csrf" content="{{ csrf }}">
 <link rel="stylesheet" href="/static/app.css">
 <link rel="stylesheet" href="/static/looks.css">
-<link rel="stylesheet" href="/static/css/themes.css">
-{% block head %}{% endblock %}
-{# 같은 사이트 링크에 손가락·포인터를 올리면(moderate) 다음 화면을 미리 그려 둔다. GET에도 부작용이 있는 곳은 뺀다:
-   /books/*(서재에 꽂고 진행·접속을 보낸다), /open/*(본문을 가져온다), 로그아웃·API·관리자, data-no-prerender 링크.
-   관리자 경로는 관리자에게만 적는다 — 다른 사람 화면에는 /admin 이 있다는 것조차 드러내지 않는다 #}
-<script type="speculationrules" nonce="{{ csp_nonce }}">
-{"prerender": [{"source": "document", "eagerness": "moderate", "where": {"and": [
-  {"href_matches": "/*"},
-  {"not": {"href_matches": ["/logout", "/me/logout-all", "/api/*",{% if user and is_admin is defined and is_admin(user) %} "/admin", "/admin/*",{% endif %} "/books/*", "/open/*", "/static/*"]}},
-  {"not": {"selector_matches": "[data-no-prerender], [download]"}}
-]}}]}
-</script>
 </head>
 <body class="{% block body_class %}{% endblock %}">
-<div class="fx" id="fx" data-bg="{{ look.fx_bg if look else 'plain' }}" aria-hidden="true"></div>
+<div class="fx" id="fx" data-bg="{{ look.bg if look else 'plain' }}" aria-hidden="true"></div>
 <script src="/static/fx.js" defer></script>
 <script src="/static/motion.js" defer></script>
 {% block body %}{% endblock %}

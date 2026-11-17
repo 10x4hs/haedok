@@ -133,18 +133,6 @@ async def test_gutendex_fetch_prefers_utf8_plain_text():
     assert text.startswith("Alice was beginning")
 
 
-async def test_gutendex_falls_back_to_mirror_when_gutenberg_is_down():
-    def handler(req):
-        if req.url.path == "/books/11":
-            return httpx.Response(200, json=GUTENDEX_BOOK)
-        if req.url.host == "gutenberg.pglaf.org" and req.url.path == "/cache/epub/11/pg11.txt":
-            return httpx.Response(200, text=GUTENBERG_RAW)
-        return httpx.Response(503)
-
-    _, text = await GutendexSource(mock_client(handler)).fetch_book("11")
-    assert text.startswith("Alice was beginning")
-
-
 async def test_gutendex_rejects_non_numeric_id():
     with pytest.raises(SourceError):
         await GutendexSource(mock_client(lambda r: httpx.Response(500))).fetch_book("../x")

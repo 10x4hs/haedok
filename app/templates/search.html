@@ -1,78 +1,23 @@
 {% extends "app.html" %}
-{% from "_ui.html" import book_cover, empty_state %}
-{% from "_discover.html" import dicon, dcard, scard, row_head, mood_chips %}
+{% from "_ui.html" import catalog_card, book_cover, empty_state %}
 {% block title %}{% if q %}‘{{ q }}’ 검색{% else %}검색{% endif %} — 偕讀 해독{% endblock %}
-{% block head %}<link rel="stylesheet" href="/static/css/discover.css">{% endblock %}
 {% block content_class %}wide{% endblock %}
-{% block heading %}<small><a href="/discover">‹ 탐색</a></small>검색{% endblock %}
+{% block heading %}검색{% endblock %}
 {% block main %}
-<form class="d-search is-form" action="/search" role="search">
-  {{ dicon('search') }}<label class="sr" for="q">검색어</label>
-  <input id="q" type="search" name="q" value="{{ q }}" placeholder="제목이나 작가로 찾아보세요" enterkeyhint="search" autocomplete="off"{% if not q %} autofocus{% endif %}>
-</form>
-{% set found = in_catalog|length + in_store|length + readable|length + others|length %}
-{% if q and found %}<p class="d-lede" role="status">‘{{ q }}’ 검색 결과 <b>{{ found }}권</b></p>{% endif %}
-
+<form class="big-search" action="/search" role="search"><label class="sr" for="q">검색어</label><input id="q" type="search" name="q" value="{{ q }}" placeholder="제목이나 저자를 입력하세요" enterkeyhint="search" autocomplete="off" autofocus></form>
 {% if in_catalog %}
-<section class="d-row s-sec">
-  {{ row_head('ON THE SHELF · 무료로 읽기', '서가에서 찾음') }}
-  <div class="grid d-grid s-reveal" data-step="12">{% for b in in_catalog %}<div>{{ dcard(b, None, loop.index0 % 12) }}</div>{% endfor %}</div>
-</section>
-{% endif %}
-{% if in_store %}
-<section class="d-row s-sec">
-  {{ row_head('BOOKSTORE · 정보만 있어요', '서점에서 찾음') }}
-  <div class="grid d-grid s-reveal" data-step="6">{% for b in in_store %}<div>{{ scard(b, loop.index0 % 6) }}</div>{% endfor %}</div>
-</section>
+<section class="row"><div class="row-h"><h2>서가에서 찾음</h2><span class="mono muted">{{ in_catalog|length }}</span></div>
+<div class="grid">{% for b in in_catalog %}{{ catalog_card(b) }}{% endfor %}</div></section>
 {% endif %}
 {% if readable %}
-<section class="d-row s-sec">
-  {{ row_head('PUBLIC LIBRARY · 바로 읽기', '바로 읽을 수 있는 책') }}
-  <ul class="s-list s-reveal" data-step="8">{% for m in readable %}<li style="--i:{{ loop.index0 % 8 }}"><a href="/open/{{ m.source }}/{{ m.external_id|urlencode }}">{{ book_cover(m.title, m.authors|join(', '), 'xs') }}<div><b>{{ m.title }}</b><span>{{ m.authors|join(', ') or m.source }}</span></div><em>읽기</em></a></li>{% endfor %}</ul>
-</section>
+<section class="row"><div class="row-h"><h2>바로 읽을 수 있는 책</h2><span class="mono muted">{{ readable|length }}</span></div>
+<ul class="list">{% for m in readable %}<li><a href="/open/{{ m.source }}/{{ m.external_id|urlencode }}">{{ book_cover(m.title, m.authors|join(', '), 'xs') }}<div><b>{{ m.title }}</b><span>{{ m.authors|join(', ') or m.source }}</span></div><em class="mono">읽기</em></a></li>{% endfor %}</ul></section>
 {% endif %}
 {% if others %}
-<section class="d-row s-sec">
-  {{ row_head('INFO ONLY · 저작권 보호', '정보만 있는 책') }}
-  <ul class="s-list s-reveal" data-step="8">{% for m in others %}<li style="--i:{{ loop.index0 % 8 }}"><a href="{{ m.link or '#' }}" target="_blank" rel="noopener">{% if m.cover_url %}<img class="thumb" src="{{ m.cover_url }}" alt="" width="44" height="66" loading="lazy" decoding="async">{% else %}{{ book_cover(m.title, m.authors|join(', '), 'xs') }}{% endif %}<div><b>{{ m.title }}</b><span>{{ m.authors|join(', ') }}</span></div><em>원문 ↗</em></a></li>{% endfor %}</ul>
-</section>
+<section class="row"><div class="row-h"><h2>정보만 있는 책</h2><span class="mono muted">저작권 보호</span></div>
+<ul class="list">{% for m in others %}<li><a href="{{ m.link or '#' }}" target="_blank" rel="noopener">{% if m.cover_url %}<img class="thumb" src="{{ m.cover_url }}" alt="" width="44" height="66" loading="lazy" decoding="async">{% else %}{{ book_cover(m.title, m.authors|join(', '), 'xs') }}{% endif %}<div><b>{{ m.title }}</b><span>{{ m.authors|join(', ') }}</span></div><em class="mono">원문 ↗</em></a></li>{% endfor %}</ul></section>
 {% endif %}
-
-{% if q and not found %}
-{{ empty_state('search', '‘' ~ q ~ '’에 맞는 책을 찾지 못했어요', '제목이나 작가 이름을 조금 다르게 써 보세요. 가지고 있는 파일이라면 직접 올려 읽을 수도 있어요.', '/upload', '내 파일 올리기') }}
-{% endif %}
-{% if not found %}
-<section class="d-row s-suggest">
-  {{ row_head('TRY · 이렇게 찾아보세요', '많이 찾는 작가') }}
-  <nav class="d-chips plain" aria-label="추천 검색어">
-    {% for t in ['김유정', '현진건', '이상', '윤동주', 'Austen', 'Doyle', 'Christie'] %}<a href="/search?q={{ t|urlencode }}">{{ t }}</a>{% endfor %}
-  </nav>
-  {{ row_head('MOOD · 분위기로 고르기', '이런 책은 어때요') }}
-  {{ mood_chips(moods, chip_moods) }}
-</section>
-{% endif %}
-{% if errors %}<p class="bd-note">지금 응답이 없는 도서관이 있어요: {{ errors.keys()|join(', ') }}</p>{% endif %}
-
-<script nonce="{{ csp_nonce }}">
-(() => {
-  // 결과를 한 번에 쏟지 않고 조금씩: 처음 몇 권만 보이고 '더 보기'로 이어서 연다
-  document.querySelectorAll('.s-reveal').forEach(box => {
-    const step = +box.dataset.step, items = [...box.children];
-    if (items.length <= step) return;
-    let shown = step;
-    items.slice(step).forEach(el => { el.hidden = true; });
-    const more = document.createElement('button');
-    more.type = 'button'; more.className = 'btn ghost s-more';
-    const label = () => { more.textContent = `${Math.min(step, items.length - shown)}권 더 보기 · 남은 ${items.length - shown}권`; };
-    label();
-    more.addEventListener('click', () => {
-      items.slice(shown, shown + step).forEach(el => { el.hidden = false; });
-      const first = items[shown]; shown += step;
-      if (shown >= items.length) more.remove(); else label();
-      first?.querySelector('a')?.focus({ preventScroll: true });
-    });
-    box.after(more);
-  });
-})();
-</script>
+{% if q and not (in_catalog or readable or others) %}{{ empty_state('search', '찾은 책이 없어요', '제목이나 저자 이름을 조금 다르게 써 보세요. 내 파일이라면 직접 올릴 수도 있어요.', '/upload', '내 파일 올리기') }}
+{% elif not q %}{{ empty_state('search', '어떤 책을 찾을까요?', '제목이나 저자를 넣으면 서가와 공개 도서관에서 함께 찾아요.') }}{% endif %}
+{% if errors %}<p class="muted mono">응답 없는 소스: {{ errors.keys()|join(', ') }}</p>{% endif %}
 {% endblock %}

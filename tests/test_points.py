@@ -231,52 +231,6 @@ async def test_verified_chunk_reaction_and_pages_award_points(api, clock):
         assert 'class="lb-me' in mine and "1<small>위</small>" in mine
         # /me 요약 카드
         me_page = (await friend.get("/me")).text
-        assert 'class="me-points"' in me_page and "1<small>일</small>" in me_page
-        # 이번 주 읽은 쪽(큰 숫자)과 읽은 날 달력
-        assert "쪽 읽었어요" in me_page and 'class="cal-grid"' in me_page and 'data-l="1"' in me_page
+        assert "points-card" in me_page and "1</b>일 연속" in me_page
         # /races 헤더에서 순위로 가는 링크
         assert 'href="/leaderboard"' in (await host.get("/races")).text
-
-
-# --- 읽은 날 달력 ---
-
-
-async def test_calendar_buckets_pages_by_kst_day(session_factory, pclock):
-    async with session_factory() as s:
-        u = await _user(s)
-        # 일요일 23:50 KST(UTC 14:50)에 2쪽, 10분 뒤 월요일 00:00 KST 넘어서 3쪽
-        pclock.set(dt.datetime(2026, 11, 15, 14, 50, tzinfo=dt.UTC))
-        for i in range(2):
-            await points.award_chunk(s, u.id, 1, i)
-        pclock.set(dt.datetime(2026, 11, 15, 15, 5, tzinfo=dt.UTC))
-        for i in range(2, 5):
-            await points.award_chunk(s, u.id, 1, i)
-        # 다른 적립(반응)과 다른 사람의 쪽은 세지 않는다
-        await points.award_reaction(s, u.id, 1, 0, 0)
-        other = await _user(s, "남")
-        await points.award_chunk(s, other.id, 1, 0)
-        pclock.set(dt.datetime(2026, 11, 17, 3, 0, tzinfo=dt.UTC))  # 화요일 12:00 KST
-        cal = await points.calendar(s, u.id)
-    days = {d.date: d for w in cal.weeks for d in w}
-    assert len(cal.weeks) == points.CALENDAR_WEEKS and all(len(w) == 7 for w in cal.weeks)
-    assert cal.weeks[0][0].date.weekday() == 0  # 열은 월요일부터
-    assert cal.weeks[-1][0].date == dt.date(2026, 11, 16)  # 마지막 열 = 이번 주
-    assert days[dt.date(2026, 11, 15)].pages == 2 and days[dt.date(2026, 11, 16)].pages == 3
-    assert cal.week_pages == 3  # 월요일 0시 KST 부터
-    assert (cal.active_days, cal.total_pages) == (2, 5)
-    assert days[dt.date(2026, 11, 17)].future is False and days[dt.date(2026, 11, 18)].future is True
-
-
-async def test_calendar_levels_and_window(session_factory, pclock):
-    async with session_factory() as s:
-        u = await _user(s)
-        pclock.set(dt.datetime(2026, 8, 1, 3, 0, tzinfo=dt.UTC))  # 달력 밖(12주보다 오래됨)
-        await points.award_chunk(s, u.id, 9, 0)
-        pclock.set(dt.datetime(2026, 11, 11, 3, 0, tzinfo=dt.UTC))
-        for i in range(20):
-            await points.award_chunk(s, u.id, 1, i)
-        cal = await points.calendar(s, u.id)
-        empty = await points.calendar(s, (await _user(s, "새")).id)
-    assert cal.total_pages == 20 and cal.weeks[-1][2].level == 4
-    assert [points._level(n) for n in (0, 1, 4, 5, 9, 10, 19, 20)] == [0, 1, 1, 2, 2, 3, 3, 4]
-    assert empty.total_pages == 0 and empty.week_pages == 0

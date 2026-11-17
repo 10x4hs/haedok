@@ -214,81 +214,19 @@ addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft') turn(-1);
 });
 
-// --- 읽기 설정 (이 기기에만 저장) ---
-// 글자 크기 7단계, 글꼴, 줄 간격, 여백, 종이 색, 화면 켜 두기. 값은 <html>의 CSS 변수로 쪽에 입혀진다(css/reader.css)
-const SIZES = [15, 16, 17, 18, 20, 22, 24];
-const FONTS = { serif: 'var(--f-serif)', sans: 'var(--f-ui)' };
-const LHS = { tight: 1.6, normal: 1.95, loose: 2.3 };
-const PADS = { tight: 16, normal: 26, loose: 38 };
-const TONES = ['', 'paper', 'sepia', 'gray', 'night'];
-const pickOf = (table, v, d) => (v in table ? v : d);
-// 예전에 저장한 크기(14~26px 아무 값)는 가장 가까운 단계로
-let sizeIx = (() => {
-  const px = +local.get('size', 18) || 18;
-  return SIZES.reduce((best, s, i) => (Math.abs(s - px) < Math.abs(SIZES[best] - px) ? i : best), 0);
-})();
-let font = pickOf(FONTS, local.get('font', 'serif'), 'serif');
-let lh = pickOf(LHS, local.get('lh', 'normal'), 'normal');
-let pad = pickOf(PADS, local.get('pad', 'normal'), 'normal');
-let tone = TONES.includes(local.get('tone', '')) ? local.get('tone', '') : '';
-const rootStyle = document.documentElement.style;
-const press = (sel, key, val) => document.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', b.dataset[key] === val));
-function applyLook() {
-  rootStyle.setProperty('--size', SIZES[sizeIx] + 'px');
-  rootStyle.setProperty('--r-font', FONTS[font]);
-  rootStyle.setProperty('--r-lh', LHS[lh]);
-  rootStyle.setProperty('--r-pad', PADS[pad] + 'px');
+// --- 보기 설정 ---
+let size = local.get('size', 18), tone = local.get('tone', '');
+const applySize = () => document.documentElement.style.setProperty('--size', size + 'px');
+const applyTone = () => {
   document.body.dataset.tone = tone;
-  $('sizeDots').innerHTML = SIZES.map((_, i) => `<i class="${i === sizeIx ? 'on' : ''}"></i>`).join('');
-  $('sizeDots').setAttribute('aria-label', `${SIZES.length}단계 중 ${sizeIx + 1}단계`);
-  $('smaller').disabled = sizeIx === 0;
-  $('bigger').disabled = sizeIx === SIZES.length - 1;
-  press('#fonts button', 'font', font);
-  press('#lhs button', 'lh', lh);
-  press('#pads button', 'pad', pad);
-  press('#tones button', 'tone', tone);
-}
-applyLook();
-const relayout = () => { if (chunkData) open(chunk); };
-// 쪽 나누기가 바뀌는 설정은 잠깐 모았다가 한 번만 다시 나눈다(연달아 누를 때 깜빡이지 않게)
-let lt; const relayoutSoon = () => { clearTimeout(lt); lt = setTimeout(relayout, 180); };
-const setLook = (fn, reflow = true) => { fn(); applyLook(); if (reflow) relayoutSoon(); };
-$('smaller').onclick = () => setLook(() => { sizeIx = Math.max(0, sizeIx - 1); local.set('size', SIZES[sizeIx]); });
-$('bigger').onclick = () => setLook(() => { sizeIx = Math.min(SIZES.length - 1, sizeIx + 1); local.set('size', SIZES[sizeIx]); });
-document.querySelectorAll('#fonts button').forEach(b => b.onclick = () => setLook(() => { font = b.dataset.font; local.set('font', font); }));
-document.querySelectorAll('#lhs button').forEach(b => b.onclick = () => setLook(() => { lh = b.dataset.lh; local.set('lh', lh); }));
-document.querySelectorAll('#pads button').forEach(b => b.onclick = () => setLook(() => { pad = b.dataset.pad; local.set('pad', pad); }));
-document.querySelectorAll('#tones button').forEach(b => b.onclick = () => setLook(() => { tone = b.dataset.tone; local.set('tone', tone); }, false));
-
-// 화면 켜 두기: Wake Lock을 지원하는 브라우저에서만 보인다. 다른 앱에 다녀오면 풀리므로 돌아올 때 다시 건다
-let wakeOn = !!local.get('wake', false), wakeLock = null;
-async function syncWake() {
-  if (!('wakeLock' in navigator)) return;
-  try {
-    if (wakeOn && !wakeLock && document.visibilityState === 'visible') {
-      wakeLock = await navigator.wakeLock.request('screen');
-      wakeLock.addEventListener('release', () => { wakeLock = null; });
-    } else if (!wakeOn && wakeLock) { await wakeLock.release(); wakeLock = null; }
-  } catch (e) { /* 배터리 절약 모드 등에서는 거절될 수 있다 */ }
-}
-if ('wakeLock' in navigator) {
-  $('wakeRow').hidden = false;
-  $('wake').checked = wakeOn;
-  $('wake').onchange = () => { wakeOn = $('wake').checked; local.set('wake', wakeOn); syncWake(); };
-  document.addEventListener('visibilitychange', syncWake);
-  syncWake();
-}
-
-// 시트 열고 닫기: 어두운 바깥·닫기·아래 버튼·Esc
-const rs = $('readSet');
-const setRs = open => {
-  rs.hidden = !open; $('aa').setAttribute('aria-expanded', open);
-  document.body.classList.toggle('locked', open);
-  if (open) rs.querySelector('[role=dialog]').focus(); else $('aa').focus();
+  document.querySelectorAll('#tones button').forEach(b => b.setAttribute('aria-pressed', b.dataset.tone === tone));
 };
-$('aa').onclick = () => setRs(rs.hidden);
-rs.addEventListener('click', e => { if (e.target === rs || e.target.closest('[data-close-rs]')) setRs(false); });
-addEventListener('keydown', e => { if (e.key === 'Escape' && !rs.hidden) setRs(false); });
+applySize(); applyTone();
+const relayout = () => { if (chunkData) open(chunk); };
+$('smaller').onclick = () => { size = Math.max(14, size - 1); applySize(); local.set('size', size); relayout(); };
+$('bigger').onclick = () => { size = Math.min(26, size + 1); applySize(); local.set('size', size); relayout(); };
+document.querySelectorAll('#tones button').forEach(b => b.onclick = () => { tone = b.dataset.tone; applyTone(); local.set('tone', tone); });
+$('aa').onclick = () => { const s = $('sheet'); s.hidden = !s.hidden; $('aa').setAttribute('aria-expanded', !s.hidden); };
 let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(relayout, 250); });
 
 // --- 뒤로: 같은 사이트에서 왔으면 그 화면으로, 아니면(링크로 바로 열었으면) 서재로 ---
@@ -537,27 +475,21 @@ function toast(text, kind = 'info') {
 
 async function social() {
   renderEmojis();
-  let live = {};
   try {
     const d = await (await fetch(`/api/v1/books/${bookId}/social`)).json();
-    live = d.live || {};
     emojis = d.emojis || emojis; renderEmojis();
     d.friends.forEach(f => friendMap.set(f.user_id, f));
     paintFriends();
     if (d.sealed_ahead) setTimeout(() => toast(`🔒 앞에서 ${d.sealed_ahead}개의 반응이 기다리고 있어요`), 1200);
   } catch (e) {}
-  connect(live.ws === true);
+  connect();
 }
 
-// 친구 소식 채널(presence.js 의 haedokLive). 서버가 소켓을 끈 배포(Vercel 기본)는 곧바로 3초 폴링,
-// 켠 배포는 WebSocket을 먼저 열어 보고 4초 안에 안 열리면 3초 폴링으로 내려간다. 소켓이 열려 있어도
-// 30초마다 안전망 폴링을 한다. 실패하면 간격을 늘리고, 탭이 가려지면 멈췄다가 돌아오면 바로 한 번 묻는다
-function connect(ws) {
+// 친구 소식 채널(presence.js 의 haedokLive): WebSocket을 먼저 열어 보고, 4초 안에 안 열리면(서버리스 배포)
+// 20초 폴링으로 내려간다 — 실패하면 간격을 늘리고, 탭이 가려지면 멈춘다
+function connect() {
   if (typeof window.haedokLive !== 'function') return;
   window.haedokLive({
-    ws,
-    pollBase: 3000,
-    pollSafety: 30000,
     url: `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/api/v1/ws/books/${bookId}`,
     onMessage: onLive,
     poll: pollFriends,

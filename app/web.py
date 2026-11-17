@@ -25,8 +25,7 @@ from app.core.config import Settings, get_settings
 from app.db.session import get_session
 from app.models import Book, LibraryEntry, Room, Shelf, User
 from app.services import books as book_service
-from app.services import discovery, mail, social
-from app.services import home as home_service
+from app.services import mail, social
 from app.services import points as points_service
 from app.services import races as race_service
 from app.services.search import FULLTEXT_SOURCES, search_all
@@ -50,9 +49,8 @@ def _load_catalog() -> list[dict]:
         if key in seen:
             continue
         seen.add(key)
-        # 출판사(알라딘)·스캔 표지는 쓰지 않는다 — 저작물이고 제목 검색으로 붙여 엉뚱한 표지가 섞였다.
-        # 직접 그린 표지가 있는 책만 아래 SHOWCASE에서 다시 채우고, 나머지는 cover() 기본 표지로 그린다
-        b["cover"] = None
+        if b.get("cover") and not (STATIC / b["cover"].removeprefix("/static/")).exists():
+            b["cover"] = b.get("cover_src")
         out.append(b)
     return out
 
@@ -74,15 +72,22 @@ SHELVES = {g: [b for b in CATALOG if b["genre"] == g] for g in GENRE_ORDER}
 SHELVES = {g: books for g, books in SHELVES.items() if books}
 CATALOG_INDEX = {(b["source"], b["id"]): b for b in CATALOG}
 POPULAR_ORDER = [tuple(k) for k in json.loads((DATA / "popular.json").read_text())["order"]]
-discovery.enrich(CATALOG, discovery.load_lengths())  # 분량 → 예상 시간(약 1시간 40분)
 
 
-# 홈·첫 화면 띠: 유명하고 앱에서 바로 무료로 읽을 수 있는 책들 (직접 그린 표지 — app/services/home.py)
-SHOWCASE: list[dict] = home_service.load_showcase()
-SHOWCASE_INDEX = {(b["source"], b["id"]): b for b in SHOWCASE}
-for _b in CATALOG:
-    if _meta := SHOWCASE_INDEX.get((_b["source"], _b["id"])):
-        _b["cover"] = _meta["cover"]
+def _load_showcase() -> list[dict]:
+    """첫 화면 띠에 거는 유명한 책들(app/data/showcase.json). 앱에 본문이 있는 책만 읽기 링크를 달고,
+    나머지는 표지만 보여 준다. 표지 파일이 없으면 원본 주소를 쓴다."""
+    out = []
+    for b in json.loads((DATA / "showcase.json").read_text()):
+        b = dict(b)
+        b["readable"] = bool(b.get("readable")) and (b.get("source"), b.get("id")) in CATALOG_INDEX
+        if not (STATIC / b["cover"].removeprefix("/static/")).exists():
+            b["cover"] = b["cover_src"]
+        out.append(b)
+    return out
+
+
+SHOWCASE: list[dict] = _load_showcase()
 
 COVER_PALETTES = 8
 
@@ -115,7 +120,9 @@ templates.env.globals["APPEARANCE"] = appearance
 seo.install(templates.env)  # canonical·OG 주소
 
 
-def _render(request: Request, name: str, user: User | None, status_code: int = 200, **ctx) -> HTMLResponse:
+def _render(
+    request: Request, name: str, user: User | None, status_code: int = 200, **ctx
+) -> HTMLResponse:
     look = appearance.resolve(user.settings if user else None)
     ctx |= {"user": user, "csrf": auth.csrf_token(request), "path": request.url.path, "look": look}
     return templates.TemplateResponse(request, name, ctx, status_code=status_code)
@@ -155,6 +162,13 @@ async def popular(session: AsyncSession, n: int = 20) -> list[dict]:
     return [CATALOG_INDEX[k] | {"rank": i + 1, "readers": readers.get(k, 0)} for i, k in enumerate(ranked)]
 
 
+def _fill(ranked: list[dict], n: int) -> list[dict]:
+    """인기 순위 뒤를 오늘의 추천으로 채워 드럼 한 바퀴를 꽉 채운다."""
+    seen = {(b["source"], b["id"]) for b in ranked}
+    extra = [b for b in _daily_picks(n * 2) if (b["source"], b["id"]) not in seen]
+    return (ranked + extra)[:n]
+
+
 # --- 소개 · 가입 · 로그인 ---
 
 
@@ -167,33 +181,14 @@ async def home(
     if user is None:
         picks = await popular(session, 9)
         return _render(request, "landing.html", None, picks=picks, showcase=SHOWCASE, total=len(CATALOG))
+    top = await popular(session, 30)
     return _render(
         request,
         "home.html",
         user,
-        drum=SHOWCASE,
-        shelves=[(g, [b for b in SHOWCASE if b["group"] == g]) for g in home_service.GROUPS],
-        continuing=await home_service.continue_reading(session, user.id),
-        friends_reading=await home_service.friends_reading(session, user.id),
+        drum=[b | {"store": True} for b in STORE[:14]] + _fill(top, 30),
         first_run=bool(request.session.get("first_run")),
     )
-
-
-def home_title(book: Book) -> str:
-    """홈 줄에 보일 이름: 띠에 있는 책이면 한국어 제목(구텐베르크 원제·위키문헌 문서명 대신)."""
-    meta = SHOWCASE_INDEX.get((book.source, book.external_id))
-    return meta["title"] if meta else book.title
-
-
-def home_cover(book: Book) -> str | None:
-    """홈에서 쓰는 표지: 직접 그린 띠 표지 → 올릴 때 고른 표지 순. 서점(출판사) 표지는 쓰지 않는다."""
-    if meta := SHOWCASE_INDEX.get((book.source, book.external_id)):
-        return meta["cover"]
-    return book.cover_url
-
-
-templates.env.globals["home_cover"] = home_cover
-templates.env.globals["home_title"] = home_title
 
 
 @router.post("/welcome/dismiss")
@@ -615,74 +610,35 @@ async def delete_my_account(
 # --- 앱 ---
 
 
-def _short_picks(n: int) -> list[dict]:
-    """오늘 시작하기 좋은 짧은 책 — 표지 있는 30분 안쪽 책 가운데 날마다 바뀌는 n권."""
-    pool = [b for b in CATALOG if b["minutes"] <= 30]
-    return random.Random(dt.date.today().toordinal()).sample(pool, min(n, len(pool)))
-
-
 @router.get("/discover", response_class=HTMLResponse)
 async def discover(
     request: Request,
     g: str | None = None,
-    mood: str | None = None,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(auth.require_user),
 ) -> HTMLResponse:
-    """탐색: 검색 · 분위기 칩 · 큐레이션 줄. ?mood= 는 분위기별 격자, ?g= 는 서가(장르) 격자."""
-    friends = await discovery.friends_reading(session, user.id)
-    common = {
-        "genres": SHELVES, "store": STORE, "total": len(CATALOG), "moods": discovery.MOODS,
-        "chip_moods": discovery.CHIP_MOODS, "friends": friends, "mood": None, "genre": None,
-    }  # fmt: skip
-    if mood in discovery.MOODS:
-        books = discovery.mood_books(CATALOG, mood, POPULAR_ORDER)
-        ctx = common | {"mood": discovery.MOODS[mood], "books": books}
-        return _render(request, "discover.html", user, **ctx)
+    """탐색: 이어 읽기 · 인기 순위 · 오늘의 추천 · 서점 · 장르별 선반. ?g= 를 주면 그 서가 전체 격자."""
+    common = {"genres": SHELVES, "store": STORE, "total": len(CATALOG)}
     if g == "서점":
-        return _render(request, "discover.html", user, **common | {"genre": "서점", "books": []})
+        return _render(request, "discover.html", user, genre="서점", books=[], **common)
     if g == "all" or g in SHELVES:
         genre = g if g in SHELVES else None
-        books = SHELVES[genre] if genre else CATALOG
-        return _render(request, "discover.html", user, **common | {"genre": genre, "books": books})
-    friend_books = [CATALOG_INDEX[k] for k in friends if k in CATALOG_INDEX][:14]
+        return _render(
+            request, "discover.html", user, genre=genre, books=SHELVES[genre] if genre else CATALOG, **common
+        )
+    library = await book_service.library_of(session, user.id)
+    reading = [(e, b) for e, b in library if e.shelf == Shelf.READING]
     return _render(
         request,
         "explore.html",
         user,
-        short=_short_picks(14),
-        friend_books=friend_books,
-        korean=discovery.mood_books(CATALOG, "ko", POPULAR_ORDER)[:14],
-        world=discovery.mood_books(CATALOG, "world", POPULAR_ORDER)[:14],
+        current=reading[0] if reading else None,
+        reading=reading[1:6],
+        picks=_daily_picks(10),
+        marquee=_daily_picks(16),
+        popular=await popular(session, 30),
+        shelves={name: books[:14] for name, books in SHELVES.items()},
         **common,
-    )
-
-
-@router.get("/book/{source}/{external_id:path}", response_class=HTMLResponse)
-async def book_detail(
-    request: Request,
-    source: str,
-    external_id: str,
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(auth.require_user),
-) -> HTMLResponse:
-    """서가 책 소개: 큰 표지 · 분량 · 예상 시간 · 읽는 친구 · '읽기 시작' 하나."""
-    meta = CATALOG_INDEX.get((source, external_id))
-    if meta is None:
-        raise HTTPException(404, "책을 찾을 수 없어요")
-    friends = await discovery.friends_reading(session, user.id)
-    same_author = [
-        b for b in CATALOG if meta["author"] and b["author"] == meta["author"] and b is not meta
-    ][:12]
-    return _render(
-        request,
-        "book.html",
-        user,
-        book=meta,
-        readers=friends.get((source, external_id), []),
-        friends=friends,
-        same_author=same_author,
-        videos=VIDEOS.get(f"{source}:{external_id}", []),
     )
 
 
@@ -727,13 +683,7 @@ async def search(
 ) -> HTMLResponse:
     readable, others, errors = [], [], {}
     term = q.strip()
-    low = term.lower()
-
-    def hit(b: dict) -> bool:
-        return bool(low) and (low in b["title"].lower() or low in (b["author"] or "").lower())
-
-    in_catalog = discovery.by_popularity([b for b in CATALOG if hit(b)], POPULAR_ORDER)
-    in_store = [b for b in STORE if hit(b)]
+    in_catalog = [b for b in CATALOG if term and (term in b["title"] or term in (b["author"] or ""))]
     if term:
         result = await search_all(list(sources.values()), term, 20, settings.http_timeout_seconds)
         errors = result.errors
@@ -747,10 +697,7 @@ async def search(
         "search.html",
         user,
         q=q,
-        in_catalog=in_catalog[:60],
-        in_store=in_store[:30],
-        moods=discovery.MOODS,
-        chip_moods=discovery.CHIP_MOODS,
+        in_catalog=in_catalog[:30],
         readable=readable,
         others=others,
         errors=errors,
@@ -817,7 +764,6 @@ async def me(
         user,
         stats=stats,
         points=await points_service.summary(session, user.id),
-        cal=await points_service.calendar(session, user.id),
         error=request.query_params.get("error"),
         saved=bool(request.query_params.get("saved")),
         account_notice=ACCOUNT_NOTICES.get(request.query_params.get("account", "")),
@@ -861,10 +807,6 @@ async def open_book(
         raise HTTPException(422, f"본문을 가져오지 못했어요: {e}") from e
     except httpx.HTTPError as e:
         raise HTTPException(502, f"{source} 응답이 없어요 ({type(e).__name__})") from e
-    shown = SHOWCASE_INDEX.get((source, external_id))
-    if shown and source == "wikisource" and book.title == external_id != shown["title"]:
-        book.title, book.author = shown["title"], book.author or shown["author"]  # '시집/서시' → '서시'
-        await session.commit()
     meta = CATALOG_INDEX.get((source, external_id))
     if meta and not book.author and meta["author"]:
         book.author = meta["author"]  # 위키문헌 API는 저자를 주지 않아 카탈로그로 채운다

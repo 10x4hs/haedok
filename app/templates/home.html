@@ -1,94 +1,51 @@
 {% extends "app.html" %}
-{% from "_ui.html" import flat_cover, avatar, icon %}
+{% from "_ui.html" import book_cover, catalog_card, book_card, icon %}
 {% block title %}홈 — 偕讀 해독{% endblock %}
 {% block heading %}<small>{{ user.nickname }}님,</small>오늘은 뭘 읽을까요{% endblock %}
 
-{% macro open_href(b) %}/open/{{ b.source }}/{{ b.id|urlencode }}{% endmacro %}
-{% macro meta_line(b) %}{{ b.author }} · {{ b.time }}{% if b.lang == 'en' %} · 영어 원문{% endif %}{% endmacro %}
-
 {% block main %}
-<link rel="stylesheet" href="/static/css/home.css">
 {% if first_run %}{% include "_welcome.html" %}{% endif %}
-
-{% if drum %}
-{% set first = drum[0] %}
-{# 3D 띠: 가운데 책만 또렷하고, 옆 책은 흐리고 어둡게. 끌기·화살표·키보드로 넘긴다 (app/static/home.js) #}
-<section class="hm-hero" aria-roledescription="carousel" aria-label="무료로 읽는 명작">
-  <p class="hm-eyebrow mono">Free classics · {{ drum|length }}</p>
-  <div class="hm-stage" id="hmStage" tabindex="0" aria-label="책 넘기기: 왼쪽·오른쪽 화살표">
-    {% for b in drum %}
-    <a class="hm-book{% if loop.first %} on{% endif %}" href="{{ open_href(b) }}" data-i="{{ loop.index0 }}"
-       data-title="{{ b.title }}" data-meta="{{ meta_line(b) }}"
-       aria-label="{{ b.title }}, {{ b.author }}"{% if not loop.first %} tabindex="-1" aria-hidden="true"{% endif %}>
-      <img {% if loop.index0 < 4 or loop.revindex0 < 3 %}src{% else %}data-src{% endif %}="{{ b.cover }}" alt="" width="600" height="900" decoding="async"{% if loop.first %} fetchpriority="high"{% endif %}>
-    </a>
-    {% endfor %}
-  </div>
-  <div class="hm-info" aria-live="polite">
-    <h2 class="hm-title" id="hmTitle">{{ first.title }}</h2>
-    <p class="hm-meta" id="hmMeta">{{ meta_line(first) }}</p>
-  </div>
-  <div class="hm-actions">
-    <button class="hm-nav" type="button" id="hmPrev" aria-label="이전 책">{{ icon('prev') }}</button>
-    <a class="btn primary hm-cta" id="hmRead" href="{{ open_href(first) }}">바로 읽기</a>
-    <button class="hm-nav" type="button" id="hmNext" aria-label="다음 책">{{ icon('next') }}</button>
-  </div>
+{% if not drum %}
+<section class="home-empty glass-card" aria-label="비어 있는 서가">
+  <style>
+    .home-empty{display:grid;gap:10px;justify-items:center;text-align:center;padding:40px 20px;margin-top:12px;background:var(--surface);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+    .home-empty h2{font-size:19px;letter-spacing:-.03em;margin:0}
+    .home-empty p{margin:0;color:var(--dim);font-size:14px}
+  </style>
+  {{ book_cover('偕讀', '해독', 'sm') }}
+  <h2>아직 꽂힌 책이 없어요</h2>
+  <p>탐색에서 고전을 고르거나, 내 EPUB·PDF를 올려 보세요.</p>
+  <div class="hud-actions"><a class="btn primary" href="/discover">책 고르러 가기</a><a class="btn ghost" href="/upload">파일 올리기</a></div>
 </section>
+{% else %}
+{# ---------- 3D: 책들이 나선 계단처럼 위로·뒤로 감겨 쌓여 있고, 스크롤하면 앞으로 한 권씩 내려온다 ---------- #}
+<section class="helix" id="drum" aria-label="인기 고전">
+  <div class="dotfield" id="dotfield" aria-hidden="true"></div>
+  <div class="hx-view">
+    <div class="hx-stage" id="hxStage" data-tilt="6">
+      {% for b in drum %}
+      <a class="hx-book" href="{{ '/store/' ~ b.id if b.store else '/open/' ~ b.source ~ '/' ~ (b.id|urlencode) }}" data-title="{{ b.title }}" data-author="{{ b.author or '' }}"
+         data-rank="{{ b.rank or '' }}" data-readers="{{ b.readers or 0 }}" data-race="/races/start/{{ b.source }}/{{ b.id|urlencode }}"
+         data-hi="{{ b.cover or '' }}">
+        {% if b.rank %}<span class="hx-rank mono">{{ b.rank }}</span>{% endif %}
+        {{ book_cover(b.title, b.author, 'solid', img=b.cover|small_cover) }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="hx-count mono" id="hxCount"></div>
+  {# 넓은 화면: 앞에 선 책의 이름을 왼쪽에 크게 #}
+  <div class="hx-caption" id="hxCap" aria-live="polite">
+    <span class="mono" id="capRank"></span>
+    <h2 id="capTitle"></h2>
+    <p id="capAuthor"></p>
+    <span class="muted small" id="capMeta"></span>
+  </div>
+  <div class="drum-spacer" id="drumSpacer"></div>
+</section>
+
+<script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+<script src="/static/helix.js"></script>
+<script src="/static/backdrop.js"></script>
 {% endif %}
-
-{% if continuing %}
-<section class="hm-row" aria-labelledby="hmContinue">
-  <p class="hm-eyebrow mono">Continue</p>
-  <h2 class="hm-h" id="hmContinue">이어 읽기</h2>
-  <div class="hm-scroll">
-    {% for e, book in continuing %}
-    <a class="hm-card" href="/books/{{ book.id }}">
-      {{ flat_cover(home_title(book), book.author, home_cover(book)) }}
-      <b>{{ home_title(book) }}</b>
-      <span class="meter" aria-hidden="true"><i style="width:{{ e.progress_pct }}%"></i></span>
-      <span class="hm-sub">{{ e.progress_pct }}% 읽었어요</span>
-    </a>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
-
-{% if friends_reading %}
-<section class="hm-row" aria-labelledby="hmFriends">
-  <p class="hm-eyebrow mono">Friends</p>
-  <h2 class="hm-h" id="hmFriends">친구들이 읽는 중</h2>
-  <div class="hm-scroll">
-    {% for fb in friends_reading %}
-    <a class="hm-card" href="/books/{{ fb.book.id }}">
-      <span class="hm-pinned">
-        {{ flat_cover(home_title(fb.book), fb.book.author, home_cover(fb.book)) }}
-        <span class="hm-avatars">{% for u in fb.friends[:3] %}{{ avatar(u, 'hm-av') }}{% endfor %}</span>
-      </span>
-      <b>{{ home_title(fb.book) }}</b>
-      <span class="hm-sub">{{ fb.friends[0].nickname }}{% if fb.friends|length > 1 %} 외 {{ fb.friends|length - 1 }}명{% endif %}</span>
-    </a>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
-
-{% for group, books in shelves if books %}
-<section class="hm-row" aria-labelledby="hmShelf{{ loop.index }}">
-  <p class="hm-eyebrow mono">{{ 'Korean classics' if group == 'ko' else 'World classics' }}</p>
-  <h2 class="hm-h" id="hmShelf{{ loop.index }}">{{ '한국 문학 대표작' if group == 'ko' else '세계 고전' }}</h2>
-  <div class="hm-scroll">
-    {% for b in books %}
-    <a class="hm-card" href="{{ open_href(b) }}">
-      {{ flat_cover(b.title, b.author, b.cover) }}
-      <b>{{ b.title }}</b>
-      <span class="hm-sub">{{ b.author }} · {{ b.time }}</span>
-    </a>
-    {% endfor %}
-  </div>
-</section>
-{% endfor %}
-
-<p class="hm-credit">모두 무료로 읽을 수 있는 퍼블릭 도메인 작품이에요. 본문은 위키문헌·Project Gutenberg에서 가져오고, 표지는 해독이 직접 만들었어요.</p>
-
-<script src="/static/home.js" defer></script>
 {% endblock %}

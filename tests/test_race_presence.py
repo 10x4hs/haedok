@@ -133,7 +133,7 @@ async def test_race_page_has_track_and_feed(api):
         reader = (await host.get(f"/books/{book_id}")).text
     assert 'id="raceTrack"' in page and 'id="quotes"' in page
     assert page.count('<div class="rc-lane') == 2
-    assert reader.count('src="/static/presence.js?v=') == 1  # 내용 해시가 붙는다(app/core/assets.py)
+    assert reader.count('src="/static/presence.js"') == 1
 
 
 async def _open_book(c, page: str) -> tuple[int, str]:
