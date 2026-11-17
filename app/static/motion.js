@@ -123,5 +123,21 @@
     img.addEventListener('error', show, { once: true });
   });
 
+  // 시험: 탭을 고르면 배경이 그 자리로 미끄러져 간다 (.seg, .look-tabs)
+  document.querySelectorAll('.seg, .look-tabs').forEach(box => {
+    const pill = document.createElement('i'); pill.className = 'pill'; pill.setAttribute('aria-hidden', 'true');
+    box.classList.add('slide', 'snap'); box.prepend(pill);
+    const place = () => {
+      const on = box.querySelector(':scope > button[aria-selected="true"], :scope > button[aria-pressed="true"]');
+      if (!on || !on.offsetWidth) return;
+      pill.style.setProperty('--x', on.offsetLeft + 'px'); pill.style.setProperty('--y', on.offsetTop + 'px');
+      pill.style.setProperty('--w', on.offsetWidth + 'px'); pill.style.setProperty('--h', on.offsetHeight + 'px');
+      requestAnimationFrame(() => box.classList.remove('snap'));
+    };
+    new MutationObserver(place).observe(box, { attributes: true, subtree: true, attributeFilter: ['aria-selected', 'aria-pressed'] });
+    new ResizeObserver(() => { box.classList.add('snap'); place(); }).observe(box);
+    place();
+  });
+
   window.haedok = { fly };
 })();

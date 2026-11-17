@@ -14,6 +14,12 @@
   </div>
 </section>
 
+<dl class="facts">
+  <div><dt>형식</dt><dd>전자책</dd></div>
+  <div><dt>판매처</dt><dd>알라딘</dd></div>
+  <div><dt>가격</dt><dd>{% if book.price %}{{ '{:,}'.format(book.price) }}원{% else %}알라딘에서 확인{% endif %}</dd></div>
+</dl>
+
 <ol class="steps-guide">
   <li><span class="mono">1</span><div><b>알라딘에서 전자책 사기</b><p>구매·다운로드는 알라딘에서 해요.</p></div></li>
   <li><span class="mono">2</span><div><b>받은 파일 올리기</b><p>DRM 없는 EPUB·PDF면 여기로 올려 친구와 함께 읽어요.</p></div></li>
