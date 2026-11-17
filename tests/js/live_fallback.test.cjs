@@ -146,19 +146,7 @@ test('refused socket retries with growing gaps and gives up after 3 failures', a
   live.stop();
 });
 
-test('ws:false never opens a socket and polls at the given base interval', async () => {
-  const clock = makeClock(), doc = makeDoc(), socks = [];
-  let calls = 0;
-  const live = load(clock, doc)({ ws: false, pollBase: 3000, url: 'ws://x', WS: goodWS(clock, socks), doc, onMessage() {}, poll: async () => { calls++; return true; } });
-  assert.equal(live.mode, 'poll', 'straight to polling');
-  await clock.advance(3000); assert.equal(calls, 1);
-  await clock.advance(3000); assert.equal(calls, 2);
-  await clock.advance(60 * 60000);
-  assert.equal(socks.length, 0, 'no socket attempts at all');
-  live.stop();
-});
-
-test('socket that opens slows polling to the safety net, pings, and delivers messages', async () => {
+test('socket that opens stops polling, pings, and delivers messages', async () => {
   const clock = makeClock(), doc = makeDoc(), socks = [], got = [];
   let calls = 0;
   const live = load(clock, doc)({ url: 'ws://x', WS: goodWS(clock, socks), doc, onMessage: m => got.push(m), poll: async () => { calls++; return true; } });
@@ -169,17 +157,12 @@ test('socket that opens slows polling to the safety net, pings, and delivers mes
   assert.equal(JSON.stringify(got), '[{"type":"reaction.added","chunk":2}]');  // vm 안의 객체라 문자열로 비교
   await clock.advance(25000);
   assert.equal(socks[0].sent.join(), 'ping');
-  assert.equal(live.pollDelay, 60000, 'safety-net interval while the socket is open');
-  assert.equal(calls, 0);
-  await clock.advance(35000);
-  assert.equal(calls, 1, 'one safety-net poll a minute after opening');
-  await clock.advance(25000);
-  assert.equal(calls, 1);
-  // 끊기면 기본 간격 폴링으로 내려가고 다시 연결을 시도한다
+  await clock.advance(60000);
+  assert.equal(calls, 0, 'no polling while the socket is open');
+  // 끊기면 폴링으로 내려가고 다시 연결을 시도한다
   socks[0].readyState = 3; socks[0].onclose();
   assert.equal(live.mode, 'poll');
-  assert.equal(live.pollDelay, 20000);
-  await clock.advance(20000); assert.equal(calls, 2);
+  await clock.advance(20000); assert.equal(calls, 1);
   await clock.advance(10000 + 30); assert.equal(socks.length, 2); assert.equal(live.mode, 'ws');
   live.stop();
 });

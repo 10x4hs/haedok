@@ -3,7 +3,6 @@
 scratch-dev.db
 app/static/covers/*
 !app/static/covers/showcase
-!app/static/covers/home
 docs/demo
 tests
 migrations

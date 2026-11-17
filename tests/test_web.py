@@ -16,9 +16,9 @@ async def test_home_is_3d_and_explore_has_the_shelves(api):
         home = await c.get("/")
         explore = await c.get("/discover")
         grid = await c.get("/discover", params={"g": "all"})
-    assert home.status_code == 200 and "지현님" in home.text and 'class="hm-book' in home.text
+    assert home.status_code == 200 and "지현님" in home.text and 'class="hx-book"' in home.text
     assert "목록으로 보기" not in home.text  # 보기 전환은 없어지고 목록은 탐색으로
-    assert "오늘 시작하기 좋은 짧은 책" in explore.text and "단편소설" in explore.text and "서점 · 유명한 책" in explore.text
+    assert "오늘의 추천" in explore.text and "단편소설" in explore.text and "서점 · 유명한 책" in explore.text
     assert grid.text.count('class="card"') > 800
 
 

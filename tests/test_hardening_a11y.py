@@ -66,5 +66,5 @@ def test_accent_coloured_text_uses_the_strong_token():
     for sel in (".empty-note a", ".board li:first-child .pos", ".for-book .mono"):
         body = " ".join(rules_for(sel))
         assert "color:var(--accent-strong)" in body.replace(" ", ""), (sel, body)
-    me = (ROOT / "app/static/css/me.css").read_text().replace(" ", "")
-    assert ".me-link{" in me and "color:var(--accent-strong)" in me.split(".me-link{", 1)[1].split("}", 1)[0]
+    me = (ROOT / "app/templates/me.html").read_text()
+    assert ".points-card em{font-style:normal;color:var(--accent-strong)" in me

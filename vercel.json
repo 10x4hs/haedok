@@ -9,7 +9,7 @@
     "api/index.py": {
       "maxDuration": 60,
       "includeFiles": "app/{templates,static,data}/**",
-      "excludeFiles": "{tests/**,docs/**,scripts/**}"
+      "excludeFiles": "{tests/**,docs/**,scripts/**,public/**/*.mp4,**/*.apk}"
     }
   }
 }

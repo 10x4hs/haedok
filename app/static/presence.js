@@ -1,19 +1,15 @@
 // 함께 읽는 중(presence) + 문장 공유 — reader.js와 따로 동작한다.
 // 지금 쪽은 (1) 'haedok:page' 이벤트(detail.chunk) (2) reader.js의 진행 저장 요청 (3) #stage 의 data-start 순으로 알아낸다.
-// 함께 읽는 중은 5초 박동(폴링)으로 주고받는다 — 어느 배포에서나 된다. 서버는 60초 소식 없는 사람을 뺀다.
+// 실시간은 5초 폴링: Vercel 서버리스는 메모리 WebSocket 허브를 붙들 수 없다. 서버는 60초 소식 없는 사람을 뺀다.
 // 실패하면 간격을 두 배씩(최대 60초) 늘리고, 탭이 가려지면 멈췄다가 다시 보이면 곧바로 한 번 묻는다.
-// 아래 haedokLive 는 reader.js 의 친구 소식 채널. 서버가 소켓을 끈 배포(ws:false — Vercel 기본, 메모리 브로커가
-// 인스턴스마다 따로라서)에서는 곧바로 폴링한다. 켠 배포에서는 WebSocket을 먼저 시도하고, 몇 초 안에 열리지 않으면
-// 폴링으로 내려간다. 소켓이 열려 있어도 느린 안전망 폴링은 계속 돈다(놓친 소식을 메운다).
-// 소켓 재시도는 점점 드물게, 몇 번 실패하면 그 화면에서는 포기한다.
+// 아래 haedokLive 는 reader.js 의 친구 소식 채널: WebSocket을 먼저 시도하고, 몇 초 안에 열리지 않으면
+// 폴링으로 내려간다(서버리스 배포). 소켓 재시도는 점점 드물게, 몇 번 실패하면 그 화면에서는 포기한다.
 // 보이는 곳: 쪽 위 가장자리의 색 아바타(같은 쪽이면 이름표·맥박), 하단 막대의 색 점, 오고 갈 때 토스트.
 // 친구마다 색 하나 — reader.js(오른쪽 열·하단 동그라미)도 window.haedokPresence.colorOf 로 같은 색을 쓴다.
 function haedokLive(opts) {
   const o = Object.assign({
-    ws: true,             // false 면 소켓을 시도하지 않고 처음부터 폴링한다(서버가 /social 의 live.ws 로 알려 준다)
-    wsTimeout: 4000,      // 이 안에 열리지 않으면 실패로 본다(프록시가 업그레이드를 응답 없이 붙들기도 한다)
+    wsTimeout: 4000,      // 이 안에 열리지 않으면 실패로 본다(서버리스는 업그레이드가 매달리기도 한다)
     pollBase: 20000,      // 폴링 기본 간격
-    pollSafety: 60000,    // 소켓이 열려 있는 동안의 안전망 폴링 간격
     pollMax: 120000,      // 연달아 실패할 때 늘어나는 상한
     wsRetry: 30000,       // 소켓 재시도 첫 간격(이후 두 배씩)
     wsGiveUp: 3,          // 이만큼 실패하면 이 화면에서는 소켓을 다시 시도하지 않는다
@@ -29,7 +25,7 @@ function haedokLive(opts) {
   function connect() {
     retryTimer = 0;
     if (stopped) return;
-    if (!o.ws || !o.WS || wsFails >= o.wsGiveUp) { fail(true); return; }
+    if (!o.WS || wsFails >= o.wsGiveUp) { fail(true); return; }
     let done = false, ping = 0, sock;
     const lost = () => {
       if (done) return;
@@ -46,7 +42,7 @@ function haedokLive(opts) {
     }, o.wsTimeout);
     sock.onopen = () => {
       clearTimeout(timer);
-      wsFails = 0; mode = 'ws'; restartPolling();  // 안전망 간격으로 늦춘다
+      wsFails = 0; mode = 'ws'; stopPolling();
       ping = setInterval(() => { if (sock.readyState === 1) sock.send('ping'); }, o.pingEvery);
     };
     sock.onmessage = ev => { try { o.onMessage(JSON.parse(ev.data)); } catch (e) { /* 모르는 메시지는 버린다 */ } };
@@ -56,9 +52,8 @@ function haedokLive(opts) {
 
   function fail(final) {
     if (!final) wsFails += 1;
-    const wasWs = mode === 'ws';
     mode = 'poll';
-    if (wasWs) restartPolling(); else startPolling();  // 소켓이 끊기면 안전망 간격에서 기본 간격으로
+    startPolling();
     if (!final && wsFails < o.wsGiveUp && !retryTimer) {
       retryTimer = setTimeout(connect, o.wsRetry * 2 ** (wsFails - 1));
     }
@@ -77,17 +72,15 @@ function haedokLive(opts) {
     let ok = false;
     try { ok = (await o.poll()) !== false; } catch (e) { ok = false; }
     inFlight = false;
-    pollDelay = ok ? base() : Math.min(pollDelay * 2, o.pollMax);
+    pollDelay = ok ? o.pollBase : Math.min(pollDelay * 2, o.pollMax);
     schedule(pollDelay);
   }
 
-  const base = () => (mode === 'ws' ? o.pollSafety : o.pollBase);
   function startPolling() {
     if (polling || stopped) return;
-    polling = true; pollDelay = base();
+    polling = true; pollDelay = o.pollBase;
     schedule(pollDelay);  // 화면을 열 때 이미 한 번 읽었으니 한 간격 뒤부터
   }
-  function restartPolling() { polling = false; startPolling(); }
   function stopPolling() { polling = false; clearTimeout(pollTimer); pollTimer = 0; }
 
   const onVisibility = () => {

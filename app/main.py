@@ -9,6 +9,7 @@ from pathlib import Path
 import httpx
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +18,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app import admin, auth, intro, pwa, seo, web
 from app.api import books, me, points, social
-from app.core import assets, csp
+from app.core import csp
 from app.core.config import Settings, get_settings
 from app.core.logging import request_id_var, setup_logging
 from app.db.session import get_session
@@ -111,7 +112,6 @@ SECURITY_HEADERS = {
 CSP_HEADER = csp.header_name(_settings.csp_report_only)
 for _env in (web.templates.env, intro.templates.env):
     _env.globals["csp_nonce"] = csp.NonceProxy()
-    assets.install(_env)  # /static CSS·JS 주소에 ?v=<내용 해시>
 
 
 @app.middleware("http")
@@ -162,7 +162,6 @@ async def to_login(request: Request, exc: auth.LoginRequired) -> RedirectRespons
 # --- 오류 화면: 화면 요청에는 앱 디자인의 HTML, API·JSON 요청에는 JSON ---
 error_templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 error_templates.env.globals["csp_nonce"] = csp.NonceProxy()
-assets.install(error_templates.env)
 
 
 def _wants_html(request: Request) -> bool:
@@ -213,7 +212,7 @@ app.include_router(admin.router)
 app.include_router(intro.router)
 app.include_router(pwa.router)
 app.include_router(seo.router)
-app.mount("/static", assets.CachedStaticFiles(directory=assets.STATIC_DIR), name="static")
+app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
 
 @app.get("/health")

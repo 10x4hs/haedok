@@ -73,7 +73,7 @@ flowchart LR
 - **서버 렌더링 + 바닐라 JS** — 빌드 단계가 없어요. Jinja2가 화면을 그리고, 3D·책장 넘김·실시간은 작은 JS 파일이 맡아요.
 - **본문 화이트리스트는 코드로 강제** — `FULLTEXT_SOURCES`에 있는 소스(gutendex·wikisource)만 본문을 저장해요. 업로드는 올린 사람만 열어요.
 - **읽은 시간은 서버가** — 쪽을 펼친 시각부터 "다 읽음" 요청까지를 서버가 재서, 글자 수에 맞는 최소 시간을 넘겨야 인정해요.
-- **실시간** — 로컬은 WebSocket(`/api/v1/ws/books/{id}`) + 30초 안전망 폴링, Vercel은 기본으로 소켓을 끄고(`REALTIME_WS`, 메모리 브로커가 인스턴스마다 따로라서) 3초 폴링. 소켓 이벤트에는 반응 본문을 싣지 않아요.
+- **실시간** — 로컬은 WebSocket(`/api/v1/ws/books/{id}`), 서버리스 배포는 20초 폴링. 소켓 이벤트에는 반응 본문을 싣지 않아요.
 
 더 자세한 결정 기록은 [docs/architecture.md](docs/architecture.md)에 있어요.
 
@@ -120,7 +120,6 @@ Postgres로 돌리려면 `docker compose up -d` 뒤에 `alembic upgrade head`를
 | `SENTRY_DSN` | Sentry 오류 수집(선택). 비우면 꺼져요 |
 | `SITE_URL` | 공개 주소(https://…). canonical·OG·사이트맵·초대 미리보기에 써요. 비우면 Vercel URL → 요청 주소 순 |
 | `CSP_REPORT_ONLY` | 기본 `false` — CSP를 요청마다 새 nonce로 강제해요. 위반을 살펴볼 때만 잠깐 `true`(Report-Only) |
-| `REALTIME_WS` | 친구 소식 WebSocket. 비우면 로컬은 켜고 Vercel(`VERCEL_ENV`)은 꺼요(브로커가 인스턴스 메모리라서). 끄면 리더가 3초 폴링 |
 
 ## 관리자 화면
 

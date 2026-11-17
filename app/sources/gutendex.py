@@ -38,8 +38,6 @@ class GutendexSource(BookSource):
     fulltext = True
     URL = "https://gutendex.com/books/"
     MIRROR = "https://www.gutenberg.org/cache/epub/"
-    # gutenberg.org가 503을 줄 때(점검·과부하·차단) 같은 파일을 주는 공식 미러
-    FALLBACK = "https://gutenberg.pglaf.org/cache/epub/"
 
     async def search(self, query: str, limit: int = 10) -> list[BookMeta]:
         data = await self._get_json(self.URL, params={"search": query})
@@ -56,19 +54,12 @@ class GutendexSource(BookSource):
         if url is None:
             raise SourceError(f"gutenberg #{external_id} has no plain-text format")
         resp = await self.client.get(url, follow_redirects=True)
-        if resp.status_code >= 500:
-            resp = await self.client.get(self._mirror(external_id), follow_redirects=True)
         resp.raise_for_status()
         return self._meta(book), clean_gutenberg_text(resp.text)
-
-    def _mirror(self, external_id: str) -> str:
-        return f"{self.FALLBACK}{external_id}/pg{external_id}.txt"
 
     async def _fetch_direct(self, external_id: str) -> tuple[BookMeta, str]:
         """gutendex 장애 시 구텐베르크 원본 서버에서 평문을 직접 받는다."""
         resp = await self.client.get(f"{self.MIRROR}{external_id}/pg{external_id}.txt", follow_redirects=True)
-        if resp.status_code >= 500:
-            resp = await self.client.get(self._mirror(external_id), follow_redirects=True)
         resp.raise_for_status()
         header = resp.text[:3000]
         title = m.group(1).strip() if (m := _HEADER_TITLE.search(header)) else f"Gutenberg #{external_id}"
