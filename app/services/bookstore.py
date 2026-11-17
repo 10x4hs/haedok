@@ -108,7 +108,7 @@ def _kakao_cover(thumbnail: str) -> str | None:
     if not thumbnail.startswith("https://"):
         return None
     fname = parse_qs(urlsplit(thumbnail).query).get("fname", [""])[0]
-    if re.fullmatch(r"https?://t1\.daumcdn\.net/lbook/image/[\w./%-]+", fname):
+    if re.fullmatch(r"https?://t1\.daumcdn\.net/lbook/image/[\w./%-]+(\?timestamp=\d+)?", fname):
         return "https://" + fname.split("://", 1)[1]
     return thumbnail
 
@@ -282,10 +282,17 @@ def merge(local: list[dict], live: list[dict], curated_index: dict[str, dict], l
     """고른 책을 앞에 둔다: 고른 책에서 찾은 것 → 알라딘 결과 가운데 고른 책 → 나머지. id가 같으면 한 번만."""
     out: list[dict] = []
     seen: set[str] = set()
+    titles: set[str] = set()
+
+    def key(book: dict) -> str:
+        # 고른 책(알라딘 번호)과 실시간 결과(ISBN)는 번호가 달라, 제목과 첫 지은이로 같은 책을 알아본다
+        author = str(book.get("author") or "").split(",")[0]
+        return _norm(str(book.get("title") or "")) + "|" + _norm(author)
 
     def add(book: dict) -> None:
-        if book["id"] not in seen:
+        if book["id"] not in seen and key(book) not in titles:
             seen.add(book["id"])
+            titles.add(key(book))
             out.append(book)
 
     for book in local:

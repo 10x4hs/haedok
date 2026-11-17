@@ -438,6 +438,23 @@ async def test_kakao_search_and_lookup_by_isbn(kakao_key):
     assert kakao.calls[1].url.params["target"] == "isbn"
 
 
+def test_kakao_cover_uses_the_original_image_even_with_a_timestamp():
+    stamped = THUMB + "%3Ftimestamp%3D20261117121158"
+    assert bookstore._kakao_cover(stamped) == "https://t1.daumcdn.net/lbook/image/6052717?timestamp=20261117121158"
+    assert bookstore._kakao_cover("https://example.com/x.jpg") == "https://example.com/x.jpg"
+    assert bookstore._kakao_cover("http://insecure/x.jpg") is None
+
+
+def test_merge_drops_a_live_hit_that_is_the_same_book_as_a_curated_one():
+    curated = [{"id": "270810426", "title": "불편한 편의점", "author": "김호연"}]
+    live = [
+        {"id": "9791161571188", "title": "불편한 편의점", "author": "김호연"},
+        {"id": "9791161571379", "title": "불편한 편의점 2", "author": "김호연"},
+    ]
+    merged = bookstore.merge(curated, live, {"270810426": curated[0]})
+    assert [b["id"] for b in merged] == ["270810426", "9791161571379"]
+
+
 async def test_kakao_failure_returns_empty(kakao_key):
     async with mock_client(Kakao(status=401)) as client:
         assert await bookstore.search(client, "사피엔스") == []
@@ -449,6 +466,8 @@ async def test_search_page_and_store_page_work_with_kakao(api, kakao_key):
         r = await c.get("/search", params={"q": "사피엔스"})
         page = await c.get("/store/9788934972464")
         bad = await c.get("/store/9781234")
-    assert r.status_code == 200 and 'href="/store/9788934972464"' in r.text
+    # 고른 책에 같은 책(사피엔스 · 유발 하라리)이 있으므로 서점 구역에는 그 한 권만 나온다
+    assert r.status_code == 200 and 'href="/store/310032628"' in r.text
+    assert 'href="/store/9788934972464"' not in r.text
     assert page.status_code == 200 and "유발 하라리" in page.text
     assert "SearchTarget=EBook" in page.text and bad.status_code == 404
