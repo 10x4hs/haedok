@@ -760,6 +760,9 @@ async def search(
             if (h.meta.source, h.meta.external_id) in known:
                 continue
             (readable if h.meta.has_fulltext else others).append(h.meta)
+        # 서점 구역에 이미 나온 책(같은 ISBN)은 '정보만 있는 책'에 한 번 더 보이지 않게 한다
+        in_store = {b["id"] for b in store_hits}
+        others = [m for m in others if not (m.isbn13 and m.isbn13 in in_store)]
     return _render(
         request,
         "search.html",

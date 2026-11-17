@@ -136,7 +136,7 @@ Set them in `.env` or as Vercel environment variables. [`app/core/config.py`](ap
 | `MAX_UPLOAD_MB` | Upload limit. 4 on Vercel |
 | `ANDROID_PACKAGE` · `ANDROID_CERT_SHA256` | Android TWA signing fingerprint (`/.well-known/assetlinks.json`) |
 | `KAKAO_REST_API_KEY` · `NAVER_CLIENT_*` · `GOOGLE_BOOKS_API_KEY` | Metadata search sources. A missing key simply disables that source |
-| `NAVER_CLIENT_ID` · `NAVER_CLIENT_SECRET` (store search) | When set, the “서점” (store) section of search and `/store/{ISBN}` use the official Naver Book Search API (free, 25,000 calls/day) to find books beyond the curated list. Without them only the curated list (`app/data/store.json`) is searched |
+| `KAKAO_REST_API_KEY` (store search) | When set, the “서점” (store) section of search and `/store/{ISBN}` use the official Kakao Book Search API (free) to find books beyond the curated list. Without it only the curated list (`app/data/store.json`) is searched |
 | `BOOKSTORE_LIVE` | Default `false`. `true` reads Aladin's ebook search/product pages without a key — a path Aladin's `robots.txt` disallows, so it is not recommended (Aladin's official OpenAPI was shut down on 2026-10-30) |
 | `SENTRY_DSN` | Sentry error reporting (optional). Off when empty |
 | `SITE_URL` | Public base URL (https://…) for canonical, OG, sitemap and invite previews. Falls back to the Vercel URL, then the request host |
