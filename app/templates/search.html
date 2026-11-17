@@ -9,13 +9,13 @@
 <section class="row"><div class="row-h"><h2>서가에서 찾음</h2><span class="mono muted">{{ in_catalog|length }}</span></div>
 <div class="grid">{% for b in in_catalog %}{{ catalog_card(b) }}{% endfor %}</div></section>
 {% endif %}
-{% if readable %}
-<section class="row"><div class="row-h"><h2>바로 읽을 수 있는 책</h2><span class="mono muted">{{ readable|length }}</span></div>
-<ul class="list">{% for m in readable %}<li><a href="/open/{{ m.source }}/{{ m.external_id|urlencode }}">{{ book_cover(m.title, m.authors|join(', '), 'xs') }}<div><b>{{ m.title }}</b><span>{{ m.authors|join(', ') or m.source }}</span></div><em class="mono">읽기</em></a></li>{% endfor %}</ul></section>
-{% endif %}
 {% if store_hits %}
 <section class="row"><div class="row-h"><h2>서점</h2><span class="mono muted">{{ store_hits|length }}</span></div>
 <ul class="list">{% for b in store_hits %}<li><a href="/store/{{ b.id }}">{% if b.cover %}<img class="thumb" src="{{ b.cover|small_cover }}" alt="" width="44" height="66" loading="lazy" decoding="async">{% else %}{{ book_cover(b.title, b.author, 'xs') }}{% endif %}<div><b>{{ b.title }}</b><span>{{ b.author or b.publisher or '' }}</span></div><em class="mono">서점</em></a></li>{% endfor %}</ul></section>
+{% endif %}
+{% if readable %}
+<section class="row"><div class="row-h"><h2>바로 읽을 수 있는 책</h2><span class="mono muted">{{ readable|length }}</span></div>
+<ul class="list">{% for m in readable %}<li><a href="/open/{{ m.source }}/{{ m.external_id|urlencode }}">{{ book_cover(m.title, m.authors|join(', '), 'xs') }}<div><b>{{ m.title }}</b><span>{{ m.authors|join(', ') or m.source }}</span></div><em class="mono">읽기</em></a></li>{% endfor %}</ul></section>
 {% endif %}
 {% if others %}
 <section class="row"><div class="row-h"><h2>정보만 있는 책</h2><span class="mono muted">저작권 보호</span></div>
