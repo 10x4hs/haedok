@@ -32,12 +32,17 @@ def clean_gutenberg_text(raw: str) -> str:
 
 
 class GutendexSource(BookSource):
-    """Project Gutenberg 비공식 REST API — 영문 퍼블릭 도메인 전문."""
+    """Project Gutenberg 비공식 REST API — 영문 퍼블릭 도메인 전문.
+
+    gutendex나 구텐베르크 본 서버(www.gutenberg.org)는 가끔 점검·과부하로 503을 낸다. 그때는 같은 파일을
+    두는 공식 미러에서 평문을 받는다.
+    """
 
     name = "gutendex"
     fulltext = True
     URL = "https://gutendex.com/books/"
-    MIRROR = "https://www.gutenberg.org/cache/epub/"
+    # 평문 파일(…/<id>/pg<id>.txt)을 받는 곳: 본 서버 → 공식 미러 순서로 시도한다
+    MIRRORS = ("https://www.gutenberg.org/cache/epub/", "https://gutenberg.pglaf.org/cache/epub/")
 
     async def search(self, query: str, limit: int = 10) -> list[BookMeta]:
         data = await self._get_json(self.URL, params={"search": query})
@@ -53,15 +58,34 @@ class GutendexSource(BookSource):
         url = _text_url(book)
         if url is None:
             raise SourceError(f"gutenberg #{external_id} has no plain-text format")
-        resp = await self.client.get(url, follow_redirects=True)
-        resp.raise_for_status()
-        return self._meta(book), clean_gutenberg_text(resp.text)
+        try:
+            resp = await self.client.get(url, follow_redirects=True)
+            resp.raise_for_status()
+            raw = resp.text
+        except httpx.HTTPError:
+            raw = await self._mirror_text(external_id)  # 본 서버가 막혔으면 미러에서
+        return self._meta(book), clean_gutenberg_text(raw)
+
+    async def _mirror_text(self, external_id: str) -> str:
+        """평문 원본을 본 서버, 안 되면 미러에서 받는다. 모두 실패하면 마지막 오류를 그대로 올린다."""
+        error: httpx.HTTPError = httpx.HTTPError("no gutenberg mirror configured")
+        path = f"{external_id}/pg{external_id}.txt"
+        for base in self.MIRRORS:
+            try:
+                resp = await self.client.get(base + path, follow_redirects=True)
+                resp.raise_for_status()
+            except httpx.HTTPError as e:
+                error = e
+                continue
+            if _START.search(resp.text) or "html" not in resp.headers.get("content-type", ""):
+                return resp.text
+            error = httpx.DecodingError(f"{base} did not return plain text")  # 점검 안내 HTML 등
+        raise error
 
     async def _fetch_direct(self, external_id: str) -> tuple[BookMeta, str]:
-        """gutendex 장애 시 구텐베르크 원본 서버에서 평문을 직접 받는다."""
-        resp = await self.client.get(f"{self.MIRROR}{external_id}/pg{external_id}.txt", follow_redirects=True)
-        resp.raise_for_status()
-        header = resp.text[:3000]
+        """gutendex 장애 시 구텐베르크 서버(또는 미러)에서 평문을 직접 받고, 머리말에서 제목·저자를 읽는다."""
+        raw = await self._mirror_text(external_id)
+        header = raw[:3000]
         title = m.group(1).strip() if (m := _HEADER_TITLE.search(header)) else f"Gutenberg #{external_id}"
         author = (m.group(1).strip(),) if (m := _HEADER_AUTHOR.search(header)) else ()
         meta = BookMeta(
@@ -73,7 +97,7 @@ class GutendexSource(BookSource):
             has_fulltext=True,
             link=f"https://www.gutenberg.org/ebooks/{external_id}",
         )
-        return meta, clean_gutenberg_text(resp.text)
+        return meta, clean_gutenberg_text(raw)
 
     def _meta(self, b: dict[str, Any]) -> BookMeta:
         return BookMeta(
