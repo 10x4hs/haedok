@@ -192,7 +192,9 @@ def _same_book(title: str) -> str:
 def _drum(free: list[dict], best: list[dict] | None = None) -> list[dict]:
     """맨 앞에 분야별 베스트셀러 1위 세 권(소설·인문·에세이), 그 뒤로 유명한 책, 맨 뒤에 바로 읽는 고전."""
     top = [
-        b | {"store": True, "rank": None, "best": f"{b.get('category') or '베스트셀러'} {b.get('rank') or n}위"}
+        b
+        | {"store": True, "rank": None}
+        | {"best": f"{b.get('category') or '베스트셀러'} {b.get('rank') or n}위"}
         for n, b in enumerate(bestsellers.leaders(best or [], HOME_BEST), 1)
     ]
     taken = {_same_book(b["title"]) for b in top}
