@@ -29,6 +29,7 @@ import time
 from collections import OrderedDict
 from collections.abc import Iterable
 from typing import Any, TypedDict
+from urllib.parse import urlencode
 
 import httpx
 
@@ -64,17 +65,86 @@ class StoreItem(TypedDict, total=False):
     description: str | None
 
 
+_ISBN13 = re.compile(r"97[89]\d{10}")
+NAVER_URL = "https://openapi.naver.com/v1/search/book.json"
+
+
+def is_isbn(item_id: str) -> bool:
+    return bool(_ISBN13.fullmatch(item_id or ""))
+
+
 def valid_id(item_id: str) -> bool:
-    """알라딘 ItemId 모양(1~12자리 숫자)인지."""
-    return bool(_ITEM_ID.fullmatch(item_id or ""))
+    """서점 책 번호 모양인지: 알라딘 ItemId(1~12자리 숫자) 또는 ISBN-13(네이버 책 검색에서 온 책)."""
+    return bool(_ITEM_ID.fullmatch(item_id or "")) or is_isbn(item_id)
 
 
 def product_url(item_id: str) -> str:
     return f"{PRODUCT_URL}?ItemId={item_id}&start=pebook"
 
 
+def provider() -> str | None:
+    """실시간으로 책을 찾아 올 곳. 네이버 책 검색 API(공식, 키 필요)가 먼저고,
+    없으면 BOOKSTORE_LIVE=true일 때만 알라딘 검색 화면을 읽는다.
+    그 방식은 알라딘 robots.txt가 막는 경로라 기본은 꺼져 있다.
+    둘 다 없으면 None: 고른 책(app/data/store.json) 안에서만 찾는다."""
+    s = get_settings()
+    if s.naver_client_id and s.naver_client_secret:
+        return "naver"
+    return "aladin" if s.bookstore_live else None
+
+
 def live_enabled() -> bool:
-    return get_settings().bookstore_live
+    return provider() is not None
+
+
+def aladin_search_url(title: str) -> str:
+    """사람이 눌러서 가는 알라딘 전자책 검색 링크(서버가 읽지 않는다)."""
+    return f"{SEARCH_URL}?{urlencode({'SearchTarget': 'EBook', 'SearchWord': title})}"
+
+
+def parse_naver(data: dict) -> list[StoreItem]:
+    """네이버 책 검색 응답 → 서점 책. 번호는 ISBN-13이고, 사는 곳은 알라딘 전자책 검색으로 잇는다."""
+    out: list[StoreItem] = []
+    seen: set[str] = set()
+    for it in data.get("items") or []:
+        m = _ISBN13.search(str(it.get("isbn") or "").replace("-", ""))
+        title = _clean(re.sub(r"<[^>]+>", "", str(it.get("title") or "")))
+        if not m or not title or m.group(0) in seen:
+            continue
+        seen.add(m.group(0))
+        author = _clean(re.sub(r"<[^>]+>", "", str(it.get("author") or "")).replace("^", ", "))
+        cover = str(it.get("image") or "")
+        out.append(
+            StoreItem(
+                id=m.group(0),
+                title=title,
+                author=author or None,
+                cover=cover if cover.startswith("https://") else None,
+                price=_int(str(it.get("discount") or "")),
+                url=aladin_search_url(title),
+                publisher=_clean(str(it.get("publisher") or "")) or None,
+                pubdate=str(it.get("pubdate") or "") or None,
+                description=_clean(re.sub(r"<[^>]+>", "", str(it.get("description") or ""))) or None,
+            )
+        )
+    return out
+
+
+async def _naver(client: httpx.AsyncClient, query: str, display: int) -> list[StoreItem]:
+    s = get_settings()
+    resp = await client.get(
+        NAVER_URL,
+        params={"query": query, "display": display},
+        headers={
+            "X-Naver-Client-Id": s.naver_client_id or "",
+            "X-Naver-Client-Secret": s.naver_client_secret or "",
+        },
+        timeout=ATTEMPT_TIMEOUT_S,
+        follow_redirects=False,
+    )
+    if resp.status_code != 200:
+        raise _Upstream(f"HTTP {resp.status_code}")
+    return parse_naver(resp.json())
 
 
 # --- 파서 (scripts/build_store.py도 이 파서를 쓰면 된다) ---
@@ -315,9 +385,12 @@ async def search(client: httpx.AsyncClient, query: str, limit: int = 20) -> list
     if not live_enabled():
         return []
     try:
-        params = {"SearchTarget": "eBook", "SearchWord": " ".join(query.split())}
-        page = await _fetch(client, SEARCH_URL, params)
-        items = parse_search_page(page)
+        if provider() == "naver":
+            items = await _naver(client, " ".join(query.split()), 20)
+        else:
+            params = {"SearchTarget": "eBook", "SearchWord": " ".join(query.split())}
+            page = await _fetch(client, SEARCH_URL, params)
+            items = parse_search_page(page)
     except Exception as e:  # 화면을 깨뜨리지 않는다. 검색어는 로그에 남기지 않는다
         log.warning("bookstore search failed: %s", _reason(e))
         _search_cache.put(key, [], FAILURE_TTL_S)
@@ -340,8 +413,15 @@ async def lookup(client: httpx.AsyncClient, item_id: str) -> StoreItem | None:
     if not live_enabled():
         return None
     try:
-        page = await _fetch(client, PRODUCT_URL, {"ItemId": item_id})
-        item = parse_product_page(page, item_id)
+        if is_isbn(item_id):
+            # ISBN은 네이버 책 검색에서 온 번호다 — 키가 없으면 찾을 곳이 없다
+            found = await _naver(client, item_id, 5) if provider() == "naver" else []
+            item = next((i for i in found if i["id"] == item_id), None)
+        elif get_settings().bookstore_live:
+            page = await _fetch(client, PRODUCT_URL, {"ItemId": item_id})
+            item = parse_product_page(page, item_id)
+        else:
+            return None
     except Exception as e:
         log.warning("bookstore lookup failed: %s", _reason(e))
         _lookup_cache.put(item_id, None, FAILURE_TTL_S)

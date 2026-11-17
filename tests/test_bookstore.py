@@ -4,8 +4,9 @@ import asyncio
 from pathlib import Path
 
 import httpx
+import pytest
 
-from app.core.config import Settings
+from app.core.config import Settings, get_settings
 from app.services import bookstore
 from tests.conftest import mock_client, signup
 from tests.test_api import upstream
@@ -14,6 +15,18 @@ FIXTURES = Path(__file__).parent / "fixtures"
 SEARCH_HTML = (FIXTURES / "aladin_search_ebook.html").read_text(encoding="utf-8")
 PRODUCT_HTML = (FIXTURES / "aladin_product_ebook.html").read_text(encoding="utf-8")
 PRODUCT_ID = "406573415"  # 한반도 사피엔스 — 고른 책(store.json)에 없는 책
+
+
+@pytest.fixture(autouse=True)
+def _aladin_page_mode(monkeypatch):
+    """이 파일의 기존 테스트는 '알라딘 화면 읽기'(BOOKSTORE_LIVE=true, 네이버 키 없음) 방식을 본다.
+    기본값은 꺼짐이고, 네이버 방식은 아래 '네이버 책 검색' 테스트가 따로 켠다."""
+    monkeypatch.setenv("BOOKSTORE_LIVE", "true")
+    monkeypatch.delenv("NAVER_CLIENT_ID", raising=False)
+    monkeypatch.delenv("NAVER_CLIENT_SECRET", raising=False)
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 class Aladin:
@@ -212,7 +225,7 @@ async def test_slow_upstream_is_cut_at_the_time_budget(monkeypatch):
 async def test_live_fetching_can_be_turned_off(monkeypatch):
     monkeypatch.setenv("BOOKSTORE_LIVE", "false")
     assert Settings().bookstore_live is False
-    assert Settings.model_fields["bookstore_live"].default is True
+    assert Settings.model_fields["bookstore_live"].default is False  # 알라딘 화면 읽기는 기본으로 꺼져 있다
     monkeypatch.setattr(bookstore, "get_settings", lambda: Settings(bookstore_live=False))
     aladin = Aladin()
     async with mock_client(aladin) as client:
@@ -350,3 +363,86 @@ async def test_search_survives_a_broken_rate_limit_store(api, monkeypatch):
         missing = await c.get(f"/store/{PRODUCT_ID}")
     assert r.status_code == 200 and "<h2>서점</h2>" in r.text  # 고른 책만 보여 준다
     assert missing.status_code == 404 and aladin.calls == []  # 한도를 못 세면 알라딘에 묻지 않는다
+
+
+# --- 네이버 책 검색 (공식 API) ---
+
+NAVER_JSON = {
+    "items": [
+        {
+            "title": "<b>사피엔스</b> (유인원에서 사이보그까지)",
+            "link": "https://search.shopping.naver.com/book/catalog/1",
+            "image": "https://shopping-phinf.pstatic.net/main_1/1.jpg",
+            "author": "유발 하라리^조현욱",
+            "discount": "24120",
+            "publisher": "김영사",
+            "pubdate": "20230401",
+            "isbn": "9788934972464",
+            "description": "인류의 <b>역사</b>를 다시 쓴 책",
+        },
+        {"title": "ISBN 없는 책", "isbn": "", "image": "", "author": ""},
+    ]
+}
+
+
+class Naver:
+    def __init__(self, status=200):
+        self.status, self.calls = status, []
+
+    def __call__(self, req: httpx.Request) -> httpx.Response:
+        if req.url.host == "www.aladin.co.kr":
+            raise AssertionError("네이버 키가 있으면 알라딘 화면을 읽지 않는다")
+        if req.url.host != "openapi.naver.com":
+            return upstream(req)
+        self.calls.append(req)
+        return httpx.Response(self.status, json=NAVER_JSON if self.status == 200 else {"errorCode": "024"})
+
+
+@pytest.fixture
+def naver_keys(monkeypatch):
+    monkeypatch.setenv("BOOKSTORE_LIVE", "false")
+    monkeypatch.setenv("NAVER_CLIENT_ID", "id-x")
+    monkeypatch.setenv("NAVER_CLIENT_SECRET", "secret-x")
+    get_settings.cache_clear()
+
+
+def test_nothing_is_fetched_by_default(monkeypatch):
+    monkeypatch.delenv("BOOKSTORE_LIVE", raising=False)
+    get_settings.cache_clear()
+    assert bookstore.provider() is None and not bookstore.live_enabled()
+
+
+async def test_naver_search_and_lookup_by_isbn(naver_keys):
+    assert bookstore.provider() == "naver"
+    naver = Naver()
+    async with mock_client(naver) as client:
+        items = await bookstore.search(client, "사피엔스")
+        again = await bookstore.search(client, "사피엔스")  # 캐시
+        book = await bookstore.lookup(client, "9788934972464")
+        missing = await bookstore.lookup(client, "9780000000002")
+    assert [i["id"] for i in items] == ["9788934972464"] and again == items
+    it = items[0]
+    assert it["title"] == "사피엔스 (유인원에서 사이보그까지)" and it["author"] == "유발 하라리, 조현욱"
+    assert it["price"] == 24120 and it["publisher"] == "김영사" and it["cover"].startswith("https://")
+    assert it["url"].startswith("https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook")
+    assert book == it and missing is None
+    first = naver.calls[0]
+    assert first.headers["X-Naver-Client-Id"] == "id-x" and first.headers["X-Naver-Client-Secret"] == "secret-x"
+    assert len(naver.calls) == 2  # 검색 1번 + 없는 ISBN 조회 1번 (있는 책은 검색 결과가 캐시에 있다)
+
+
+async def test_naver_failure_returns_empty(naver_keys):
+    async with mock_client(Naver(status=401)) as client:
+        assert await bookstore.search(client, "사피엔스") == []
+
+
+async def test_search_page_and_store_page_work_with_naver(api, naver_keys):
+    async with api(Naver()) as c:
+        await signup(c)
+        r = await c.get("/search", params={"q": "사피엔스"})
+        page = await c.get("/store/9788934972464")
+        bad = await c.get("/store/9781234")
+    assert r.status_code == 200 and 'href="/store/9788934972464"' in r.text
+    assert page.status_code == 200 and "사피엔스 (유인원에서 사이보그까지)" in page.text
+    assert "SearchTarget=EBook" in page.text and bad.status_code == 404
+
