@@ -1,0 +1,39 @@
+{# 하루 목표 · 잔디 · 연속 읽기 (feature goals) — 숫자는 goals.js 가 /api/v1/me/goal 로 채운다 #}
+{% if feature_goals() %}
+<link rel="stylesheet" href="/static/goals.css">
+<section class="goal glass-card" id="goal" aria-labelledby="goal-h" data-goal>
+  <h2 class="goal-h" id="goal-h">오늘의 목표</h2>
+  <div class="goal-top">
+    <div class="goal-ring" aria-hidden="true">
+      <svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="19" pathLength="100"/><circle class="fill" cx="22" cy="22" r="19" pathLength="100" data-goal-ring/></svg>
+      <span class="mono" data-goal-ring-text>–</span>
+    </div>
+    <div class="goal-sum">
+      <p class="goal-now"><b class="mono" data-goal-today>–/–쪽</b> <span data-goal-minutes></span></p>
+      <p class="goal-line" data-goal-streak>불러오는 중…</p>
+      <p class="goal-meta"><span data-goal-week></span><span class="goal-freeze-count" data-goal-freezes></span></p>
+    </div>
+  </div>
+
+  <div class="goal-grass-wrap">
+    <div class="goal-months mono" aria-hidden="true" data-goal-months></div>
+    <div class="goal-grass" role="group" aria-labelledby="goal-grass-h" data-goal-grass></div>
+    <p class="goal-sr" id="goal-grass-h" data-goal-grass-label>읽은 날 기록</p>
+  </div>
+  <div class="goal-foot">
+    <p class="goal-tip" aria-live="polite" data-goal-tip>칸을 누르면 그날 읽은 쪽수가 보여요</p>
+    <div class="goal-legend" aria-hidden="true">
+      <span>적게</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>많이</span>
+      <i class="fz"></i><span>보호권</span>
+    </div>
+  </div>
+
+  <button type="button" class="goal-edit" aria-expanded="false" aria-controls="goal-tiers" data-goal-edit>목표 바꾸기 <em aria-hidden="true">›</em></button>
+  <div class="goal-tiers" id="goal-tiers" hidden>
+    <div class="seg full" role="group" aria-label="하루 목표 쪽수" data-goal-tiers></div>
+    <p class="goal-note">분은 내 쪽당 읽기 시간으로 어림한 값이에요. 15초 넘게 머문 쪽만 세고, 새벽 4시에 하루가 바뀌어요.</p>
+    <p class="goal-note">보호권은 최대 2개까지 모여요. 읽지 못한 날이 지나면 하나가 알아서 쓰여 연속이 이어져요.</p>
+  </div>
+</section>
+<script src="/static/goals.js" defer></script>
+{% endif %}
