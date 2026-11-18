@@ -1,0 +1,58 @@
+{# 공개 페이지(/, /guide, /docs, /developers) 공용 조각: 위쪽 메뉴 · 아래쪽 바닥글 · 화면 안에서 도는 짧은 영상 #}
+{% from "_ui.html" import brand %}
+
+{# base.html의 head_extra 블록에 넣는다 — 공개 페이지에서만 읽는 스타일·스크립트 #}
+{% macro public_head() -%}
+<link rel="stylesheet" href="/static/public.css">
+<script src="/static/public.js" defer></script>
+{%- endmacro %}
+
+{# 위쪽 메뉴: 왼쪽 偕讀 로고, 가운데 유리 알약 세 개, 오른쪽 로그인. 지금 페이지는 aria-current로 표시 #}
+{% macro public_nav(current='', signed_in=False) -%}
+<a class="pn-skip" href="#main">본문으로 건너뛰기</a>
+<header class="pn">
+  <div class="pn-in">
+    <a class="pn-home" href="/" aria-label="해독 첫 화면"{% if current == 'home' %} aria-current="page"{% endif %}>{{ brand() }}</a>
+    <nav class="pn-links" aria-label="안내">
+      {%- for href, key, label in [('/guide', 'guide', '사용법'), ('/docs', 'docs', 'Docs'), ('/developers', 'developers', 'Developer')] %}
+      <a class="pn-pill" href="{{ href }}"{% if current == key %} aria-current="page"{% endif %}>{{ label }}</a>
+      {%- endfor %}
+    </nav>
+    {% if signed_in %}<a class="pn-pill pn-login" href="/">앱 열기</a>{% else %}<a class="pn-pill pn-login" href="/login">로그인</a>{% endif %}
+  </div>
+</header>
+{%- endmacro %}
+
+{% macro public_footer() -%}
+<footer class="pf">
+  <div class="pub-wrap pf-in">
+    <a class="pf-home" href="/" aria-label="해독 첫 화면">{{ brand() }}</a>
+    <nav class="pf-links" aria-label="바닥글">
+      <a href="/guide">사용법</a>
+      <a href="/docs">Docs</a>
+      <a href="/developers">Developer</a>
+      <a href="https://github.com/10x4hs/haedok" rel="noopener">GitHub</a>
+    </nav>
+    <p class="pf-note">같은 책을 각자의 속도로 함께 읽어요.</p>
+  </div>
+</footer>
+{%- endmacro %}
+
+{# 짧은 영상: 소리 없이, 화면에 보일 때만 돌아요(public.js). 움직임 줄이기를 켠 기기는 멈춘 그림 + 재생 버튼 #}
+{% macro clip(name, title, text) -%}
+<figure class="clip">
+  <div class="clip-frame">
+    <video data-clip muted loop playsinline preload="none" poster="/static/clips/{{ name }}.jpg?v={{ clip_v[name ~ '.jpg'] }}" width="1200" height="900" aria-labelledby="clip-{{ name }}-t" aria-describedby="clip-{{ name }}-d">
+      <source src="/static/clips/{{ name }}.mp4?v={{ clip_v[name ~ '.mp4'] }}" type="video/mp4">
+    </video>
+    <button class="clip-toggle" type="button" data-clip-toggle aria-label="영상 멈추기" hidden>
+      <svg class="i-pause" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>
+      <svg class="i-play" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></svg>
+    </button>
+  </div>
+  <figcaption>
+    <span class="clip-cap"><b id="clip-{{ name }}-t">{{ title }}</b> <span id="clip-{{ name }}-d">{{ text }}</span></span>
+    <span class="clip-note">예시 화면</span>
+  </figcaption>
+</figure>
+{%- endmacro %}

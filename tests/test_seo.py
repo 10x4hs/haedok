@@ -11,7 +11,7 @@ async def test_robots_allows_public_and_blocks_app(api):
     assert r.status_code == 200 and r.headers["content-type"].startswith("text/plain")
     body = r.text
     assert "User-agent: *" in body and "Yeti" not in body  # 네이버도 같은 규칙
-    for allowed in ("Allow: /\n", "Allow: /intro", "Allow: /join/"):
+    for allowed in ("Allow: /\n", "Allow: /guide", "Allow: /docs", "Allow: /developers", "Allow: /join/"):
         assert allowed in body
     for blocked in ("Disallow: /admin", "Disallow: /api/", "Disallow: /books/", "Disallow: /me"):
         assert blocked in body
@@ -22,7 +22,8 @@ async def test_sitemap_lists_only_public_pages(api):
     async with api(upstream) as c:
         r = await c.get("/sitemap.xml")
     assert r.status_code == 200 and r.headers["content-type"].startswith("application/xml")
-    assert "<loc>http://test/</loc>" in r.text and "<loc>http://test/intro</loc>" in r.text
+    assert "<loc>http://test/</loc>" in r.text and "<loc>http://test/guide</loc>" in r.text
+    assert "<loc>http://test/docs</loc>" in r.text and "/intro" not in r.text
     assert "/races" not in r.text and "/library" not in r.text
 
 

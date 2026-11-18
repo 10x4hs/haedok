@@ -1,0 +1,120 @@
+{# 읽은 책 게시물 조각들 (feature posts) — 그림은 책 표지와, 표지에서 나온 배경뿐이다(사진 올리기 없음).
+   게시물 한 개의 순서는 인스타그램의 뼈대를 따른다(모양이 아니라 구조):
+   머리(사진 · 이름 · 시간 · ⋯) → 그림(칸 끝까지) → 아이콘 줄(좋아요 · 댓글 · 공유) → 좋아요 n개
+   → 책 · 별점 → '닉네임 글…' (더 보기) → 좋았던 문장 → 댓글 n개 모두 보기 #}
+{% from "_ui.html" import icon %}
+
+{# 게시물 그림: 표지를 흐리게 키워 뒤에 깔고(색이 표지에서 그대로 나온다), 가운데에 표지. 표지가 없으면 앱의 결정적 표지 #}
+{% macro post_art(title, author, img=None, size='', eager=False) -%}
+{% set c = cover(title, author) -%}
+<div class="ps-art p{{ c.palette }} {{ size }}"{% if img %} data-has-cover{% endif %}>
+  {%- if img %}
+  <img class="ps-bg" src="{{ img }}" alt="" aria-hidden="true" width="200" height="300"{% if not eager %} loading="lazy"{% endif %} decoding="async">
+  <img class="ps-cv" src="{{ img }}" alt="{{ title }} 표지" width="400" height="600"{% if not eager %} loading="lazy"{% endif %} decoding="async">
+  {%- else %}
+  <div class="ps-cv cover p{{ c.palette }} m{{ c.pattern }}" role="img" aria-label="{{ title }} 표지"><span class="cv-art"></span><span class="cv-t">{{ title }}</span><span class="cv-a">{{ author or '' }}</span></div>
+  {%- endif %}
+</div>
+{%- endmacro %}
+
+{# 프로필 사진: /avatars 가 열어 주는 사람(본인 · 같은 대결방 · 친구)만 사진, 나머지는 이름 첫 글자 #}
+{% macro face(u, faces, cls='') -%}
+{% set src = avatar_url(u) if u.id in faces else None -%}
+<span class="avatar {{ cls }}">{% if src %}<img src="{{ src }}" alt="">{% else %}{{ u.nickname[:1] }}{% endif %}</span>
+{%- endmacro %}
+
+{% macro stars(n, cls='') -%}
+{% if n %}<span class="ps-stars {{ cls }}" role="img" aria-label="별점 {{ n }}점">{% for i in range(5) %}<i class="{{ 'on' if i < n else '' }}" aria-hidden="true">★</i>{% endfor %}</span>{% endif %}
+{%- endmacro %}
+
+{# `||글||` 은 채팅과 같은 가리기 — 탭하기 전까지 흐리게(예의일 뿐 보안이 아니다) #}
+{% macro rich(text) -%}
+{% for veiled, part in post_segments(text) %}{% if veiled %}<span class="ps-veil" tabindex="0" role="button" aria-label="스포일러 · 눌러서 보기"><span class="ps-veil-t">{{ part }}</span></span>{% else %}{{ part }}{% endif %}{% endfor %}
+{%- endmacro %}
+
+{% macro heart(on=False) -%}
+<svg class="ic ps-heart{{ ' on' if on else '' }}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-9.2-9.4C1.6 7.2 3.9 4 7.3 4c2 0 3.6 1.1 4.7 2.7C13.1 5.1 14.7 4 16.7 4c3.4 0 5.7 3.2 4.5 6.6C19.5 15.4 12 20 12 20z"/></svg>
+{%- endmacro %}
+
+{% macro lock_icon() -%}
+<svg class="ic ps-lock" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+{%- endmacro %}
+
+{% macro share_icon() -%}
+<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3 10 14"/><path d="M21 3l-7 18-4-7-7-4z"/></svg>
+{%- endmacro %}
+
+{% macro gear_icon() -%}
+<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+{%- endmacro %}
+
+{# 머리: 사진 · 이름 · (시간) · ⋯ 메뉴(링크 복사 · 고치기/신고) #}
+{% macro post_head(c, faces, me_id, time=True) -%}
+{% set p = c.post %}
+<header class="ps-head">
+  <a class="ps-who" href="/u/{{ c.author.id }}">{{ face(c.author, faces, 'sm') }}<b>{{ c.author.nickname }}</b></a>
+  {% if time %}<span class="ps-meta"><span aria-hidden="true">·</span><time datetime="{{ p.created_at.isoformat() if p.created_at else '' }}">{{ p.created_at|post_when }}</time></span>{% endif %}
+  {% if p.visibility == 'friends' %}<span class="ps-meta" title="친구만">{{ lock_icon() }}<span class="sr">친구만</span></span>{% endif %}
+  <details class="ps-menu">
+    <summary aria-label="게시물 메뉴"><span aria-hidden="true">⋯</span></summary>
+    <div class="ps-menu-list" role="menu">
+      <a role="menuitem" href="/p/{{ p.id }}">게시물 열기</a>
+      <button role="menuitem" type="button" data-share="/p/{{ p.id }}">링크 복사</button>
+      {% if p.author_id == me_id %}<a role="menuitem" href="/p/{{ p.id }}#manage">고치기 · 지우기</a>
+      {% else %}<a role="menuitem" href="/p/{{ p.id }}#report" class="ps-menu-bad">신고하기</a>{% endif %}
+    </div>
+  </details>
+</header>
+{%- endmacro %}
+
+{# 그림: 칸 끝까지. 두 번 탭(더블클릭)하면 좋아요 — 키보드는 아래 하트 버튼 #}
+{% macro post_pic(c, eager=False) -%}
+{% set p = c.post %}
+<div class="ps-pic" data-dbl-like>
+  {{ post_art(p.book_title, p.book_author, p.cover_url, eager=eager) }}
+  <span class="ps-pop" aria-hidden="true">{{ heart(True) }}</span>
+</div>
+{%- endmacro %}
+
+{# 아이콘 줄: 좋아요 · 댓글 · 공유(링크 복사). 좋아요 폼은 JS가 없어도 그대로 동작한다 #}
+{% macro post_actions(c, csrf, back, comment_href) -%}
+{% set p = c.post %}
+<div class="ps-actions">
+  <form class="ps-like" method="post" action="/p/{{ p.id }}/like" data-like>
+    <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="back" value="{{ back }}">
+    <button class="ps-act" aria-pressed="{{ 'true' if c.liked else 'false' }}" aria-label="좋아요{{ ' 취소' if c.liked else '' }}">{{ heart(c.liked) }}</button>
+  </form>
+  <a class="ps-act" href="{{ comment_href }}" aria-label="댓글 달기">{{ icon('chat') }}</a>
+  <button class="ps-act" type="button" data-share="/p/{{ p.id }}" aria-label="링크 복사">{{ share_icon() }}</button>
+  <span class="ps-status tag">{{ c.status_label }}</span>
+</div>
+<p class="ps-likes" data-like-line>{% if c.likes %}좋아요 <b data-like-count>{{ c.likes }}</b>개{% else %}<span data-like-zero>가장 먼저 좋아요를 눌러 보세요</span><b data-like-count hidden>0</b>{% endif %}</p>
+{%- endmacro %}
+
+{# 책 한 줄: 제목 · 지은이 · 별점 #}
+{% macro post_book(c, tag='h2') -%}
+{% set p = c.post %}
+<{{ tag }} class="ps-book-line" id="pt{{ p.id }}"><a href="/p/{{ p.id }}"><b>{{ p.book_title }}</b></a>{% if p.book_author %} <span>{{ p.book_author }}</span>{% endif %} {{ stars(p.rating) }}</{{ tag }}>
+{%- endmacro %}
+
+{# 피드 게시물: 같은 모양이 한 줄로 이어진다 #}
+{% macro post_card(c, csrf, back, faces, me_id, eager=False) -%}
+{% set p = c.post %}
+<article class="ps-post" id="post-{{ p.id }}" aria-labelledby="pt{{ p.id }}">
+  {{ post_head(c, faces, me_id) }}
+  {{ post_pic(c, eager) }}
+  <div class="ps-body">
+    {{ post_actions(c, csrf, back, '/p/' ~ p.id ~ '#commentBody') }}
+    {{ post_book(c) }}
+    {% if p.caption %}<p class="ps-cap" data-clamp><a class="ps-cap-who" href="/u/{{ c.author.id }}">{{ c.author.nickname }}</a> {{ rich(p.caption) }}</p>
+    <button type="button" class="ps-more-btn" data-more hidden>더 보기</button>{% endif %}
+    {% if p.quote %}<blockquote class="ps-quote">{{ rich(p.quote) }}</blockquote>{% endif %}
+    {% if c.comments %}<a class="ps-all-cm" href="/p/{{ p.id }}#comments">댓글 {{ c.comments }}개 모두 보기</a>{% endif %}
+  </div>
+</article>
+{%- endmacro %}
+
+{# 프로필 격자 칸: 표지 그림만, 누르면 게시물 #}
+{% macro grid_tile(p) -%}
+<li><a class="ps-tile" href="/p/{{ p.id }}" aria-label="{{ p.book_title }}{{ ' · 친구만' if p.visibility == 'friends' else '' }}">{{ post_art(p.book_title, p.book_author, p.cover_url|small_cover, size='sm') }}{% if p.visibility == 'friends' %}<span class="ps-tile-lock">{{ lock_icon() }}</span>{% endif %}</a></li>
+{%- endmacro %}

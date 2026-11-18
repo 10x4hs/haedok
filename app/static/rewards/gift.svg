@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" preserveAspectRatio="xMidYMid slice" role="img" aria-label="선물 상자 그림">
+  <rect width="160" height="120" fill="#e6c36a" fill-opacity=".14"/>
+  <g fill="none" stroke="#e6c36a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" transform="translate(80 62) scale(.6) translate(-80 -62)">
+    <rect x="52" y="52" width="56" height="40" rx="4"/>
+    <rect x="46" y="40" width="68" height="14" rx="3"/>
+    <path d="M80 40v52"/>
+    <path d="M80 40c-6-12-22-14-22-4 0 6 12 6 22 4zM80 40c6-12 22-14 22-4 0 6-12 6-22 4z"/>
+  </g>
+</svg>

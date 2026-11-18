@@ -73,6 +73,8 @@ class Settings(BaseSettings):
     vercel_env: str | None = None
     # 관리자 화면(/admin)을 열 수 있는 이메일 — 쉼표로 여러 개, 대소문자 무시. 비어 있으면 아무도 못 연다
     admin_emails: str = ""
+    # 마일리지 화면(/mileage)과 리워드 관리(/admin/rewards). 끄면 입구가 숨고 주소는 404 (FEATURE_MILEAGE)
+    feature_mileage: bool = True
 
     def admin_email_set(self) -> frozenset[str]:
         return frozenset(e.strip().lower() for e in self.admin_emails.split(",") if e.strip())
@@ -111,11 +113,22 @@ class Settings(BaseSettings):
     # Vercel Python 함수도 이제 소켓을 열 수 있지만, app/realtime.py 브로커는 인스턴스 메모리 안에만 있어서
     # 다른 인스턴스에 붙은 친구의 소식은 오지 않는다. 브로커를 Redis 등으로 바꾸기 전까지는 폴링이 정답이다
     realtime_ws: bool | None = None
+    # 같이 읽을 사람 모집 게시판(/together). 끄면 입구가 숨고 주소는 404 (FEATURE_BOARD)
+    feature_board: bool = True
+
+    # 하루 목표 · 잔디 · 연속 읽기(FEATURE_GOALS). 끄면 /api/v1/me/goal 은 404, /me·홈의 목표 칸도 숨는다
+    feature_goals: bool = True
 
     def realtime_ws_enabled(self) -> bool:
         if self.realtime_ws is not None:
             return self.realtime_ws
         return not self.vercel_env
+
+    # 친구 + 채팅(개인·방) 기능(FEATURE_CHAT). 끄면 메뉴·링크가 사라지고 /chat·/friends 경로가 404
+    feature_chat: bool = True
+
+    # 읽은 책 게시물(/feed · /posts/new · /p/{id} · /u/{id}, FEATURE_POSTS). 끄면 입구가 숨고 주소는 404
+    feature_posts: bool = True
 
 
 @lru_cache

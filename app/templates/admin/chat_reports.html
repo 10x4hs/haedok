@@ -1,0 +1,23 @@
+{% extends "admin/_layout.html" %}
+{% block admin_title %}신고{% endblock %}
+{% block admin %}
+<section class="row">
+  <div class="row-h"><h2>채팅 신고</h2><span class="mono muted">{{ items|length }}</span></div>
+  <p class="muted small">지운 메시지도 원문을 보여 줘요. ‘숨기기’는 모두에게 ‘삭제된 메시지’로 바꾸고, ‘처리함’은 그대로 두고 목록에서 처리 표시만 해요.</p>
+  {% if not items %}<p class="muted">아직 들어온 신고가 없어요</p>{% endif %}
+  <ul class="admin-list">
+  {% for it in items %}
+    <li>
+      <div>
+        <b>{{ it.msg.body }}</b>
+        <span>{{ it.where }} · 쓴 사람 {{ it.author }} · 신고 {{ it.reporter }}{% if it.report.reason %} · “{{ it.report.reason }}”{% endif %} · {{ it.report.created_at|fmt_dt }}{% if it.msg.deleted_at %} · <em class="tag">지워짐</em>{% endif %}{% if it.report.resolved %} · <em class="tag">처리함</em>{% endif %}</span>
+      </div>
+      {% if not it.report.resolved %}
+      {% if not it.msg.deleted_at %}<form method="post" action="/admin/chat-reports/{{ it.msg.id }}/hide"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="pill">숨기기</button></form>{% endif %}
+      <form method="post" action="/admin/chat-reports/{{ it.msg.id }}/resolve"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="pill">처리함</button></form>
+      {% endif %}
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% endblock %}

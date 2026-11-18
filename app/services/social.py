@@ -46,6 +46,15 @@ async def circle(session: AsyncSession, user_id: int, book_id: int) -> set[int]:
     return set(rows) | {user_id}
 
 
+def page_open(reader_verified: int, page: int | None) -> bool:
+    """쪽(청크 번호)에 묶인 글을 이 독자가 열어 볼 수 있는지 — 스포일러 가드의 공용 규칙.
+
+    검증받은 마지막 청크까지만 열린다. 쪽이 없는 글(채팅의 '수다')은 늘 열린다.
+    반응(reactions_for)과 방 채팅(app/services/chat.py)이 같이 쓴다.
+    """
+    return page is None or page <= reader_verified
+
+
 async def verified_of(session: AsyncSession, user_id: int, book_id: int) -> int:
     v = await session.scalar(
         select(LibraryEntry.verified_chunk).where(
@@ -94,7 +103,7 @@ async def reactions_for(session: AsyncSession, user: User, book: Book, chunk: in
     rows = (await session.execute(q.order_by(Reaction.id))).all()
     verified = await verified_of(session, user.id, book.id)
     # 내가 지금 읽고 있는 쪽(검증 직전)도 아직은 봉인 — 단, 내 반응은 늘 보인다
-    if chunk > verified:
+    if not page_open(verified, chunk):
         mine = [_out(r, n, user.id) for r, n in rows if r.user_id == user.id]
         return {"chunk": chunk, "sealed": len(rows) - len(mine), "items": mine}
     return {"chunk": chunk, "sealed": 0, "items": [_out(r, n, user.id) for r, n in rows]}

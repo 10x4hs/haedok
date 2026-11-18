@@ -3,6 +3,7 @@
 {% block content_class %}split admin{% endblock %}
 {% block heading %}<small>관리자</small>{{ self.admin_title() }}{% endblock %}
 {% block main %}
+{% set nav = nav if mileage_on() else nav|rejectattr('0', 'equalto', '/admin/rewards')|list %}
 <nav class="admin-nav seg full" aria-label="관리 메뉴">
   {% for href, label in nav %}<a href="{{ href }}" aria-pressed="{{ 'true' if path == href else 'false' }}">{{ label }}</a>{% endfor %}
 </nav>

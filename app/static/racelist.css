@@ -1,0 +1,96 @@
+/* 대결(/races)과 같이 읽기(/together) 목록 — 한 줄짜리 행 하나로 통일한다.
+   상자 대신 얇은 구분선, 색은 작은 표시에만: 복숭아(모집 · appearance.ACCENTS peach), 하늘(안 읽은 채팅) */
+.rl{--peach:#ffc2a8;--peach-ink:#ffc2a8;--peach-fill:rgba(255,194,168,.12);--peach-line:rgba(255,194,168,.45);--sky:#8fd3ff;max-width:680px}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]):not([data-bg-tone="dark"]) .rl{--peach-ink:#9a4a26;--peach-fill:rgba(214,110,66,.10);--peach-line:rgba(154,74,38,.40);--sky:#2e96ce}}
+:root[data-theme="light"]:not([data-bg-tone="dark"]) .rl{--peach-ink:#9a4a26;--peach-fill:rgba(214,110,66,.10);--peach-line:rgba(154,74,38,.40);--sky:#2e96ce}
+
+.rl-lede{margin:0 0 18px;color:var(--dim);font-size:14px}
+.rl-rank{display:inline-flex;align-items:center;min-height:44px;padding:0 6px;font-size:14px;font-weight:500;color:var(--dim)}
+.rl-rank:hover{color:var(--text)}
+
+/* 맨 위 할 일 두 개 */
+.rl-actions{display:flex;gap:8px}
+.rl-actions .btn{flex:1;height:44px;padding:0 18px;font-size:15px}
+@media (min-width:560px){.rl-actions .btn{flex:none;min-width:132px}}
+.rl-panel{margin-top:14px}
+.rl-code{display:grid;gap:8px}
+.rl-code label{font-size:13px;color:var(--dim)}
+.rl-code .code-row input,.rl-code .code-row .btn{height:48px}
+.rl-panel .seg.full{margin-top:10px}
+@media (min-width:768px){.rl-panel .pick-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
+
+/* 구역 */
+.rl-sec{margin-top:32px}
+.rl-sec .row-h{margin-bottom:4px}
+
+/* 행: 표지 · 두세 줄 · 오른쪽 끝 표시. 구역마다 높이가 같다 */
+.rl-list{list-style:none;margin:0 -8px;padding:0}
+.rl-list li+li{border-top:1px solid var(--line)}
+.rl-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:14px;min-height:76px;padding:10px 8px;border-radius:12px;transition:background .3s var(--ease)}
+.rl-row:hover{background:var(--sunken)}
+.rl-row:focus-visible{outline-offset:-2px}
+.rl-main{display:grid;gap:2px;min-width:0}
+.rl-main>*{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rl-main b{font-size:15px;font-weight:600;letter-spacing:-.02em}
+.rl-main b span{font-weight:400;color:var(--dim)}
+.rl-main>span{font-size:13px;color:var(--dim)}
+.rl-main .rl-pitch{color:var(--body)}
+.rl-end{display:flex;align-items:center;gap:10px;color:var(--dim)}
+.rl-end .ic{width:18px;height:18px}
+.rl-dot{width:8px;height:8px;border-radius:50%;background:var(--sky)}
+
+/* 모집 글 줄(당근 목록처럼): 큰 표지 · 굵은 핵심 하나(하루 분량) · 자리는 글 대신 얼굴과 빈 점으로 */
+.rl-post{grid-template-columns:84px minmax(0,1fr);gap:14px;align-items:stretch;padding:12px 8px}
+.rl-thumb{width:84px;height:112px;border-radius:8px;overflow:hidden;background:var(--sunken)}
+.rl-thumb .flatbook{margin:0;height:100%;aspect-ratio:auto;border-radius:8px}
+.rl-thumb .flatbook img{height:100%;aspect-ratio:auto;object-position:top}
+.rl-thumb .flatbook .cover{font-size:10px}
+.rl-body{display:grid;grid-template-rows:auto auto 1fr auto;gap:3px;min-width:0}
+.rl-line{display:flex;align-items:baseline;gap:8px;min-width:0}
+.rl-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px;font-weight:700;letter-spacing:-.02em}
+.rl-t span{font-size:13px;font-weight:400;color:var(--dim)}
+.rl-ago{flex:none;font-size:12px;color:var(--dim)}
+.rl-post .rl-pitch{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--body)}
+.rl-key{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;white-space:nowrap;align-self:center}
+.rl-chip{display:inline-flex;align-items:center;gap:4px;flex:none;height:24px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:600;line-height:1}
+.rl-chip .ic{width:13px;height:13px}
+.rl-pace{background:var(--sunken);color:var(--text);font-size:13px;font-weight:700}
+.rl-min{flex:none;font-size:12px;color:var(--dim)}
+.rl-free{border:1px dashed var(--glass-line);color:var(--body);font-weight:500}
+.rl-known{background:var(--peach-fill);border:1px solid var(--peach-line);color:var(--peach-ink);min-width:0;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto}
+/* 좁은 폰에서는 '약 n분'보다 '아는 사람'이 먼저다 */
+@media (max-width:399px){.rl-key:has(.rl-known) .rl-min{display:none}}
+.rl-state{border:1px solid var(--glass-line);color:var(--body);font-weight:500}
+.rl-foot{align-items:center;justify-content:space-between}
+.rl-seats{display:flex;align-items:center;flex:none}
+.rl-seats .avatar{width:20px;height:20px;font-size:10px;box-shadow:0 0 0 2px var(--bg)}
+.rl-seats .avatar+.avatar{margin-left:-5px}
+.rl-more{margin-left:4px;font-size:11px;color:var(--dim)}
+.rl-seat{width:9px;height:9px;margin-left:5px;border-radius:50%;border:1.5px solid color-mix(in srgb,var(--dim) 75%,transparent)}
+.rl-seats>:first-child.rl-seat{margin-left:0}
+.rl-host{display:flex;align-items:center;gap:5px;min-width:0;font-size:12px;color:var(--dim)}
+.rl-host .avatar{width:16px;height:16px;font-size:9px}
+.rl-host span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 마감 · 다 참: 칩 글자 + 흐린 표지(색에만 기대지 않는다) */
+.rl-post.is-shut .rl-thumb{opacity:.45;filter:grayscale(.8)}
+.rl-post.is-shut .rl-t{color:var(--body)}
+@media (min-width:768px){
+  .rl-post{grid-template-columns:96px minmax(0,1fr);gap:16px}
+  .rl-thumb{width:96px;height:128px}
+}
+
+/* 끝난 방은 접어 둔다 */
+.rl-done{margin-top:6px}
+.rl-done summary{display:flex;align-items:center;gap:6px;min-height:44px;font-size:14px;color:var(--dim);cursor:pointer;list-style:none}
+.rl-done summary::-webkit-details-marker{display:none}
+.rl-done summary::after{content:"";width:7px;height:7px;margin-left:2px;border:solid currentColor;border-width:0 1.5px 1.5px 0;transform:rotate(45deg) translateY(-2px);transition:transform .3s var(--ease)}
+.rl-done[open] summary::after{transform:rotate(-135deg) translateY(-1px)}
+
+/* 빈 상태: 처음에 무엇을 할지 한 문장 */
+.rl-empty{padding:14px 0 6px;border-top:1px solid var(--line)}
+.rl-empty b{display:block;font-size:15px;font-weight:600}
+.rl-empty p{margin:4px 0 0;font-size:14px;line-height:1.55;color:var(--dim)}
+
+.rl-write{display:inline-flex;align-items:center;min-height:44px;margin-top:6px;font-size:14px;font-weight:600;color:var(--peach-ink)}
+
+@media (prefers-reduced-motion:reduce){.rl-row,.rl-done summary::after{transition:none}}

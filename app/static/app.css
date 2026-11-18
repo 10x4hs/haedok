@@ -256,7 +256,7 @@ a:hover .bk,a:focus-visible .bk,.now:hover .bk,.pick:hover .bk{transform:rotateY
 .top-title{flex:1;min-width:0;margin:0;font:700 24px/1.2 var(--f-ui);letter-spacing:-.04em}
 .top-title small{display:block;font-size:14px;font-weight:500;color:var(--dim);letter-spacing:-.01em}
 .content{padding:4px 20px calc(var(--tab) + 40px + env(safe-area-inset-bottom))}
-.tabbar{position:fixed;z-index:10;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom));width:min(calc(100% - 32px),calc(var(--app) - 32px));height:var(--tab);display:grid;grid-template-columns:repeat(5,1fr);padding:0 6px;border-radius:999px;
+.tabbar{position:fixed;z-index:10;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom));width:min(calc(100% - 32px),calc(var(--app) - 32px));height:var(--tab);display:grid;grid-template-columns:repeat(var(--tabs,5),1fr);padding:0 6px;border-radius:999px;
   background:color-mix(in srgb,var(--surface) 72%,transparent);border:1px solid var(--glass-line);backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%);box-shadow:var(--shadow)}
 .tabbar a{display:grid;place-items:center;align-content:center;gap:2px;font-size:11px;font-weight:500;color:var(--dim);transition:color .3s var(--ease)}
 .tabbar a.on{color:var(--text)}
@@ -1002,8 +1002,9 @@ html:root[data-bg-tone="light"]{
 .l-android{border-color:#3ddc84}
 
 /* ---------- 관리자 (/admin) ---------- */
-.admin-nav{display:grid;grid-template-columns:repeat(4,1fr);width:100%;margin-bottom:16px}
-.admin-nav a{display:grid;place-items:center;height:36px;border-radius:999px;font-size:14px;font-weight:500;color:var(--dim);transition:background .4s var(--ease),color .4s var(--ease)}
+.admin-nav{display:flex;gap:2px;width:100%;margin-bottom:16px;overflow-x:auto;scrollbar-width:none}
+.admin-nav::-webkit-scrollbar{display:none}
+.admin-nav a{display:grid;place-items:center;flex:1 0 auto;padding:0 14px;white-space:nowrap;height:36px;border-radius:999px;font-size:14px;font-weight:500;color:var(--dim);transition:background .4s var(--ease),color .4s var(--ease)}
 .admin-nav a[aria-pressed="true"]{background:var(--text);color:var(--bg)}
 .form-ok{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok);border-radius:12px;padding:12px 14px;margin:0 0 12px;font-size:14px}
 .admin .form-err{margin-bottom:12px}

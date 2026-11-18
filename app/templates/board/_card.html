@@ -1,0 +1,32 @@
+{# 모집 글 한 줄 — /races '모집 중'과 /together가 같은 줄을 쓴다(당근 목록 줄처럼 한눈에).
+   큰 표지 | 제목·저자 ……… 몇 시간 전
+            한 줄 소개
+            [📖 하루 10쪽] 약 10분  [👤 아는 사람 1명]
+            (얼굴)(얼굴)○○○○ ……… (방장) 이름
+   줄 전체가 글로 가는 링크다(참가하기는 글 화면에). 마감 · 다 참 · 참가 중은 글자 칩과 흐린 표지로 구별한다. #}
+{% from "_ui.html" import flat_cover, avatar, icon %}
+{% macro post_row(v) -%}
+{% set shut = not v.is_member and not v.joinable %}
+<li><a class="rl-row rl-post{{ ' is-shut' if shut }}" href="/together/{{ v.post.id }}">
+  <div class="rl-thumb">{{ flat_cover(v.book.title, v.book.author, cover_of(v.book)|small_cover) }}</div>
+  <div class="rl-body">
+    <div class="rl-line"><b class="rl-t">{{ v.book.title }}{% if v.book.author %}<span> {{ v.book.author }}</span>{% endif %}</b><time class="rl-ago" datetime="{{ v.post.created_at.isoformat() if v.post.created_at else '' }}">{{ v.ago }}</time></div>
+    <span class="rl-pitch">{{ v.post.pitch }}</span>
+    <div class="rl-key">
+      {% if v.post.pace %}<span class="rl-chip rl-pace">{{ icon('book') }}하루 {{ v.post.pace }}쪽</span><span class="rl-min">약 {{ v.post.pace }}분</span>
+      {% else %}<span class="rl-chip rl-free">내 속도대로</span>{% endif %}
+      {% if v.is_member %}<span class="rl-chip rl-state">참가 중</span>
+      {% elif shut %}<span class="rl-chip rl-state">{{ '마감' if v.post.status != 'open' or not v.is_open else '다 찼어요' }}</span>
+      {% elif v.known %}<span class="rl-chip rl-known">{{ icon('me') }}아는 사람 {{ v.known }}명</span>{% endif %}
+    </div>
+    <div class="rl-line rl-foot">
+      <span class="rl-seats" role="img" aria-label="{{ v.seats_text }}">
+        {%- for m in v.faces %}{{ avatar(m) }}{% endfor %}
+        {%- if v.more %}<span class="rl-more mono">+{{ v.more }}</span>{% endif %}
+        {%- for _ in range(v.empty_seats) %}<i class="rl-seat"></i>{% endfor -%}
+      </span>
+      <span class="rl-host">{{ avatar(v.host) }}<span>{{ v.host.nickname }}</span></span>
+    </div>
+  </div>
+</a></li>
+{%- endmacro %}

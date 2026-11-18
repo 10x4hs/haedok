@@ -231,6 +231,7 @@ async def test_verified_chunk_reaction_and_pages_award_points(api, clock):
         assert 'class="lb-me' in mine and "1<small>위</small>" in mine
         # /me 요약 카드
         me_page = (await friend.get("/me")).text
-        assert "points-card" in me_page and "1</b>일 연속" in me_page
+        # 연속 기록은 목표 카드 하나에만 보인다(자정/새벽 4시 기준이 달라 숫자가 엇갈리지 않게)
+        assert "points-card" in me_page and "</b>일 연속" not in me_page and 'id="goal"' in me_page
         # /races 헤더에서 순위로 가는 링크
         assert 'href="/leaderboard"' in (await host.get("/races")).text

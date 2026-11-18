@@ -1,0 +1,23 @@
+{% extends "admin/_layout.html" %}
+{% block admin_title %}모집 신고{% endblock %}
+{% block admin %}
+<section class="row">
+  <div class="row-h"><h2>신고된 모집 글</h2><span class="mono muted">{{ rows|length }}</span></div>
+  {% if not rows %}<p class="muted">아직 신고된 글이 없어요</p>{% endif %}
+  <ul class="admin-list">
+  {% for r in rows %}
+    <li>
+      <div>
+        <b>{{ r.title }} <em class="tag{{ ' bad' if r.post.status == 'open' else '' }}">{{ '모집 중' if r.post.status == 'open' else '마감' }}</em></b>
+        <span>{{ r.host }} · 신고 {{ r.reports }}건({% for k, n in r.reasons.items() %}{{ k }} {{ n }}{{ ', ' if not loop.last }}{% endfor %}) · 마지막 {{ r.last|fmt_dt }}</span>
+        <span>“{{ r.post.pitch }}”</span>
+      </div>
+      <a class="pill" href="/together/{{ r.post.id }}">열기</a>
+      {% if r.post.status == 'open' %}
+      <form method="post" action="/admin/together/{{ r.post.id }}/close"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="pill">내리기</button></form>
+      {% endif %}
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% endblock %}

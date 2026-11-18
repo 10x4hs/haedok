@@ -1,0 +1,21 @@
+{% extends "app.html" %}
+{% block title %}소식 — 偕讀 해독{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/posts.css">{% endblock %}
+{% block heading %}소식{% endblock %}
+{% block main %}
+<div class="ps ps-feed">
+  <div class="ps-feed-top">
+    <nav class="ps-ig-tabs" aria-label="소식 범위">
+      <a href="/feed" aria-current="{{ 'page' if tab == 'friends' else 'false' }}">친구</a>
+      <a href="/feed?tab=all" aria-current="{{ 'page' if tab == 'all' else 'false' }}">모두</a>
+    </nav>
+    <a class="ps-new pill" href="/posts/new"><span aria-hidden="true">＋</span> 올리기</a>
+  </div>
+  <p class="muted small ps-lede">{{ '나와 친구가 올린 읽은 책이에요.' if tab == 'friends' else '가입한 모두에게 보이게 올린 읽은 책이에요.' }}</p>
+  {% if msg %}<p class="form-ok" role="status">{{ msg }}</p>{% endif %}
+  {% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
+  {% include "posts/_feed_list.html" %}
+  {% if not cards and not paged and tab == 'friends' %}<p class="ps-alt"><a href="/feed?tab=all">모두의 게시물 둘러보기 ›</a></p>{% endif %}
+</div>
+<script src="/static/posts.js" defer></script>
+{% endblock %}

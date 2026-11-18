@@ -1,14 +1,14 @@
 {% extends "base.html" %}
-{% from "_ui.html" import book_cover, brand, icon %}
-{% block body_class %}landing{% endblock %}
+{% from "_ui.html" import book_cover, icon %}
+{% from "_public.html" import public_head, public_nav, public_footer, clip %}
+{% block body_class %}landing pub pub-landing{% endblock %}
+{% block head_extra %}{{ public_head() }}{% endblock %}
 {% block description %}고전 {{ total }}권을 무료로, 내 EPUB·PDF도 같은 리더로. 친구와 같은 책을 각자의 속도로 함께 읽는 소셜 독서 앱 해독(偕讀).{% endblock %}
 {% block og_title %}偕讀 해독 — 같은 책을 각자의 속도로 함께 읽어요{% endblock %}
 {% block body %}
-<div class="phone">
-  <header class="l-nav">
-    {{ brand() }}
-    <a class="pill" href="/login">로그인</a>
-  </header>
+{{ public_nav('home') }}
+<main id="main">
+<div class="phone l-hero">
   <section class="l-stage" aria-hidden="true" data-tilt="8">
     <div class="l-glow"></div>
     {% for b in picks[:5] %}<div class="l-book" style="--i:{{ loop.index0 - 2 }}">{{ book_cover(b.title, b.author, 'lg', img=b.cover) }}</div>{% endfor %}
@@ -17,10 +17,6 @@
     <p class="eyebrow mono">고전 {{ total }}권 · 무료</p>
     <h1>같은 책을<br>각자의 속도로<br><em>함께</em> 읽어요</h1>
     <p class="l-lede">고전 {{ total }}권을 처음부터 끝까지. 내 EPUB·PDF도 같은 리더로 넘겨 읽어요.</p>
-    <button class="l-play" type="button" id="demoOpen" aria-haspopup="dialog">
-      <span class="l-play-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="12" height="12"><path fill="currentColor" d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></svg></span>
-      41초 영상으로 보기
-    </button>
   </section>
   <link rel="stylesheet" href="/static/landing-books.css">
   <div class="marquee sc-strip" role="group" aria-label="유명한 책들"><div class="marquee-track">
@@ -106,9 +102,105 @@
         Android 다운로드
       </a>
     </div>
-    <a class="l-about" href="/intro">偕讀(해독)이 뭔가요? 소개 보기 →</a>
+    <a class="l-about" href="/guide">처음이라면 사용법부터 볼까요?</a>
   </div>
 </div>
+
+<section class="feat pub-wrap" id="search" aria-labelledby="h-search">
+  <div class="feat-text">
+    <h2 id="h-search">읽을 책은 검색 한 번으로 찾아요.</h2>
+    <p>저작권이 끝난 고전 {{ total }}권은 처음부터 끝까지 무료로 읽어요. 신간은 서점에서 찾아 책 정보와 구매 링크를 보여 줘요.</p>
+    <ul class="feat-notes">
+      <li><b>고전과 서점 책이 한 번에</b>제목이나 작가 이름을 넣으면 바로 읽을 수 있는 고전과 서점 책이 같이 나와요.</li>
+      <li><b>산 책은 올려서 같은 리더로</b>DRM 없는 EPUB·PDF·TXT 파일을 올리면 고전과 똑같이 넘겨 읽어요.</li>
+    </ul>
+  </div>
+  {{ clip('search', '검색', "‘날개’를 넣자 이상의 「날개」가 ‘무료로 읽기’와 함께 나와요.") }}
+</section>
+
+<section class="feat pub-wrap" id="verify" aria-labelledby="h-verify">
+  <div class="feat-text">
+    <h2 id="h-verify">진도는 서버가 인정해요.</h2>
+    <p>쪽을 펼치고 {{ facts.page_s }}초가 지나야 그 쪽이 ‘다 읽음’이 돼요. 시간은 내 휴대폰이 아니라 서버가 재서, 넘기기만 해서는 진도가 오르지 않아요.</p>
+    <ul class="feat-notes">
+      <li><b>앞 쪽부터 차례대로</b>아무 쪽이나 펼쳐 볼 수 있지만, 인정은 바로 다음 쪽만 받아요.</li>
+      <li><b>모두에게 같은 규칙</b>그래서 친구와 진도를 견줘도 공정해요.</li>
+    </ul>
+  </div>
+  {{ clip('verify', "‘다 읽음’ 인정", facts.page_s ~ '초 고리가 다 차면 그 쪽이 인정돼요.') }}
+</section>
+
+<section class="feat pub-wrap" id="unseal" aria-labelledby="h-unseal">
+  <div class="feat-text">
+    <h2 id="h-unseal">친구 감상은 내가 읽은 만큼만 열려요.</h2>
+    <p>같은 대결방 친구가 문단에 남긴 감상은 내가 그 쪽을 다 읽은 뒤에 보여요. 그 전에는 몇 개가 있는지만 알려 줘요.</p>
+    <ul class="feat-notes">
+      <li><b>스포일러 걱정 없이</b>아직 안 읽은 쪽의 감상은 서버가 아예 보내지 않아요.</li>
+      <li><b>이모지나 한 줄로</b>마음에 남은 문단에 이모지나 짧은 글을 남겨요.</li>
+    </ul>
+  </div>
+  {{ clip('unseal', '감상 열림', '4쪽을 다 읽자 친구 세 명의 감상이 열려요.') }}
+</section>
+
+<section class="feat pub-wrap" id="together" aria-labelledby="h-together">
+  <div class="feat-text">
+    <h2 id="h-together">친구가 어디쯤 읽는지 보여요.</h2>
+    <p>같은 책을 펼친 친구가 지금 몇 쪽에 있는지 리더에 떠요. 대결방에서는 인정받은 쪽 수로 순위를 매겨요.</p>
+    <ul class="feat-notes">
+      <li><b>각자의 속도로</b>같은 시간에 모이지 않아도 서로의 자리가 보여요.</li>
+      <li><b>앞지르면 마일리지</b>같은 방 친구를 처음 앞설 때마다 마일리지를 받아요.</li>
+    </ul>
+  </div>
+  {{ clip('together', '같이 읽는 중', '내 진도가 친구들을 앞지르는 모습이에요.') }}
+</section>
+
+<section class="also pub-wrap" aria-labelledby="h-also">
+  <h2 id="h-also">이것도 할 수 있어요</h2>
+  <ul class="also-list">
+    <li><b>하루 목표와 잔디</b>하루에 읽을 쪽 수(3·5·10·20쪽)를 정하고, 읽은 날을 잔디로 모아 봐요.</li>
+    <li><b>친구와 채팅</b>친구와 개인 채팅을, 같은 방에서는 방 채팅을 해요. 방 채팅도 읽은 쪽까지만 열려요.</li>
+    <li><b>같이 읽을 사람 모집</b>모집 게시판에서 같은 책을 읽을 사람을 찾아요.</li>
+    <li><b>마일리지 상점</b>읽고 모은 마일리지를 상점에서 보상으로 바꿔요.</li>
+  </ul>
+</section>
+
+<section class="cmp pub-wrap" aria-labelledby="h-cmp">
+  <h2 id="h-cmp">해독이 하는 일, 하지 않는 일</h2>
+  <p class="cmp-lede">같이 읽는 재미는 살리고, 읽는 사람을 불편하게 하는 일은 하지 않아요.</p>
+  <div class="tbl stackable">
+    <table>
+      <thead><tr><th scope="col">무엇</th><th scope="col">해독이 하는 일</th><th scope="col">하지 않는 일</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">진도</th><td data-label="하는 일">서버가 잰 시간으로 쪽마다 인정해요</td><td data-label="하지 않는 일">넘긴 쪽 수를 그대로 믿지 않아요</td></tr>
+        <tr><th scope="row">감상</th><td data-label="하는 일">내가 읽은 쪽까지만 보여 줘요</td><td data-label="하지 않는 일">앞 내용을 미리 흘리지 않아요</td></tr>
+        <tr><th scope="row">책</th><td data-label="하는 일">저작권이 끝난 고전은 본문을 그대로 보여 줘요</td><td data-label="하지 않는 일">신간 본문은 싣지 않고 구매 링크로 안내해요</td></tr>
+        <tr><th scope="row">내 파일</th><td data-label="하는 일">올린 사람만 열어서 읽어요</td><td data-label="하지 않는 일">친구에게 본문을 나누지 않아요. 진도와 감상만 함께 봐요</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="faq pub-wrap" aria-labelledby="h-faq">
+  <h2 id="h-faq">궁금한 점</h2>
+  <div class="faq-list">
+    <details><summary>정말 무료예요?</summary><p>가입하고 고전 {{ total }}권을 읽는 데 돈이 들지 않아요. 신간은 해독이 아니라 서점에서 사야 해요.</p></details>
+    <details><summary>앱을 깔아야 하나요?</summary><p>브라우저에서 바로 써요. 아이폰은 Safari에서 홈 화면에 추가하고, 안드로이드는 위의 Android 다운로드로 앱을 받아요.</p></details>
+    <details><summary>친구가 없어도 쓸 수 있어요?</summary><p>네. 혼자 읽어도 ‘다 읽음’과 마일리지가 똑같이 쌓여요. 친구가 생기면 초대 코드로 같은 방에 모이면 돼요.</p></details>
+    <details><summary>{{ facts.page_s }}초보다 빨리 읽으면 어떻게 돼요?</summary><p>다음 쪽으로 넘어갈 수는 있어요. 다만 ‘다 읽음’은 쪽마다 {{ facts.page_s }}초가 지나야 돼서, 진도는 그만큼만 올라요.</p></details>
+  </div>
+  <p class="faq-more">규칙을 더 자세히 보려면 <a href="/docs">Docs</a>를 읽어 보세요.</p>
+</section>
+
+<section class="close pub-wrap" aria-labelledby="h-close">
+  <h2 id="h-close">오늘은 첫 쪽부터 같이 읽어요.</h2>
+  <p>가입은 이메일 하나면 돼요. 친구에게 초대 코드만 보내면 같은 책을 함께 읽기 시작해요.</p>
+  <div class="close-cta">
+    <a class="btn primary" href="/signup">무료로 시작하기</a>
+    <a class="btn ghost" href="/guide">사용법 먼저 보기</a>
+  </div>
+</section>
+</main>
+{{ public_footer() }}
 <div class="ios-sheet" id="iosSheet" hidden role="dialog" aria-modal="true" aria-labelledby="iosTitle">
   <div class="ios-sheet-card">
     <img src="/static/icons/apple-touch-icon.png" alt="" width="56" height="56">
@@ -125,25 +217,5 @@
   </div>
   <div class="ios-arrow" aria-hidden="true">↓</div>
 </div>
-<div class="demo-modal" id="demoModal" hidden role="dialog" aria-modal="true" aria-label="해독 시연 영상">
-  <div class="demo-frame">
-    <video id="demoVideo" src="/static/demo/haedok-demo.mp4" poster="/static/demo/haedok-demo-poster.jpg" playsinline controls preload="none"></video>
-    <button class="demo-close" type="button" data-close aria-label="닫기">✕</button>
-  </div>
-</div>
-<script nonce="{{ csp_nonce }}">
-(() => {
-  const m = document.getElementById('demoModal'), v = document.getElementById('demoVideo'), open = document.getElementById('demoOpen');
-  const close = () => { v.pause(); m.hidden = true; document.body.classList.remove('locked'); open.focus(); };
-  open.addEventListener('click', () => {
-    m.hidden = false; document.body.classList.add('locked');
-    v.currentTime = 0; v.play().catch(() => {});
-    m.querySelector('[data-close]').focus();
-  });
-  m.addEventListener('click', (e) => { if (e.target === m || e.target.closest('[data-close]')) close(); });
-  addEventListener('keydown', (e) => { if (e.key === 'Escape' && !m.hidden) close(); });
-  v.addEventListener('ended', () => setTimeout(close, 600));
-})();
-</script>
 <script src="/static/install.js" defer></script>
 {% endblock %}

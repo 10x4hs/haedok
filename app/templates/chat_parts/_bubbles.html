@@ -1,0 +1,17 @@
+{# 친구 동그라미 줄(Instagram 받은 편지함 맨 위처럼): 56px 동그라미 · 이름 한 줄.
+   최근 10분 안에 책을 펼친 친구는 하늘색 링. 읽는 책은 여기 대신 대화 줄과 대화 머리에 — 공개 책 제목만(chat.friend_cards). #}
+{% from "_ui.html" import avatar %}
+{% macro bubble_row(cards, label='친구') -%}
+<section class="ch-bubbles" aria-label="{{ label }} — 누르면 대화가 열려요">
+  <ul>
+    {% for c in cards %}
+    <li>
+      <a href="/chat/dm/{{ c.user.id }}" aria-label="{{ c.user.nickname }}{% if c.active %} · 지금 읽는 중{% endif %}{% if c.book %} · {{ c.book.title }}{% endif %} — 대화 열기">
+        <span class="ch-ring{{ ' on' if c.active }}">{{ avatar(c.user, 'ch-bub') }}</span>
+        <b>{{ c.user.nickname }}</b>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{%- endmacro %}
