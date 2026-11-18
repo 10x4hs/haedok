@@ -9,10 +9,13 @@
     <button class="menu-pill" id="menuBtn" aria-label="메뉴" aria-expanded="false" aria-controls="menu"><span></span><span></span></button>
   </header>
   <main class="content {% block content_class %}{% endblock %}">{% block main %}{% endblock %}</main>
-  <nav class="tabbar" aria-label="주 메뉴">
+  {% set chat_on = chat_enabled is defined and chat_enabled() %}
+  {% set tabs = [('/', 'home', '홈'), ('/discover', 'discover', '탐색'), ('/races', 'race', '대결'), ('/library', 'library', '서재')] + ([('/chat', 'chat', '메시지')] if chat_on else []) + [('/me', 'me', '나')] %}
+  <nav class="tabbar" aria-label="주 메뉴"{% if chat_on %} style="--tabs:6"{% endif %}>
     <a class="side-brand" href="/" aria-label="해독 홈">{{ brand() }}</a>
-    {% for href, name, label in [('/', 'home', '홈'), ('/discover', 'discover', '탐색'), ('/races', 'race', '대결'), ('/library', 'library', '서재'), ('/me', 'me', '나')] %}
-    <a href="{{ href }}" class="{{ 'on' if (path == href or (href != '/' and path.startswith(href))) else '' }}">{{ icon(name) }}<span>{{ label }}</span></a>
+    {% for href, name, label in tabs %}
+    {% set n = chat_unread(request, user) if href == '/chat' else 0 %}
+    <a href="{{ href }}" class="{{ 'on' if (path == href or (href != '/' and path.startswith(href)) or (href == '/chat' and path.startswith('/friends'))) else '' }}"{% if href == '/chat' %} style="position:relative"{% if n %} aria-label="메시지, 안 읽은 메시지 {{ n }}개"{% endif %}{% endif %}>{{ icon(name) }}<span>{{ label }}</span>{% if n %}<i data-chat-unread aria-hidden="true" style="position:absolute;top:7px;left:calc(50% + 5px);min-width:17px;height:17px;padding:0 5px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font:700 10px/17px var(--f-mono);font-style:normal;text-align:center">{{ n if n < 100 else '99+' }}</i>{% endif %}</a>
     {% endfor %}
   </nav>
 </div>
@@ -22,7 +25,6 @@
     {% block menu_extra %}{% endblock %}
     <a href="/search">{{ icon('search') }}<span>검색</span></a>
     <a href="/races">{{ icon('race') }}<span>친구와 대결</span></a>
-    {% if chat_enabled is defined and chat_enabled() %}<a href="/chat">{{ icon('chat') }}<span>채팅</span>{% if chat_unread(request, user) %}<i data-chat-unread role="img" aria-label="안 읽은 메시지가 있어요" style="width:8px;height:8px;margin-left:auto;border-radius:50%;background:var(--accent)"></i>{% endif %}</a>{% endif %}
     <a href="/upload">{{ icon('upload') }}<span>내 파일 올리기</span></a>
     <button type="button" data-open-look>{{ icon('theme') }}<span>화면 꾸미기</span></button>
   </nav>

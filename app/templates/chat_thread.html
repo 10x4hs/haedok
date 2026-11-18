@@ -1,105 +1,127 @@
 {% extends "app.html" %}
-{% from "_ui.html" import avatar, flat_cover, toast_region %}
-{% from "chat_parts/_list.html" import conv_list %}
+{% from "_ui.html" import avatar, flat_cover, icon, toast_region %}
+{% from "chat_parts/_list.html" import list_pane, person_link %}
 {% set room = conv.kind == 'room' %}
-{% block title %}{{ conv.title }} 채팅 — 偕讀 해독{% endblock %}
-{% block content_class %}wide{% endblock %}
-{% block heading %}<small>{{ '대결방' if room else '개인 채팅' }}</small>{{ conv.title }}{% endblock %}
-{% block top_extra %}<a class="pill ch-back" href="/chat?tab={{ conv.kind }}" aria-label="채팅 목록으로">목록</a>{% endblock %}
+{% set posts_on = feature_posts is defined and feature_posts() %}
+{% block title %}{{ conv.title }} — 메시지 · 偕讀 해독{% endblock %}
+{% block body_class %}app chat-shell chat-at-thread{% endblock %}
+{% block content_class %}chat{% endblock %}
 {% block main %}
 <link rel="stylesheet" href="/static/chat.css">
-<div class="ch-scope ch-panes in-thread">
-  <section class="ch-side" aria-label="대화 목록">
-    {{ conv_list(tab, convs, unread, current=conv.href) }}
-  </section>
+<div class="ch-app ch-scope in-thread">
+  {{ list_pane(tab, convs, unread, bubbles, current=conv.href) }}
 
-  <section class="ch-main ch-thread" id="chat"
+  <section class="ch-threadpane" id="chat" aria-label="{{ conv.title }} 대화"
     data-api="{{ api }}" data-kind="{{ conv.kind }}" data-channel="{{ channel }}" data-me="{{ user.id }}"
     data-owner="{{ 'true' if owner else 'false' }}"{% if room %} data-room="{{ conv.room.id }}"{% endif %}>
     <script type="application/json" id="chatData" nonce="{{ csp_nonce }}">{{ {"names": names, "emojis": emojis}|tojson }}</script>
+    {# 대화 칸만의 배경: 방은 그 책 표지를 크게 흐린 면, 개인 채팅은 옅은 하늘색 면과 결 #}
+    {% if room %}{% set cv = cover(conv.book.title, conv.book.author) %}{% set img = cover_of(conv.book)|small_cover %}
+    <div class="ch-backdrop room p{{ cv.palette }}"{% if img %} style="--cover:url('{{ img }}')"{% endif %}></div>
+    {% else %}<div class="ch-backdrop dm"></div>{% endif %}
 
-    {% if room %}
-    {# Discord의 '서버'처럼: 책 표지 · 방 이름 · 멤버 얼굴, 그 아래 채널 두 개 #}
-    <header class="ch-server">
-      <span class="ch-server-cover">{{ flat_cover(conv.book.title, conv.book.author, cover_of(conv.book)|small_cover) }}</span>
-      <div class="ch-server-t">
-        <b>{{ conv.room.name }}</b>
-        <span>{{ conv.book.author or conv.book.title }} · 멤버 {{ members|length }}명 · 나는 {{ my_page if my_page > 0 else 0 }}쪽까지 읽음</span>
-      </div>
-      <button type="button" class="ch-faces" id="membersBtn" aria-controls="members" aria-expanded="false" aria-label="멤버 {{ members|length }}명 · 읽은 쪽 보기">
-        {% for m in members[:4] %}{{ avatar(m.user, 'ch-face') }}{% endfor %}{% if members|length > 4 %}<span class="avatar ch-face more mono">+{{ members|length - 4 }}</span>{% endif %}
-      </button>
-    </header>
-    <nav class="ch-channels" aria-label="채널">
-      {% for key, label in [('book', '책 이야기'), ('chat', '수다')] %}
-      <a href="/chat/room/{{ conv.room.id }}?ch={{ key }}" aria-pressed="{{ 'true' if channel == key else 'false' }}"{% if channel == key %} aria-current="page"{% endif %} data-ch="{{ key }}">
-        <span class="ch-hash" aria-hidden="true">#</span>{{ label }}
-        <span class="ch-count mono" data-ch-count="{{ key }}"{% if channel == key or not channel_unread[key] %} hidden{% endif %}>{{ channel_unread[key] }}</span>
-      </a>
-      {% endfor %}
-    </nav>
-    <p class="ch-chan-note">{% if channel == 'book' %}🔒 보낸 사람이 읽은 쪽까지 읽은 사람에게만 열려요. 덜 읽었으면 ‘n쪽을 읽으면 열려요’만 보여요.{% else %}쪽 도장 없이 모두에게 보여요. 줄거리 이야기는 # 책 이야기에서 해 주세요.{% endif %}</p>
-
-    <div class="ch-notice" id="notice"{% if not notice %} hidden{% endif %}>
-      <span aria-hidden="true">📌</span><span class="ch-notice-t"><b>공지</b> <span id="noticeText">{{ notice or '' }}</span></span>
-    </div>
-    {% if owner %}
-    <details class="ch-notice-edit">
-      <summary>{{ '공지 바꾸기' if notice else '공지 올리기' }} <small class="muted">방장만 · 두 채널 맨 위에 보여요</small></summary>
-      <form id="noticeForm" class="ch-notice-form">
-        <label for="noticeIn" class="ch-sr">공지</label>
-        <input id="noticeIn" maxlength="140" value="{{ notice or '' }}" placeholder="예: 이번 주는 30쪽까지 읽어요">
-        <button class="pill">저장</button>
-      </form>
-    </details>
-    {% endif %}
-    {% else %}
-    <header class="ch-server dm">
-      {{ avatar(conv.other, 'ch-av') }}
-      <div class="ch-server-t"><b>{{ conv.other.nickname }}</b><span>친구 · 1:1 대화</span></div>
-    </header>
-    {% endif %}
-
-    <div class="ch-stage">
-      <div class="ch-flow">
-        <button type="button" class="pill ch-older" id="older" hidden>이전 메시지</button>
-        <ol class="ch-log" id="log" role="log" aria-live="polite" aria-label="메시지" aria-busy="true"></ol>
-        <p class="ch-empty" id="empty" hidden>{% if room and channel == 'book' %}아직 책 이야기가 없어요. 읽은 데까지의 감상을 남겨 보세요.{% elif room %}아직 수다가 없어요. 가볍게 인사해 보세요.{% else %}아직 메시지가 없어요. 첫 마디를 건네 보세요.{% endif %}</p>
-
-        <form class="ch-compose" id="compose" autocomplete="off">
-          <div class="ch-replying" id="replying" hidden>
-            <span><b id="replyWho"></b>님에게 답장 · <span id="replyText"></span></span>
-            <button type="button" id="replyCancel" aria-label="답장 취소">✕</button>
-          </div>
-          <div class="ch-row">
-            <label for="text" class="ch-sr">메시지</label>
-            <textarea id="text" name="text" rows="1" maxlength="500" placeholder="{{ '# 책 이야기에 보내기' if room and channel == 'book' else ('# 수다에 보내기' if room else '메시지 보내기') }}" required></textarea>
-            <button class="btn primary ch-send" id="send">보내기</button>
-          </div>
-          <p class="ch-tips">{% if room and channel == 'book' %}<span class="ch-stamp mono">{{ my_page if my_page > 0 else 0 }}쪽 도장</span> {% endif %}<code>||이렇게||</code> 감싸면 가려져요{% if room %} · <code>@닉네임</code>으로 부르기{% endif %}</p>
-          <p class="ch-hint" id="hint" aria-live="polite"></p>
-        </form>
-      </div>
+    <div class="ch-col">
+      <header class="ch-thead">
+        <a class="ch-icon-btn ch-back" href="/chat?tab={{ conv.kind }}" aria-label="메시지 목록으로">{{ icon('back') }}</a>
+        {% if room %}
+        <span class="ch-thead-cover">{{ flat_cover(conv.book.title, conv.book.author, img) }}</span>
+        <div class="ch-thead-t">
+          <b>{{ conv.room.name }}</b>
+          <span>멤버 {{ members|length }}명 · 나는 {{ my_page if my_page > 0 else 0 }}쪽까지 읽음</span>
+        </div>
+        <button type="button" class="ch-icon-btn ch-faces" id="membersBtn" aria-controls="members" aria-expanded="false" aria-label="멤버 {{ members|length }}명과 읽은 쪽 보기">
+          {% for m in members[:3] %}{{ avatar(m.user, 'ch-face') }}{% endfor %}
+        </button>
+        {% else %}
+        {{ person_link(conv.other, avatar(conv.other, 'ch-thead-av' + (' ch-ring-on' if status and status.active else ''))) }}
+        <div class="ch-thead-t">
+          <b>{{ person_link(conv.other, conv.other.nickname) }}</b>
+          <span class="{{ 'ch-live-t' if status and status.active }}">{% if status and status.active %}지금 읽는 중{% if status.book %} · {{ status.book.title }} {{ status.page }}쪽{% endif %}{% elif status and status.book %}최근 · {{ status.book.title }} {{ status.page }}쪽{% else %}친구{% endif %}</span>
+        </div>
+        {% endif %}
+      </header>
 
       {% if room %}
-      <aside class="ch-members" id="members" aria-label="멤버와 읽은 쪽">
-        <h2>멤버 <span class="mono">{{ members|length }}</span></h2>
-        <ul>
-          {% for m in members %}
-          <li>
-            {{ avatar(m.user, 'ch-face') }}
-            <div>
-              <b>{{ m.user.nickname }}{% if m.me %} <em class="tag">나</em>{% endif %}{% if m.owner %} <em class="tag">방장</em>{% endif %}</b>
-              <span class="ch-prog" role="img" aria-label="{{ m.pages }}쪽 · {{ m.pct }}%"><i style="width:{{ m.pct }}%"></i></span>
-            </div>
-            <span class="mono ch-pages">{{ m.pages }}쪽</span>
-          </li>
-          {% endfor %}
-        </ul>
-        <p class="ch-members-note">검증된 쪽 / {{ conv.book.total_chunks }}쪽 — 대결방 순위와 같은 값이에요.</p>
-      </aside>
+      <nav class="ch-chan" aria-label="채널">
+        {% for key, label in [('book', '책 이야기'), ('chat', '수다')] %}
+        <a href="/chat/room/{{ conv.room.id }}?ch={{ key }}" aria-pressed="{{ 'true' if channel == key else 'false' }}"{% if channel == key %} aria-current="page"{% endif %}>
+          <span class="ch-hash" aria-hidden="true">#</span>{{ label }}<span class="ch-pip mono" data-ch-count="{{ key }}"{% if channel == key or not channel_unread[key] %} hidden{% endif %}>{{ channel_unread[key] }}</span>
+        </a>
+        {% endfor %}
+        <span class="ch-chan-note">{% if channel == 'book' %}<svg class="ch-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>읽은 쪽까지만 열려요{% else %}모두에게 보여요{% endif %}</span>
+      </nav>
+      <div class="ch-notice" id="notice"{% if not notice and not owner %} hidden{% endif %}>
+        <span class="ch-notice-ic"><svg class="ch-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h3l6 4V6L7 10z"/><path d="M16.5 9.5a3.5 3.5 0 0 1 0 5"/></svg></span>
+        <span class="ch-notice-t" id="noticeText">{{ notice or '' }}</span>
+        {% if owner %}<button type="button" class="ch-notice-edit" id="noticeEdit" aria-expanded="false" aria-controls="noticeForm">{{ '바꾸기' if notice else '공지 올리기' }}</button>{% endif %}
+      </div>
+      {% if owner %}
+      <form id="noticeForm" class="ch-notice-form" hidden>
+        <label for="noticeIn" class="ch-sr">공지 (방장만 · 두 채널 맨 위에 보여요)</label>
+        <input id="noticeIn" name="notice" autocomplete="off" maxlength="140" value="{{ notice or '' }}" placeholder="예: 이번 주는 30쪽까지 읽어요…">
+        <button class="ch-mini">저장</button>
+      </form>
       {% endif %}
+      {% endif %}
+
+      <div class="ch-scroll" id="scroll" tabindex="-1">
+        <button type="button" class="ch-older" id="older" hidden>이전 메시지 보기</button>
+        <ol class="ch-log" id="log" role="log" aria-live="polite" aria-label="메시지" aria-busy="true">
+          <li class="ch-skel" aria-hidden="true"><i></i></li><li class="ch-skel me" aria-hidden="true"><i></i></li><li class="ch-skel" aria-hidden="true"><i></i></li>
+        </ol>
+        <div class="ch-tempty" id="empty" hidden>
+          <span class="ch-lempty-ic" aria-hidden="true">{{ icon('chat') }}</span>
+          <b>{% if room and channel == 'book' %}아직 책 이야기가 없어요{% elif room %}아직 수다가 없어요{% else %}{{ conv.title }}님과의 첫 대화예요{% endif %}</b>
+          <p>{% if room and channel == 'book' %}읽은 데까지의 감상을 남겨 보세요. 덜 읽은 사람에게는 잠겨서 보여요.{% elif room %}가볍게 인사해 보세요. 줄거리는 # 책 이야기에서!{% else %}지금 읽는 책 이야기로 시작해 보세요.{% endif %}</p>
+        </div>
+        <div class="ch-terr" id="loadErr" hidden role="alert">
+          <b>메시지를 불러오지 못했어요</b>
+          <button type="button" class="ch-mini" id="retry">다시 시도</button>
+        </div>
+      </div>
+
+      <form class="ch-compose" id="compose" autocomplete="off">
+        <div class="ch-replying" id="replying" hidden>
+          <svg class="ch-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 8 5 12l5 4"/><path d="M5 12h9a5 5 0 0 1 5 5v1"/></svg><span class="ch-replying-t"><b id="replyWho"></b>에게 답장<span id="replyText"></span></span>
+          <button type="button" class="ch-icon-btn sm" id="replyCancel" aria-label="답장 취소"><svg class="ch-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+        </div>
+        <p class="ch-typing-hint" id="typingHint" hidden aria-live="polite"></p>
+        <div class="ch-bar-row">
+          <button type="button" class="ch-icon-btn sm ch-help-btn" id="helpBtn" aria-expanded="false" aria-controls="helpPop" aria-label="쓰는 법"><svg class="ch-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.5V14M12 17.5h.01"/></svg></button>
+          <label for="text" class="ch-sr">메시지</label>
+          <textarea id="text" name="text" rows="1" maxlength="500" placeholder="{{ ('# 책 이야기 · ' ~ (my_page if my_page > 0 else 0) ~ '쪽 도장') if room and channel == 'book' else ('# 수다에 보내기…' if room else '메시지 보내기…') }}" required></textarea>
+          <button class="ch-send" id="send" aria-label="보내기" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg>
+          </button>
+        </div>
+        <div class="ch-help" id="helpPop" hidden>
+          {% if room and channel == 'book' %}<p><b>쪽 도장</b> 보낼 때 내가 검증받은 {{ my_page if my_page > 0 else 0 }}쪽이 찍혀요. 그보다 덜 읽은 친구에게는 잠겨서 보여요.</p>{% endif %}
+          <p><code>||이렇게||</code> 감싸면 탭할 때까지 흐리게 보여요.</p>
+          <p><code>@닉네임</code>으로 부르면 강조돼요.</p>
+          <p>Enter 보내기 · Shift+Enter 줄바꿈 · 메시지에서 길게 누르거나 마우스를 올리면 반응·답장</p>
+        </div>
+        <p class="ch-hint" id="hint" aria-live="polite"></p>
+      </form>
     </div>
+
+    {% if room %}
+    <aside class="ch-members" id="members" aria-label="멤버와 읽은 쪽" hidden>
+      <header><h2>멤버 <span class="mono">{{ members|length }}</span></h2><button type="button" class="ch-icon-btn sm" id="membersClose" aria-label="멤버 닫기"><svg class="ch-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
+      <ul>
+        {% for m in members %}
+        <li>
+          {{ person_link(m.user, avatar(m.user, 'ch-face')) }}
+          <div>
+            <b>{{ person_link(m.user, m.user.nickname) }}{% if m.me %} <em class="ch-tag">나</em>{% endif %}{% if m.owner %} <em class="ch-tag">방장</em>{% endif %}</b>
+            <span class="ch-prog" role="img" aria-label="{{ m.pages }}쪽 · {{ m.pct }}%"><i style="width:{{ m.pct }}%"></i></span>
+          </div>
+          <span class="mono ch-pages">{{ m.pages }}쪽</span>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="ch-members-note">검증된 쪽 / {{ conv.book.total_chunks }}쪽 · 대결 순위와 같은 값이에요. <a href="/races/{{ conv.room.id }}">대결 보기</a></p>
+    </aside>
+    {% endif %}
   </section>
 </div>
 {{ toast_region() }}
