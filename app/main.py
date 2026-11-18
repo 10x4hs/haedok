@@ -20,6 +20,8 @@ from app import admin, auth, intro, pwa, seo, web
 from app import board as board_pages
 from app.api import books, me, points, social
 from app.api import goals as goals_api
+from app.chat import ChatMenuDot
+from app.chat import router as chat_router
 from app.core import csp
 from app.core.config import Settings, get_settings
 from app.core.logging import request_id_var, setup_logging
@@ -91,6 +93,7 @@ app = FastAPI(title="해독(偕讀) API", version=VERSION, lifespan=lifespan, do
 if os.environ.get("VERCEL") and _settings.secret_key == Settings.model_fields["secret_key"].default:
     # 기본 키는 공개 저장소에 있어 누구나 세션 쿠키를 위조할 수 있다
     raise RuntimeError("SECRET_KEY 환경 변수를 설정해야 배포할 수 있어요")
+app.add_middleware(ChatMenuDot)  # 메뉴의 채팅 점 — 세션을 읽으므로 SessionMiddleware 안쪽(먼저 추가)
 app.add_middleware(
     SessionMiddleware,
     secret_key=_settings.secret_key,
@@ -219,6 +222,7 @@ app.include_router(mileage_router)
 app.include_router(intro.router)
 app.include_router(pwa.router)
 app.include_router(seo.router)
+app.include_router(chat_router)
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
 

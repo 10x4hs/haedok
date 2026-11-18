@@ -1,0 +1,103 @@
+{% extends "app.html" %}
+{% from "_ui.html" import avatar, empty_state %}
+{% block title %}친구 — 偕讀 해독{% endblock %}
+{% block heading %}<small>함께 읽는 사람들</small>친구{% endblock %}
+{% block top_extra %}<a class="pill" href="/chat">채팅</a>{% endblock %}
+
+{# 한 사람 줄의 버튼: action 하나 = 작은 폼 하나 #}
+{% macro act(u, action, label, cls='') -%}
+<form method="post" action="/friends/{{ u.id }}/{{ action }}"><input type="hidden" name="csrf" value="{{ csrf }}">{% if q %}<input type="hidden" name="back" value="{{ q }}">{% endif %}<button class="pill ch-act {{ cls }}" aria-label="{{ u.nickname }} {{ label }}">{{ label }}</button></form>
+{%- endmacro %}
+
+{% block main %}
+<link rel="stylesheet" href="/static/chat.css">
+{% if msg %}<p class="form-ok" role="status">{{ msg }}</p>{% endif %}
+{% if err %}<p class="form-err" role="alert">{{ err }}</p>{% endif %}
+
+<form class="ch-search" method="get" action="/friends" role="search">
+  <label for="friendQ" class="ch-sr">닉네임으로 찾기</label>
+  <input id="friendQ" name="q" value="{{ q }}" maxlength="40" placeholder="닉네임을 정확히 적어요" autocomplete="off">
+  <button class="btn ghost">찾기</button>
+</form>
+{% if q %}
+<section class="row" aria-labelledby="foundH">
+  <div class="row-h"><h2 id="foundH">‘{{ q }}’ 찾은 결과</h2></div>
+  {% if not found %}<p class="muted small">그 닉네임을 쓰는 사람이 없어요. 글자 하나까지 똑같이 적어 주세요.</p>{% endif %}
+  <ul class="ch-people">
+  {% for u, state in found %}
+    <li>{{ avatar(u) }}<div><b>{{ u.nickname }}</b></div>
+      {% if state == 'none' %}{{ act(u, 'request', '친구 신청', 'ch-go') }}
+      {% elif state == 'incoming' %}{{ act(u, 'accept', '수락', 'ch-go') }}
+      {% elif state == 'outgoing' %}<span class="tag">신청함</span>
+      {% elif state == 'friends' %}<a class="pill ch-act" href="/chat/dm/{{ u.id }}">채팅</a>
+      {% elif state == 'blocking' %}<span class="tag">차단함</span>{% endif %}
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if people.incoming %}
+<section class="row" aria-labelledby="inH">
+  <div class="row-h"><h2 id="inH">받은 신청</h2><span class="mono muted">{{ people.incoming|length }}</span></div>
+  <ul class="ch-people">
+  {% for u in people.incoming %}
+    <li>{{ avatar(u) }}<div><b>{{ u.nickname }}</b></div>{{ act(u, 'accept', '수락', 'ch-go') }}{{ act(u, 'decline', '거절') }}{{ act(u, 'block', '차단', 'ch-bad') }}</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="row" aria-labelledby="friendsH">
+  <div class="row-h"><h2 id="friendsH">친구</h2><span class="mono muted">{{ people.friends|length }}</span></div>
+  {% if people.friends %}
+  <ul class="ch-people">
+  {% for u in people.friends %}
+    <li>{{ avatar(u) }}<div><b>{{ u.nickname }}</b></div><a class="pill ch-act ch-go" href="/chat/dm/{{ u.id }}">채팅</a>
+      <details class="ch-more"><summary class="pill ch-act" aria-label="{{ u.nickname }} 더 보기">…</summary>
+        <div class="ch-more-menu">{{ act(u, 'remove', '친구 끊기') }}{{ act(u, 'block', '차단', 'ch-bad') }}</div>
+      </details>
+    </li>
+  {% endfor %}
+  </ul>
+  {% else %}
+  {{ empty_state('me', '아직 친구가 없어요', '닉네임으로 찾거나, 같은 대결방 사람에게 신청해 보세요.', cls='compact') }}
+  {% endif %}
+</section>
+
+{% if people.outgoing %}
+<section class="row" aria-labelledby="outH">
+  <div class="row-h"><h2 id="outH">보낸 신청</h2><span class="mono muted">{{ people.outgoing|length }}</span></div>
+  <ul class="ch-people">
+  {% for u in people.outgoing %}
+    <li>{{ avatar(u) }}<div><b>{{ u.nickname }}</b><span>수락을 기다리는 중</span></div>{{ act(u, 'cancel', '취소') }}</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if roommates %}
+<section class="row" aria-labelledby="mateH">
+  <div class="row-h"><h2 id="mateH">같은 대결방 사람</h2></div>
+  <ul class="ch-people">
+  {% for u, state in roommates %}
+    <li>{{ avatar(u) }}<div><b>{{ u.nickname }}</b></div>
+      {{ act(u, 'request', '친구 신청', 'ch-go') }}
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if people.blocking %}
+<section class="row" aria-labelledby="blockH">
+  <div class="row-h"><h2 id="blockH">차단한 사람</h2><span class="mono muted">{{ people.blocking|length }}</span></div>
+  <p class="muted small">차단한 사람은 친구 신청과 개인 메시지를 보낼 수 없고, 그 사람의 방 메시지는 나에게 보이지 않아요.</p>
+  <ul class="ch-people">
+  {% for u in people.blocking %}
+    <li>{{ avatar(u) }}<div><b>{{ u.nickname }}</b></div>{{ act(u, 'unblock', '차단 풀기') }}</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

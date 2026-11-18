@@ -4,6 +4,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 
+import app.models_chat  # noqa: F401  (친구 · 채팅 테이블 등록)
 import app.models_goals  # noqa: F401  (reading_goals·reading_day_marks 등록)
 import app.models_mileage  # noqa: F401  (마일리지 테이블 등록)
 from app import models  # noqa: F401  (메타데이터 등록)

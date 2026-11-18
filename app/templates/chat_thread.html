@@ -1,0 +1,40 @@
+{% extends "app.html" %}
+{% from "_ui.html" import toast_region %}
+{% block title %}{{ conv.title }} 채팅 — 偕讀 해독{% endblock %}
+{% block heading %}<small>{{ '대결방 채팅' if conv.kind == 'room' else '개인 채팅' }}</small>{{ conv.title }}{% endblock %}
+{% block top_extra %}<a class="pill" href="/chat?tab={{ conv.kind }}" aria-label="채팅 목록으로">목록</a>{% endblock %}
+{% block main %}
+<link rel="stylesheet" href="/static/chat.css">
+<section class="ch-thread" id="chat"
+  data-api="{{ api }}" data-kind="{{ conv.kind }}" data-me="{{ user.id }}" data-owner="{{ 'true' if owner else 'false' }}">
+  {% if conv.kind == 'room' %}
+  <p class="ch-note muted small">{{ conv.book.title }} · ‘책 이야기’는 보낸 사람이 읽은 쪽까지 읽은 친구에게만 열려요.{% if conv.room %} <a href="/races/{{ conv.room.id }}">대결 보기 ›</a>{% endif %}</p>
+  {% endif %}
+  <button type="button" class="pill ch-older" id="older" hidden>이전 메시지</button>
+  <ol class="ch-log" id="log" role="log" aria-live="polite" aria-label="메시지" aria-busy="true"></ol>
+  <p class="ch-empty muted small" id="empty" hidden>아직 메시지가 없어요. 첫 마디를 건네 보세요.</p>
+
+  <form class="ch-compose glass" id="compose" autocomplete="off">
+    {% if conv.kind == 'room' %}
+    <div class="ch-mode" role="radiogroup" aria-label="누구에게 보일지">
+      <button type="button" role="radio" data-mode="book" aria-checked="true">
+        <b>책 이야기</b><span>{% if my_page and my_page > 0 %}{{ my_page }}쪽까지 읽은 친구에게 보여요{% else %}아직 읽은 쪽이 없어 모두에게 보여요{% endif %}</span>
+      </button>
+      <button type="button" role="radio" data-mode="chat" aria-checked="false">
+        <b>수다</b><span>모두에게 보여요</span>
+      </button>
+    </div>
+    {% else %}
+    <label class="ch-veil"><input type="checkbox" id="veil"> <span>가리기 <small class="muted">— 친구가 탭해야 보여요</small></span></label>
+    {% endif %}
+    <div class="ch-row">
+      <label for="text" class="ch-sr">메시지</label>
+      <textarea id="text" name="text" rows="1" maxlength="500" placeholder="메시지를 적어요" required></textarea>
+      <button class="btn primary ch-send" id="send" aria-label="보내기">보내기</button>
+    </div>
+    <p class="ch-hint mono muted" id="hint" aria-live="polite"></p>
+  </form>
+</section>
+{{ toast_region() }}
+<script src="/static/chat.js" defer></script>
+{% endblock %}
