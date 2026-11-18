@@ -5,6 +5,7 @@
 {% block top_extra %}<a class="pill lb-link" href="/leaderboard" aria-label="주간 순위">🏆 순위</a>{% endblock %}
 {% block main %}
 {% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
+{% if together is defined and together is not none %}{% include "board/_races_row.html" %}{% endif %}
 
 <form class="code-card glass-card" method="post" action="/join">
   <label for="code"><b>초대 코드가 있나요?</b><span class="muted">친구에게 받은 6자리 코드를 넣어요</span></label>

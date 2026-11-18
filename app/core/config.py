@@ -111,6 +111,8 @@ class Settings(BaseSettings):
     # Vercel Python 함수도 이제 소켓을 열 수 있지만, app/realtime.py 브로커는 인스턴스 메모리 안에만 있어서
     # 다른 인스턴스에 붙은 친구의 소식은 오지 않는다. 브로커를 Redis 등으로 바꾸기 전까지는 폴링이 정답이다
     realtime_ws: bool | None = None
+    # 같이 읽을 사람 모집 게시판(/together). 끄면 입구가 숨고 주소는 404 (FEATURE_BOARD)
+    feature_board: bool = True
 
     # 하루 목표 · 잔디 · 연속 읽기(FEATURE_GOALS). 끄면 /api/v1/me/goal 은 404, /me·홈의 목표 칸도 숨는다
     feature_goals: bool = True

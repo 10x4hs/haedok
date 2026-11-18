@@ -28,6 +28,7 @@ from app.db.session import get_session
 from app.models import Book, LibraryEntry, Room, Shelf, User
 from app.public_facts import CLIP_V, FACTS
 from app.services import bestsellers, bookstore, mail, social
+from app.services import board as board_service
 from app.services import books as book_service
 from app.services import points as points_service
 from app.services import races as race_service
@@ -962,6 +963,7 @@ async def races(
         popular=await popular(session, 12),
         durations=race_service.DURATIONS,
         error=request.query_params.get("error"),
+        together=await board_service.preview(session, user.id) if get_settings().feature_board else None,
     )
 
 

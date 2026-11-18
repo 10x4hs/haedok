@@ -1,0 +1,21 @@
+{% extends "app.html" %}
+{% from "_ui.html" import empty_state %}
+{% from "board/_card.html" import post_card %}
+{% block title %}같이 읽기 모집 — 偕讀 해독{% endblock %}
+{% block heading %}<small><a href="/races">‹ 대결</a></small>같이 읽을 사람{% endblock %}
+{% block main %}
+<link rel="stylesheet" href="/static/board.css">
+{% if msg %}<p class="form-ok" role="status">{{ msg }}</p>{% endif %}
+{% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
+<p class="muted small tg-lede">읽고 싶은 고전을 띄워 두면 누구나 참가할 수 있어요. 하루 몇 쪽이면 충분해요.</p>
+<a class="btn primary wide" href="/together/new">같이 읽을 사람 모집하기</a>
+
+<section class="row" aria-labelledby="tgListH">
+  <div class="row-h"><h2 id="tgListH">모집 중</h2><span class="mono muted">{{ posts|length }}</span></div>
+  {% if posts %}
+  <div class="tg-list">{% for v in posts %}{{ post_card(v) }}{% endfor %}</div>
+  {% else %}
+  {{ empty_state('book', '아직 모집 중인 글이 없어요', '첫 글을 올려 보세요. 하루 5쪽, 5분이면 같이 끝까지 갈 수 있어요.', '/together/new', '첫 모집 글 올리기') }}
+  {% endif %}
+</section>
+{% endblock %}
