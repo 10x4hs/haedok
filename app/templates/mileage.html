@@ -1,0 +1,118 @@
+{% extends "app.html" %}
+{% block title %}마일리지 — 偕讀 해독{% endblock %}
+{% block content_class %}split{% endblock %}
+{% block heading %}<small>읽은 만큼 쌓여요</small>마일리지{% endblock %}
+{% block main %}
+<section class="ml-hero glass-card" aria-labelledby="mlBal">
+  <link rel="stylesheet" href="/static/mileage.css">
+  {% if ok_msg %}<p class="form-ok" role="status">{{ ok_msg }}</p>{% endif %}
+  {% if err_msg %}<p class="{{ 'form-ok' if info else 'form-err' }}" role="{{ 'status' if info else 'alert' }}">{{ err_msg }}</p>{% endif %}
+  <span class="mono muted" id="mlBal">쓸 수 있는 마일리지</span>
+  <b class="ml-num">{{ '{:,}'.format(bal.balance) }}<small>P</small></b>
+  <div class="ml-sub">
+    <span><b>{{ '{:,}'.format(bal.earned) }}</b>모은 마일리지</span>
+    <span><b>{{ '{:,}'.format(bal.spent) }}</b>쓴 마일리지</span>
+  </div>
+  <a class="ml-link" href="/leaderboard">마일리지 순위 보기 <span aria-hidden="true">›</span></a>
+</section>
+
+{% if freezes is not none %}
+<section class="row" aria-labelledby="mlApp">
+  <div class="row-h"><h2 id="mlApp">앱에서 쓰기</h2></div>
+  <ul class="ml-shelf">
+    <li class="ml-item">
+      <div>
+        <b>기록 보호권</b>
+        <span>하루 못 읽은 날에도 연속 기록을 지켜 줘요 · 지금 {{ freezes }}/{{ freeze_max }}개</span>
+      </div>
+      <form method="post" action="/mileage/freeze">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="key" value="{{ key() }}">
+        {% if freezes >= freeze_max %}
+        <button class="pill" disabled aria-describedby="mlFreezeFull">{{ freeze_price }}P</button>
+        <small class="ml-why" id="mlFreezeFull">{{ freeze_max }}개까지 가질 수 있어요</small>
+        {% elif bal.balance < freeze_price %}
+        <button class="pill" disabled aria-describedby="mlFreezeLow">{{ freeze_price }}P</button>
+        <small class="ml-why" id="mlFreezeLow">{{ freeze_price - bal.balance }}P 더 모으면 돼요</small>
+        {% else %}
+        <button class="pill ml-buy">{{ freeze_price }}P로 바꾸기</button>
+        {% endif %}
+      </form>
+    </li>
+  </ul>
+</section>
+{% endif %}
+
+<section class="row" aria-labelledby="mlPartner">
+  <div class="row-h"><h2 id="mlPartner">제휴 리워드</h2></div>
+  <p class="muted small ml-lead">운영자가 확인한 뒤 가입한 이메일({{ user.email }})로 보내요. 한 달에 {{ monthly_limit }}번, 가입하고 {{ min_days }}일이 지나면 바꿀 수 있어요.</p>
+  {% set pending = requests|selectattr('0.status', 'equalto', requested)|list %}
+  {% for r, title in pending %}
+  <div class="ml-pending glass-card" role="status">
+    <div><b>{{ title }}</b><span>확인 중이에요 · {{ '{:,}'.format(r.cost) }}P · {{ r.created_at|fmt_dt }}</span></div>
+    <form method="post" action="/mileage/requests/{{ r.id }}/cancel"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="pill">요청 거두기</button></form>
+  </div>
+  {% endfor %}
+  {% if items %}
+  <ul class="ml-shelf">
+    {% for it in items %}
+    <li class="ml-item{{ ' sample' if it.is_sample }}">
+      <div>
+        {% if it.is_sample %}<em class="tag">예시 · 제휴 준비 중</em>{% endif %}
+        <b>{{ it.title }}</b>
+        <span>{{ it.partner_name }} · {{ '{:,}'.format(it.cost) }}P{% if it.stock is not none %} · {{ '다 나갔어요' if it.stock <= 0 else '남은 수량 ' ~ it.stock }}{% endif %}</span>
+      </div>
+      <form method="post" action="/mileage/rewards/{{ it.id }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="key" value="{{ key() }}">
+        {% if it.is_sample %}
+        <button class="pill" aria-describedby="mlSample{{ it.id }}">제휴 준비 중</button>
+        <small class="ml-why" id="mlSample{{ it.id }}">제휴처가 들어오면 교환이 열려요</small>
+        {% elif it.stock is not none and it.stock <= 0 %}
+        <button class="pill" disabled>다 나갔어요</button>
+        {% else %}
+        <button class="pill ml-buy">바꾸기</button>
+        {% endif %}
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted small">제휴 리워드를 준비하고 있어요.</p>
+  {% endif %}
+  {% set done = requests|rejectattr('0.status', 'equalto', requested)|list %}
+  {% if done %}
+  <h3 class="ml-h3">지난 요청</h3>
+  <ul class="ml-log">
+    {% for r, title in done %}<li><span>{{ title }} <small>{{ mileage_status.get(r.status, r.status) }}{% if r.admin_note %} · {{ r.admin_note }}{% endif %}</small></span><b>{{ r.created_at|fmt_dt }}</b></li>{% endfor %}
+  </ul>
+  {% endif %}
+</section>
+
+<section class="row" aria-labelledby="mlEarn">
+  <div class="row-h"><h2 id="mlEarn">이렇게 모아요</h2></div>
+  <ul class="ml-log">
+    {% for r in rules %}<li><span>{{ r.label }} <small>{{ r.note }}</small></span><b>+{{ r.amount }}</b></li>{% endfor %}
+  </ul>
+</section>
+
+<section class="row" aria-labelledby="mlHist">
+  <div class="row-h"><h2 id="mlHist">내역</h2></div>
+  {% if history %}
+  <ul class="ml-log">
+    {% for h in history %}<li><span>{{ h.label }} <small>{{ h.at|fmt_dt }}</small></span><b class="{{ 'ml-minus' if h.amount < 0 }}">{{ '+' if h.amount > 0 }}{{ '{:,}'.format(h.amount) }}</b></li>{% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted small">아직 내역이 없어요. 한 쪽을 끝까지 읽으면 바로 1P가 들어와요.</p>
+  {% endif %}
+</section>
+
+<section class="row ml-notice" aria-labelledby="mlNote">
+  <div class="row-h"><h2 id="mlNote">알아 두세요</h2></div>
+  <ul>
+    <li>마일리지는 현금으로 바꿀 수 없어요.</li>
+    <li>다른 사람에게 줄 수 없어요.</li>
+    <li>리워드는 운영자가 확인한 뒤 보내요.</li>
+    <li>부정하게 쌓은 마일리지는 회수돼요.</li>
+    <li>제휴와 리워드는 바뀌거나 끝날 수 있어요.</li>
+  </ul>
+</section>
+{% endblock %}

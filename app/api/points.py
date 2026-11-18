@@ -25,7 +25,7 @@ async def _me_points(session: AsyncSession, user: User) -> dict:
 async def me_points(
     session: AsyncSession = Depends(get_session), user: User = Depends(require_api_user)
 ) -> dict:
-    """내 포인트: 총합 · 이번 주 · 연속 일수 · 최근 원장 20줄."""
+    """내 마일리지(모은 것): 총합 · 이번 주 · 연속 일수 · 최근 원장 20줄."""
     return await _me_points(session, user)
 
 

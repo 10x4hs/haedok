@@ -4,6 +4,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 
+import app.models_mileage  # noqa: F401  (마일리지 테이블 등록)
 from app import models  # noqa: F401  (메타데이터 등록)
 from app.core import ratelimit  # noqa: F401  (rate_limits 테이블 등록)
 from app.core.config import get_settings

@@ -1,0 +1,84 @@
+{% extends "admin/_layout.html" %}
+{% block admin_title %}리워드{% endblock %}
+{% block admin %}
+<section class="row">
+  <div class="row-h"><h2>교환 요청</h2><span class="mono muted">{{ queue|selectattr('req.status', 'equalto', requested)|list|length }} 기다림</span></div>
+  {% if not queue %}<p class="muted">아직 교환 요청이 없어요</p>{% endif %}
+  <ul class="admin-list">
+  {% for q in queue %}
+    <li>
+      <div>
+        <b>{{ q.item.title }} <em class="tag {{ 'ok' if q.req.status == 'sent' else '' }}">{{ mileage_status.get(q.req.status, q.req.status) }}</em></b>
+        <span>{{ q.user.email or '(이메일 없음)' }} · {{ q.user.nickname }} · {{ q.item.partner_name }} · {{ '{:,}'.format(q.req.cost) }}P · 요청 {{ q.req.created_at|fmt_dt }}{% if q.req.handled_at %} · 처리 {{ q.req.handled_at|fmt_dt }}{% endif %}{% if q.req.admin_note %} · 메모: {{ q.req.admin_note }}{% endif %}</span>
+        {% if q.signals %}{% set s = q.signals %}
+        <span>가입 {{ s.account_days }}일째{% if s.account_days < min_days %} <em class="tag bad">새 계정</em>{% endif %} · 검증된 쪽 {{ '{:,}'.format(s.verified_pages) }} · 최근 7일 적립 {{ '{:,}'.format(s.earned_7d) }}P · 잔액 {{ '{:,}'.format(s.balance) }}P · 받은 리워드 {{ s.sent_total }}번</span>
+        <form class="admin-search" method="post" action="/admin/rewards/requests/{{ q.req.id }}/send">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input name="note" maxlength="280" placeholder="메모 (보낸 날·코드 끝자리 등)" aria-label="{{ q.user.email }} 요청 메모">
+          <button class="pill">보냄</button>
+          <button class="pill danger" formaction="/admin/rewards/requests/{{ q.req.id }}/reject" data-confirm="거절하고 {{ q.req.cost }}P를 돌려줄까요?">거절(환불)</button>
+        </form>
+        {% endif %}
+      </div>
+    </li>
+  {% endfor %}
+  </ul>
+  <p class="muted small">보내기 전에 계정 나이·검증된 쪽·최근 7일 적립을 보고 부정 적립이 아닌지 확인해 주세요. 리워드는 가입 이메일로만 보내요(전화번호·주소는 받지 않아요).</p>
+</section>
+
+<section class="row">
+  <div class="row-h"><h2>상품</h2><span class="mono muted">{{ items|length }}</span></div>
+  {% if not items %}
+  <form method="post" action="/admin/rewards/items/samples"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="pill">예시 상품 넣기</button></form>
+  {% endif %}
+  <ul class="admin-list">
+  {% for it in items %}
+    <li>
+      <div>
+        <b>{{ it.title }}{% if it.is_sample %} <em class="tag">예시</em>{% else %} <em class="tag ok">진짜 교환</em>{% endif %}{% if not it.active %} <em class="tag bad">숨김</em>{% endif %}</b>
+        <span>{{ it.partner_name }} · {{ '{:,}'.format(it.cost) }}P · 수량 {{ '제한 없음' if it.stock is none else it.stock }} · 순서 {{ it.sort }}</span>
+        <form class="admin-search" method="post" action="/admin/rewards/items/{{ it.id }}/stock">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input name="stock" inputmode="numeric" value="{{ '' if it.stock is none else it.stock }}" placeholder="수량 (비우면 제한 없음)" aria-label="{{ it.title }} 수량">
+          <button class="pill">수량 저장</button>
+        </form>
+      </div>
+      <div class="admin-actions">
+        <form method="post" action="/admin/rewards/items/{{ it.id }}/toggle"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="field" value="active"><button class="pill">{{ '숨기기' if it.active else '보이기' }}</button></form>
+        <form method="post" action="/admin/rewards/items/{{ it.id }}/toggle"{% if it.is_sample %} data-confirm="{{ it.title }}을(를) 진짜 교환으로 바꿀까요? 실제 제휴가 확인된 상품만 바꿔 주세요. 사용자가 바꾸면 마일리지가 빠져요."{% endif %}><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="field" value="is_sample"><button class="pill">{{ '진짜로' if it.is_sample else '예시로' }}</button></form>
+      </div>
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+
+<section class="row">
+  <div class="row-h"><h2>상품 올리기</h2></div>
+  <form class="admin-search ml-add" method="post" action="/admin/rewards/items">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input name="partner_name" maxlength="60" required placeholder="제휴처" aria-label="제휴처 이름">
+    <input name="title" maxlength="100" required placeholder="상품" aria-label="상품 이름">
+    <input name="cost" inputmode="numeric" required placeholder="가격(P)" aria-label="가격(마일리지)">
+    <input name="stock" inputmode="numeric" placeholder="수량(비우면 제한 없음)" aria-label="수량">
+    <label class="muted small"><input type="checkbox" name="is_sample" value="1" checked> 예시(제휴 준비 중)로 올리기</label>
+    <button class="btn ghost">올리기</button>
+  </form>
+  <p class="muted small">진짜 제휴가 확인되기 전에는 '예시'로 올려 주세요. 예시 상품은 눌러도 마일리지가 빠지지 않아요.</p>
+</section>
+<style>
+.ml-add{flex-wrap:wrap}
+.ml-add input:not([type=checkbox]){flex:1 1 140px}
+.ml-add label{display:flex;align-items:center;gap:6px;min-height:44px}
+.admin-list .admin-search{margin:8px 0 0;flex-wrap:wrap}
+.admin-list .admin-search input{height:36px;flex:1 1 160px}
+</style>
+<script nonce="{{ csp_nonce }}">
+  // 되돌리기 어려운 동작은 한 번 더 묻는다(CSP가 인라인 이벤트 속성을 막아 여기서 붙인다)
+  document.querySelectorAll('form[data-confirm]').forEach(f => f.addEventListener('submit', e => {
+    if (!confirm(f.dataset.confirm)) e.preventDefault();
+  }));
+  document.querySelectorAll('button[data-confirm]').forEach(b => b.addEventListener('click', e => {
+    if (!confirm(b.dataset.confirm)) e.preventDefault();
+  }));
+</script>
+{% endblock %}
