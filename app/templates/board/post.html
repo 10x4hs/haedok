@@ -1,0 +1,77 @@
+{% extends "app.html" %}
+{% from "_ui.html" import book_cover, avatar %}
+{% block title %}{{ v.book.title }} 같이 읽기 — 偕讀 해독{% endblock %}
+{% block content_class %}split{% endblock %}
+{% block heading %}<small><a href="/together">‹ 같이 읽기</a></small>{{ v.book.title }}{% endblock %}
+{% block main %}
+<section class="race-hero glass-card tg-hero">
+  <div class="race-cover">{{ book_cover(v.book.title, v.book.author, img=cover_of(v.book)) }}</div>
+  <div>
+    <span class="mono muted">{{ v.host.nickname }}님의 모집 · {{ v.count }}/{{ v.post.capacity }}명</span>
+    <h2>{{ v.book.title }}</h2>
+    {% if v.book.author %}<p class="muted">{{ v.book.author }}</p>{% endif %}
+    <p class="tg-quote">{{ v.post.pitch }}</p>
+    <p class="tg-pace-big">{{ v.pace_text }}</p>
+    {% if v.is_member %}
+      <a class="btn primary" href="/races/{{ v.room.id }}">방으로 가기</a>
+    {% elif v.joinable %}
+      <form method="post" action="/together/{{ v.post.id }}/join"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn primary">참가하기</button></form>
+    {% else %}
+      <p class="tg-state" role="status">{{ v.state }}{% if v.post.status != 'open' %} · 더 이상 참가할 수 없어요{% elif v.full %} · 지금은 참가할 수 없어요{% endif %}</p>
+    {% endif %}
+  </div>
+</section>
+<link rel="stylesheet" href="/static/board.css">
+{% if msg %}<p class="form-ok" role="status">{{ msg }}</p>{% endif %}
+{% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
+
+<section class="row" aria-labelledby="tgWhoH">
+  <div class="row-h"><h2 id="tgWhoH">함께하는 사람</h2><span class="mono muted">{{ v.count }}/{{ v.post.capacity }}</span></div>
+  <ul class="list tg-members">
+    {% for m in v.members %}
+    <li>{{ avatar(m, 'sm') }}<div><b>{{ m.nickname }}{% if m.id == v.post.author_id %} <em class="tag">방장</em>{% endif %}{% if m.id == user.id %} <em class="tag ok">나</em>{% endif %}</b></div></li>
+    {% endfor %}
+  </ul>
+  {% if v.is_open and not v.full %}<p class="muted small">남은 자리 {{ v.left }}개</p>{% endif %}
+</section>
+
+<section class="row" aria-labelledby="tgHowH">
+  <div class="row-h"><h2 id="tgHowH">이렇게 읽어요</h2></div>
+  <ul class="tg-how">
+    <li>{% if v.post.pace %}하루 {{ v.post.pace }}쪽, 약 {{ v.post.pace }}분이면 따라갈 수 있어요.{% else %}정해진 분량 없이 각자 속도로 읽어요.{% endif %}</li>
+    <li>참가하면 이 책의 대결방에 들어가요. 서로 몇 쪽까지 읽었는지 보여요.</li>
+    <li>쪽마다 15초 넘게 머물러야 읽은 것으로 쳐요.</li>
+  </ul>
+</section>
+
+{% if v.post.author_id == user.id %}
+<section class="row" aria-labelledby="tgHostH">
+  <div class="row-h"><h2 id="tgHostH">방장 메뉴</h2></div>
+  <div class="tg-actions">
+    {% if v.post.status == 'open' %}
+    <form method="post" action="/together/{{ v.post.id }}/close"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn ghost wide">모집 마감</button></form>
+    {% endif %}
+    <details class="tg-confirm">
+      <summary class="btn ghost wide">글 삭제</summary>
+      <form method="post" action="/together/{{ v.post.id }}/delete"><input type="hidden" name="csrf" value="{{ csrf }}">
+        <p class="muted small">{% if v.count > 1 %}글만 지워요. 이미 들어온 사람들과의 방은 그대로 남아요.{% else %}아직 아무도 없어서 방도 같이 지워요.{% endif %}</p>
+        <button class="btn ghost wide tg-danger">지우기</button></form>
+    </details>
+  </div>
+</section>
+{% else %}
+{% if v.is_member %}
+<section class="row">
+  <form method="post" action="/together/{{ v.post.id }}/leave"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn ghost wide">나가기</button></form>
+</section>
+{% endif %}
+<details class="tg-confirm tg-report">
+  <summary>이 글 신고하기</summary>
+  <form method="post" action="/together/{{ v.post.id }}/report"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <fieldset><legend class="muted small">어떤 문제가 있나요?</legend>
+    {% for key, label in reasons.items() %}<label class="tg-radio"><input type="radio" name="reason" value="{{ key }}"{% if loop.first %} required{% endif %}><span>{{ label }}</span></label>{% endfor %}
+    </fieldset>
+    <button class="btn ghost wide">신고 보내기</button></form>
+</details>
+{% endif %}
+{% endblock %}

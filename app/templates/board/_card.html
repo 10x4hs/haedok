@@ -1,0 +1,15 @@
+{# 모집 글 카드: 표지 · 책 · 한 줄 소개 · 하루 분량 · 몇 명 · 방장 · 남은 자리 #}
+{% from "_ui.html" import book_cover, avatar %}
+{% macro post_card(v) -%}
+<a class="tg-card glass-card" href="/together/{{ v.post.id }}">
+  {{ book_cover(v.book.title, v.book.author, 'sm', img=cover_of(v.book)|small_cover) }}
+  <div class="tg-body">
+    <b class="tg-title">{{ v.book.title }}{% if v.book.author %}<span> · {{ v.book.author }}</span>{% endif %}</b>
+    <p class="tg-pitch">{{ v.post.pitch }}</p>
+    <span class="tg-meta"><span class="tg-pace">{{ v.pace_text }}</span><span class="mono">{{ v.count }}/{{ v.post.capacity }}명</span></span>
+    <span class="tg-foot">{{ avatar(v.host, 'sm') }}<span class="tg-host">{{ v.host.nickname }}</span>
+      {%- if v.known %}<em class="tag ok">아는 사람 {{ v.known }}명</em>{% endif %}
+      <em class="tag{{ '' if v.joinable or v.is_member else ' bad' }}">{{ '참가 중' if v.is_member else v.state }}</em></span>
+  </div>
+</a>
+{%- endmacro %}

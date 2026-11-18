@@ -17,6 +17,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
 from app import admin, auth, intro, pwa, seo, web
+from app import board as board_pages
 from app.api import books, me, points, social
 from app.core import csp
 from app.core.config import Settings, get_settings
@@ -209,6 +210,7 @@ app.include_router(points.router)
 app.include_router(social.router)
 app.include_router(web.router)
 app.include_router(admin.router)
+app.include_router(board_pages.router)
 app.include_router(intro.router)
 app.include_router(pwa.router)
 app.include_router(seo.router)

@@ -1,0 +1,62 @@
+{% extends "app.html" %}
+{% from "_ui.html" import book_cover %}
+{% block title %}같이 읽을 사람 모집하기 — 偕讀 해독{% endblock %}
+{% block heading %}<small><a href="/together">‹ 같이 읽기</a></small>모집 글 쓰기{% endblock %}
+{% block main %}
+<link rel="stylesheet" href="/static/board.css">
+{% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
+{% if open_count >= max_open %}<p class="form-err" role="status">모집 글은 한 번에 {{ max_open }}개까지 열 수 있어요. 지난 글을 마감하면 새로 올릴 수 있어요.</p>{% endif %}
+<form class="tg-form" method="post" action="/together">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+
+  <fieldset class="tg-field">
+    <legend><b>어떤 책을 같이 읽을까요?</b><span class="muted small">모두가 앱에서 무료로 열 수 있는 고전만 고를 수 있어요. 올린 파일이나 서점 책은 다른 사람이 열 수 없어요.</span></legend>
+    {% if reading %}
+    <h3 class="sub">읽는 중인 책</h3>
+    <div class="pick-grid">{% for b in reading %}
+      <label class="pick tg-pick"><input class="sr" type="radio" name="book" value="b:{{ b.id }}"{% if form.book == 'b:' ~ b.id %} checked{% endif %} required>{{ book_cover(b.title, b.author, img=cover_of(b)|small_cover) }}<b>{{ b.title }}</b></label>
+    {% endfor %}</div>
+    {% endif %}
+    <h3 class="sub">인기 고전</h3>
+    <div class="pick-grid">{% for b in classics %}
+      {% set val = 'c:' ~ b.source ~ ':' ~ b.id %}
+      <label class="pick tg-pick"><input class="sr" type="radio" name="book" value="{{ val }}"{% if form.book == val %} checked{% endif %} required>{{ book_cover(b.title, b.author, img=b.cover|small_cover) }}<b>{{ b.title }}</b></label>
+    {% endfor %}</div>
+  </fieldset>
+
+  <div class="tg-field">
+    <label for="pitch"><b>한 줄 소개</b><span class="muted small">어떤 분과 어떻게 읽고 싶은지 적어 주세요</span></label>
+    <input class="tg-input" id="pitch" name="pitch" maxlength="{{ max_pitch }}" value="{{ form.pitch }}" required autocomplete="off" placeholder="예: 퇴근길에 조금씩, 같이 끝까지 가요" aria-describedby="pitchCount">
+    <span class="mono muted tg-count" id="pitchCount" aria-live="polite">{{ form.pitch|length }}/{{ max_pitch }}</span>
+  </div>
+
+  <fieldset class="tg-field">
+    <legend><b>하루에 얼마나</b></legend>
+    <div class="tg-seg">{% for p in paces %}
+      <label><input class="sr" type="radio" name="pace" value="{{ p }}"{% if form.pace == p %} checked{% endif %}><span>{{ p ~ '쪽' if p else '자유' }}</span></label>
+    {% endfor %}</div>
+    <p class="muted small tg-pace-hint" id="paceHint">{{ pace_label(form.pace) }}</p>
+  </fieldset>
+
+  <fieldset class="tg-field">
+    <legend><b>몇 명이서</b><span class="muted small">나를 포함해서요</span></legend>
+    <div class="tg-seg">{% for n in capacities %}
+      <label><input class="sr" type="radio" name="capacity" value="{{ n }}"{% if form.capacity == n %} checked{% endif %}><span>{{ n }}</span></label>
+    {% endfor %}</div>
+  </fieldset>
+
+  <button class="btn primary wide">모집 글 올리기</button>
+  <p class="muted small">올리면 이 책의 대결방(14일)이 열리고, 참가한 사람은 그 방으로 들어와요.</p>
+</form>
+<script nonce="{{ csp_nonce }}">
+(() => {
+  const pitch = document.getElementById('pitch'), count = document.getElementById('pitchCount');
+  pitch.addEventListener('input', () => { count.textContent = `${pitch.value.length}/${pitch.maxLength}`; });
+  const hint = document.getElementById('paceHint');
+  document.querySelectorAll('input[name="pace"]').forEach(r => r.addEventListener('change', () => {
+    const p = Number(r.value);
+    hint.textContent = p ? `하루 ${p}쪽 · 약 ${p}분` : '내 속도대로';
+  }));
+})();
+</script>
+{% endblock %}
