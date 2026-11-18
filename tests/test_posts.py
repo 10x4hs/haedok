@@ -170,7 +170,7 @@ async def test_validation(api, session_factory):
             ({"rating": "6"}, "별점은 1~5개로"),
             ({"status": "want"}, "읽었어요 · 읽는 중"),
             ({"visibility": "public"}, "누구에게 보일지"),
-            ({"caption": "가" * 501}, "500자까지"),
+            ({"caption": "가" * 2201}, "2200자까지"),
             ({"quote": "가" * 201}, "200자까지"),
         ]:
             r = await post(c, book, **fields)
@@ -254,11 +254,11 @@ async def test_visibility_self_friend_stranger(api, session_factory):
         # 피드: 친구 탭에는 친구의 친구만 글도, 모두 탭에는 '가입한 모두' 글만
         ff = (await f.get("/feed")).text
         assert f"post-{closed}" in ff and f"post-{open_}" in ff
-        fa = (await f.get("/feed?tab=all")).text
-        assert f"post-{open_}" in fa and f"post-{closed}" not in fa
+        fa = (await f.get("/feed?tab=all")).text  # 모두 = 탐색 격자
+        assert f'href="/p/{open_}"' in fa and f'href="/p/{closed}"' not in fa
         xf = (await x.get("/feed")).text
         assert f"post-{open_}" not in xf  # 친구가 아니면 친구 탭에 없다
-        assert f"post-{open_}" in (await x.get("/feed?tab=all")).text
+        assert f'href="/p/{open_}"' in (await x.get("/feed?tab=all")).text
     assert ix
 
 
@@ -435,8 +435,10 @@ async def test_feed_newest_first_with_cursor_paging(api, session_factory):
         ]
         assert rest == sorted(ids, reverse=True)[svc.FEED_PAGE :]
         assert "wide ps-more" not in (await a.get(f"/feed?before={more.group(1)}")).text  # 마지막 쪽엔 '더 보기' 없음
-        # 모두 탭: 친구만 글은 빠지고, 다음 쪽 주소에 탭이 남는다
-        all_ids = [int(x) for x in re.findall(r'id="post-(\d+)"', (await a.get("/feed?tab=all")).text)]
+        # 모두 탭(탐색 격자): 친구만 글은 빠진다
+        all_ids = [
+            int(x) for x in re.findall(r'class="ps-tile" href="/p/(\d+)"', (await a.get("/feed?tab=all")).text)
+        ]
         assert all_ids == sorted(ids[:7], reverse=True)
 
 
@@ -455,11 +457,11 @@ async def test_profile_counts_and_grid(api, session_factory):
 
         mine = (await a.get(f"/u/{ia}")).text
         assert counts(mine) == [3, 1, 2]  # 게시물 · 친구(수락된 것만) · 다 읽은 책
-        assert "게시물 올리기" in mine and 'href="/me"' in mine and "ps-tiles" in mine  # 내 프로필: 올리기 · 설정 · 작은 칸
+        assert "게시물 올리기" in mine and 'href="/me"' in mine and "ps-hl" in mine  # 내 프로필: + · 설정 · 동그라미
         friend = (await f.get(f"/u/{ia}")).text
-        assert counts(friend) == [3, 1, 2] and "메시지" in friend and "ps-tiles" not in friend  # 남의 프로필엔 작은 칸 없음
+        assert counts(friend) == [3, 1, 2] and "메시지" in friend and "ps-hl" not in friend  # 남의 프로필엔 작은 칸 없음
         stranger = (await x.get(f"/u/{ia}")).text
-        assert counts(stranger) == [2, 1, 2] and "ps-tiles" not in stranger
+        assert counts(stranger) == [2, 1, 2] and "ps-hl" not in stranger
         assert (
             "친구 신청 받기" not in stranger and "친구 신청을 보냈어요" in stranger
         )  # 서연이 보낸 신청(대기)

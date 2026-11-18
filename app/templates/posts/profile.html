@@ -1,5 +1,5 @@
 {% extends "app.html" %}
-{% from "posts/_parts.html" import grid_tile, face, gear_icon %}
+{% from "posts/_parts.html" import grid_tile, face, gear_icon, plus_icon, grid_icon, feed_icon, bookmark_icon, send_sheet, comments_sheet %}
 {% from "_ui.html" import empty_state %}
 {% block title %}{{ prof.user.nickname }} — 偕讀 해독{% endblock %}
 {% block head_extra %}<link rel="stylesheet" href="/static/posts.css">{% endblock %}
@@ -9,15 +9,15 @@
   {% if msg %}<p class="form-ok" role="status">{{ msg }}</p>{% endif %}
   {% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
 
-  {# 머리: 사진 · 이름 · 숫자 세 개 #}
+  {# 머리(인스타의 순서): 사진 왼쪽 · 오른쪽에 닉네임과 숫자 세 개 → 소개 → 버튼 #}
   <section class="ps-ig-head" aria-labelledby="profName">
     {% if me %}
-    <a class="ps-ig-ava" href="/me" aria-label="프로필 사진 바꾸기">{{ face(prof.user, faces, 'xl') }}<span class="ps-ig-cam" aria-hidden="true">＋</span></a>
+    <a class="ps-ig-ava" href="/me" aria-label="프로필 사진 바꾸기">{{ face(prof.user, faces, 'xl', ring=prof.recent) }}<span class="ps-ig-cam" aria-hidden="true">＋</span></a>
     {% else %}
-    <span class="ps-ig-ava">{{ face(prof.user, faces, 'xl') }}</span>
+    <span class="ps-ig-ava">{{ face(prof.user, faces, 'xl', ring=prof.recent) }}</span>
     {% endif %}
     <div class="ps-ig-side">
-      <h2 class="ps-ig-name" id="profName">{{ prof.user.nickname }}{% if prof.state == 'friends' %} <span class="tag ps-friend-tag">친구</span>{% elif prof.state == 'incoming' %} <span class="tag">나에게 친구 신청</span>{% endif %}</h2>
+      <h2 class="ps-ig-name" id="profName">{{ prof.user.nickname }}{% if prof.state == 'incoming' %} <span class="tag">나에게 친구 신청</span>{% endif %}</h2>
       <ul class="ps-ig-counts">
         <li><b data-count="posts">{{ prof.posts }}</b><span>게시물</span></li>
         <li>{% if me and chat_on %}<a href="/friends"><b data-count="friends">{{ prof.friends }}</b><span>친구</span></a>{% else %}<b data-count="friends">{{ prof.friends }}</b><span>친구</span>{% endif %}</li>
@@ -25,14 +25,18 @@
       </ul>
     </div>
   </section>
+  {% if prof.bio %}<p class="ps-ig-bio">{{ prof.bio }}</p>
+  {% elif me %}<p class="ps-ig-bio muted"><a href="/profile/edit">소개 한 줄을 적어 보세요 ›</a></p>{% endif %}
 
-  {# 버튼: 내 프로필은 올리기 · 설정, 남의 프로필은 친구 신청 · 메시지 #}
+  {# 버튼: 나는 프로필 편집 · 설정 · +, 다른 사람은 친구 신청(또는 친구 ✓) · 메시지 #}
   <div class="ps-ig-btns">
     {% if me %}
-      <a class="btn primary" href="/posts/new">게시물 올리기</a>
+      <a class="btn ghost" href="/profile/edit">프로필 편집</a>
       <a class="btn ghost" href="/me">{{ gear_icon() }}<span>설정</span></a>
+      <a class="btn ghost ps-ig-plus" href="/posts/new" aria-label="새 게시물 올리기">{{ plus_icon() }}</a>
     {% elif chat_on %}
       {% if prof.state == 'friends' %}
+        <a class="btn ghost" href="/friends">친구 <span aria-hidden="true">✓</span></a>
         <a class="btn primary" href="/chat/dm/{{ prof.user.id }}">메시지</a>
       {% elif prof.state == 'incoming' %}
         <form method="post" action="/friends/{{ prof.user.id }}/accept"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn primary">친구 신청 받기</button></form>
@@ -44,47 +48,60 @@
     {% endif %}
   </div>
 
-  {# 내 작은 칸들: 오늘의 목표 · 잔디 · 마일리지 — 기능마다 꺼져 있으면 사라진다 #}
+  {# 내 동그라미들(인스타의 하이라이트 자리): 오늘의 목표 · 잔디 · 마일리지 — 기능마다 꺼져 있으면 사라진다 #}
   {% if me and mine and mine.any %}
-  <ul class="ps-tiles" aria-label="내 기록">
+  <ul class="ps-hl" aria-label="내 기록">
     {% if mine.goal %}
-    <li><a class="ps-tile-mini t-goal" href="/me#goal">
-      <span class="ps-ring" aria-hidden="true"><svg viewBox="0 0 36 36"><circle class="tr" cx="18" cy="18" r="15" pathLength="100"/><circle class="fl" cx="18" cy="18" r="15" pathLength="100" stroke-dasharray="{{ mine.goal.pct }} 100"/></svg></span>
-      <span class="ps-mini-t"><b>{{ mine.goal.pages }}/{{ mine.goal.target }}쪽</b><small>오늘의 목표</small></span></a></li>
+    <li><a class="ps-hl-a t-goal" href="/me#goal" aria-label="오늘의 목표 {{ mine.goal.target }}쪽 가운데 {{ mine.goal.pages }}쪽">
+      <span class="ps-hl-c"><svg class="ps-hl-ring" viewBox="0 0 36 36" aria-hidden="true"><circle class="tr" cx="18" cy="18" r="16" pathLength="100"/><circle class="fl" cx="18" cy="18" r="16" pathLength="100" stroke-dasharray="{{ mine.goal.pct }} 100"/></svg><b>{{ mine.goal.pages }}/{{ mine.goal.target }}</b></span>
+      <span class="ps-hl-l">오늘 목표</span></a></li>
     {% endif %}
     {% if mine.grass %}
     {% set days = mine.grass|selectattr('label')|list|length %}
-    <li><a class="ps-tile-mini t-grass" href="/me#goal" aria-label="최근 8주 동안 {{ days }}일 읽었어요">
-      <span class="ps-mini-grass" aria-hidden="true">{% for cell in mine.grass %}<i class="l{{ cell.level }}"></i>{% endfor %}</span>
-      <span class="ps-mini-t"><b>{{ days }}일</b><small>8주 잔디</small></span></a></li>
+    <li><a class="ps-hl-a t-grass" href="/me#goal" aria-label="최근 8주 동안 {{ days }}일 읽었어요">
+      <span class="ps-hl-c"><span class="ps-mini-grass" aria-hidden="true">{% for cell in mine.grass %}<i class="l{{ cell.level }}"></i>{% endfor %}</span></span>
+      <span class="ps-hl-l">잔디 {{ days }}일</span></a></li>
     {% endif %}
     {% if mine.mileage is not none %}
-    <li><a class="ps-tile-mini t-mileage" href="/mileage">
-      <span class="ps-mini-coin" aria-hidden="true">P</span>
-      <span class="ps-mini-t"><b>{{ '{:,}'.format(mine.mileage) }}</b><small>마일리지</small></span></a></li>
+    <li><a class="ps-hl-a t-mileage" href="/mileage" aria-label="마일리지 {{ '{:,}'.format(mine.mileage) }}">
+      <span class="ps-hl-c"><b>{{ '{:,}'.format(mine.mileage) }}</b></span>
+      <span class="ps-hl-l">마일리지</span></a></li>
     {% endif %}
   </ul>
   {% endif %}
 
-  {# 탭: 게시물(격자) · 소식(내 프로필에서만, 친구 소식을 이 화면 안에서) #}
+  {# 아이콘 탭: 게시물 격자 · 소식(내 프로필) · 저장됨(나만 보인다) #}
   <nav class="ps-ig-tabs ps-prof-tabs" aria-label="보기">
-    <a href="{{ base }}" aria-current="{{ 'page' if tab == 'posts' else 'false' }}">게시물</a>
-    {% if me %}<a href="/profile?tab=feed" aria-current="{{ 'page' if tab == 'feed' else 'false' }}">소식</a>{% endif %}
+    <a href="{{ base }}" aria-current="{{ 'page' if tab == 'posts' else 'false' }}" aria-label="게시물">{{ grid_icon() }}<span>게시물</span></a>
+    {% if me %}<a href="/profile?tab=feed" aria-current="{{ 'page' if tab == 'feed' else 'false' }}" aria-label="소식">{{ feed_icon() }}<span>소식</span></a>
+    <a href="/profile?tab=saved" aria-current="{{ 'page' if tab == 'saved' else 'false' }}" aria-label="저장됨">{{ bookmark_icon() }}<span>저장됨</span></a>{% endif %}
   </nav>
 
   {% if tab == 'feed' %}
     {% set more_base = '/profile?tab=feed&' %}
     {% include "posts/_feed_list.html" %}
+    <p class="ps-alt"><a href="/feed?tab=all">모두의 게시물 둘러보기 ›</a></p>
+  {% elif tab == 'saved' %}
+    <p class="muted small ps-saved-note">{{ bookmark_icon() }} 저장한 게시물은 나만 볼 수 있어요.</p>
+    {% if grid %}
+    <ul class="ps-grid">{% for t in grid %}{{ grid_tile(t) }}{% endfor %}</ul>
+    {% if more %}<a class="btn ghost wide ps-more" href="/profile?tab=saved&page={{ page + 1 }}">더 보기</a>{% endif %}
+    {% elif paged %}
+    <p class="muted ps-end">여기까지예요.</p>
+    {% else %}
+    {{ empty_state('book', '아직 저장한 게시물이 없어요', '게시물 아래 책갈피를 누르면 여기에 모여요.', '/feed?tab=all', '모두의 게시물 보기') }}
+    {% endif %}
   {% elif grid %}
-    <ul class="ps-grid">{% for p in grid %}{{ grid_tile(p) }}{% endfor %}</ul>
+    <ul class="ps-grid">{% for t in grid %}{{ grid_tile(t) }}{% endfor %}</ul>
     {% if cursor %}<a class="btn ghost wide ps-more" href="{{ base }}?before={{ cursor }}">더 보기</a>{% endif %}
   {% elif paged %}
     <p class="muted ps-end">여기까지예요.</p>
   {% elif me %}
-    {{ empty_state('book', '아직 올린 게시물이 없어요', '다 읽었거나 읽고 있는 책을 표지와 함께 올려 보세요.', '/posts/new', '첫 게시물 올리기') }}
+    {{ empty_state('book', '아직 올린 게시물이 없어요', '읽은 책을 내 사진이나 표지와 함께 올려 보세요.', '/posts/new', '첫 게시물 만들기') }}
   {% else %}
     {{ empty_state('book', '아직 보이는 게시물이 없어요', ('친구만 보게 올린 게시물은 친구가 되면 보여요.' if prof.state != 'friends' else '')) }}
   {% endif %}
 </div>
+{% if tab == 'feed' %}{{ send_sheet(friends, csrf) }}{{ comments_sheet() }}{% endif %}
 <script src="/static/posts.js" defer></script>
 {% endblock %}

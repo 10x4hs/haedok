@@ -23,4 +23,23 @@
   {% endfor %}
   </ul>
 </section>
+<section class="row">
+  <div class="row-h"><h2>신고된 댓글</h2><span class="mono muted">{{ comments|length if comments is defined else 0 }}</span></div>
+  {% if not comments %}<p class="muted">아직 신고된 댓글이 없어요</p>{% endif %}
+  <ul class="admin-list">
+  {% for r in comments or [] %}
+    <li>
+      <div>
+        <b>{{ r.author }}{% if r.comment.deleted_at %} <em class="tag">내려감</em>{% elif r.resolved %} <em class="tag">처리함</em>{% else %} <em class="tag bad">확인 필요</em>{% endif %}</b>
+        <span>“{{ r.comment.body|truncate(140) }}” · 신고 {{ r.reports }}건</span>
+      </div>
+      <a class="pill" href="/p/{{ r.comment.post_id }}#c{{ r.comment.id }}">열기</a>
+      {% if not r.resolved %}
+      {% if not r.comment.deleted_at %}<form method="post" action="/admin/posts/comments/{{ r.comment.id }}/hide"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="pill">내리기</button></form>{% endif %}
+      <form method="post" action="/admin/posts/comments/{{ r.comment.id }}/resolve"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="pill">처리함</button></form>
+      {% endif %}
+    </li>
+  {% endfor %}
+  </ul>
+</section>
 {% endblock %}

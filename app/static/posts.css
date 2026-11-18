@@ -301,3 +301,312 @@ textarea.ps-input{resize:vertical}
   .ps-pick input:checked~.flatbook{transform:none}
 }
 .ps .empty p,.ps-lede,.ps-note,.ps-vis small{word-break:keep-all}
+
+/* ======================================================================
+ * 라운드 5 — 인스타그램의 구조와 동작에 더 가깝게(색 · 글꼴 · 유리 언어는 그대로).
+ * 사진 넘김 · 머리 아래 책 제목 · 저장 · 보내기/댓글 시트 · 댓글 한 줄 · 넓은 화면 게시물 창 ·
+ * 프로필 동그라미 · 아이콘 탭 · 3:4 격자 · 탐색 격자 · 만들기 세 단계.
+ * ====================================================================== */
+.ps .avatar.xs{width:24px;height:24px;font-size:11px}
+.ps .avatar.md,.ps-sheet .avatar.md{width:44px;height:44px;font-size:17px}
+.ps .avatar.lg{width:56px;height:56px;font-size:22px}
+/* 24시간 안에 올린 사람: 사진 둘레의 고리(인스타의 스토리 고리 자리 — 우리 장미색 한 가지, 그라디언트 없음) */
+.ps .avatar.ps-ringed,.ps-sheet .avatar.ps-ringed{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--rose-mark)}
+
+/* ---------- 머리: 사진 · 닉네임 / 그 아래 책 제목 ---------- */
+.ps-post .ps-head{gap:10px;padding:8px 0 10px}
+.ps-who-face{flex:none;display:grid;place-items:center;min-width:44px;min-height:44px;margin:-6px -4px -6px -6px}
+.ps-post .ps-head .avatar.sm{width:32px;height:32px;font-size:13px}
+.ps-who-t{display:grid;min-width:0;flex:1;line-height:1.3}
+.ps-who-n{font-weight:600;font-size:14px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;justify-self:start;max-width:100%}
+.ps-who-book{font-size:12px;color:var(--body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;justify-self:start;max-width:100%}
+.ps-who-book span{color:var(--dim)}
+.ps-who-n:hover,.ps-who-book:hover{text-decoration:underline;text-underline-offset:2px}
+.ps-post .ps-menu{margin-left:0}
+
+/* ---------- 그림: 사진 넘김(scroll-snap) · 1/3 · 화살표 · 점 ---------- */
+.ps-pic{--ratio:4 / 5}
+.ps-car{position:relative}
+.ps-car-track{display:flex;margin:0;padding:0;list-style:none;aspect-ratio:var(--ratio);overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;background:#000}
+.ps-car-track::-webkit-scrollbar{display:none}
+.ps-car-track:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.ps-car-slide{flex:0 0 100%;scroll-snap-align:center;scroll-snap-stop:always}
+.ps-car-slide img{display:block;width:100%;height:100%;object-fit:cover;-webkit-user-drag:none}
+.ps-car-chip{position:absolute;top:12px;right:12px;z-index:1;padding:3px 9px;border-radius:999px;background:rgba(10,10,10,.62);color:#fff;font-size:12px;line-height:1.5;pointer-events:none}
+.ps-car-btn{position:absolute;top:50%;z-index:1;display:grid;place-items:center;width:44px;height:44px;margin-top:-22px;color:#111;opacity:0;transition:opacity .25s var(--ease)}
+.ps-car-btn::before{content:"";position:absolute;inset:8px;border-radius:999px;background:rgba(255,255,255,.88);box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.ps-car-btn .ic{position:relative;width:16px;height:16px}
+.ps-car-btn.prev{left:4px}.ps-car-btn.next{right:4px}
+.ps-car-btn[hidden]{display:none}
+.ps-car-btn:focus-visible{opacity:1}
+@media (hover:hover){.ps-car:hover .ps-car-btn{opacity:1}}
+@media (hover:none){.ps-car-btn{display:none}}
+.ps-dots{position:relative;z-index:1;display:flex;justify-content:center;gap:4px;height:6px;margin:12px 0 -18px;pointer-events:none}
+.ps-dots i{width:6px;height:6px;border-radius:999px;background:color-mix(in srgb,var(--dim) 55%,transparent);transition:background .25s var(--ease)}
+.ps-dots i.on{background:var(--rose-mark)}
+
+/* ---------- 아이콘 줄: 좋아요 · 댓글 · 보내기 | 저장 ---------- */
+.ps-post .ps-actions{margin-right:-10px}
+.ps-save{margin:0 0 0 auto}
+.ps-mark{transition:fill .3s var(--ease)}
+.ps-mark.on,.ps-act[aria-pressed="true"] .ps-mark{fill:currentColor}
+.ps-act-end{margin-left:auto}
+.ps-rate-line{display:flex;align-items:center;gap:8px;margin:2px 0 0;font-size:13px;color:var(--dim)}
+.ps-rate-line .ps-stars{font-size:13px}
+.ps-status-t{font-size:12px;font-weight:600;color:var(--rose-ink)}
+.ps-post .ps-when,.ps-card .ps-when{display:block;margin:2px 0 0;font-size:12px;color:var(--dim)}
+
+/* ---------- 피드 머리: 친구 · 모두 + 만들기 ---------- */
+.ps-plus{display:grid;place-items:center;width:44px;height:44px;margin-bottom:2px;border-radius:12px;color:var(--text);transition:background .3s var(--ease)}
+.ps-plus:hover{background:var(--sunken)}
+.ps-plus .ic{width:26px;height:26px}
+
+/* ---------- 시트: 휴대폰은 아래에서 올라오고, 넓은 화면은 가운데 창 ---------- */
+dialog.ps-sheet{--rose:#ff8fab;--rose-fill:rgba(255,143,171,.12);--rose-line:rgba(255,143,171,.45);--rose-ink:color-mix(in srgb,var(--rose) 58%,var(--text));--rose-mark:color-mix(in srgb,var(--rose) 78%,var(--text));
+  position:fixed;inset:auto 0 0 0;width:100%;max-width:560px;max-height:min(86dvh,760px);margin:0 auto;padding:0;border:1px solid var(--glass-line);border-bottom:0;border-radius:22px 22px 0 0;
+  background:var(--bg);color:var(--text);box-shadow:0 -18px 50px -20px rgba(0,0,0,.6)}
+dialog.ps-sheet::backdrop{background:rgba(0,0,0,.5)}
+dialog.ps-sheet[open]{display:flex;animation:ps-up .38s var(--ease) both}
+@keyframes ps-up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+.ps-sheet-tall{height:min(86dvh,760px)}
+.ps-sheet-in{display:flex;flex-direction:column;width:100%;min-height:0}
+.ps-grab{flex:none;width:40px;height:4px;margin:8px auto 0;border-radius:2px;background:var(--line)}
+.ps-sheet-h{flex:none;display:grid;grid-template-columns:44px 1fr 44px;align-items:center;padding:2px 6px 6px;border-bottom:1px solid var(--line)}
+.ps-sheet-h h2{grid-column:2;margin:0;text-align:center;font-size:16px;font-weight:700}
+.ps-x{grid-column:3;display:grid;place-items:center;width:44px;height:44px;border-radius:999px;font-size:16px;color:var(--dim)}
+.ps-x:hover{background:var(--sunken);color:var(--text)}
+.ps-x.sm{width:32px;height:32px;font-size:13px}
+.ps-sheet-body{flex:1;min-height:0;overflow:auto;padding:0 16px;overscroll-behavior:contain}
+.ps-sheet-wait{padding:24px 0;text-align:center}
+.ps-sheet-body [data-cm-wrap]{display:flex;flex-direction:column;min-height:100%}
+.ps-sheet-body .ps-comments{flex:1;padding:14px 0}
+.ps-sheet-body .ps-cm-form{position:sticky;bottom:0;padding:10px 0 calc(10px + env(safe-area-inset-bottom));background:var(--bg)}
+@media (min-width:768px){
+  dialog.ps-sheet{inset:0;margin:auto;border:1px solid var(--glass-line);border-radius:22px;max-width:480px;max-height:min(80vh,640px)}
+  .ps-grab{display:none}
+  .ps-sheet-h{padding-top:8px}
+}
+/* 보내기: 친구 찾기 + 친구 줄(누르면 바로 보낸다) + 링크 복사 */
+.ps-send-form{display:flex;flex-direction:column;min-height:0;flex:1}
+.ps-send-q{margin:12px 16px 6px;width:auto}
+.ps-send-list{list-style:none;margin:0;padding:4px 8px;overflow:auto;flex:1;min-height:0}
+.ps-send-who{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:8px;border-radius:14px;text-align:left;color:var(--text)}
+.ps-send-who:hover{background:var(--sunken)}
+.ps-send-who b{flex:1;min-width:0;font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ps-send-go{padding:7px 14px;border-radius:999px;font-size:13px;font-weight:700;background:var(--accent);color:var(--accent-ink)}
+.ps-send-who.sent .ps-send-go{background:var(--sunken);color:var(--dim)}
+.ps-send-none{padding:20px 16px;margin:0}
+.ps-send-copy{flex:none;min-height:52px;margin:0 8px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line);font-weight:600;color:var(--text)}
+
+/* ---------- 댓글 한 줄: 사진 · '닉네임 글' / 시간 · 좋아요 n개 · 답글 달기 · ⋯ / 오른쪽 작은 하트 ---------- */
+.ps-comments{margin-top:14px}
+.ps-cm-list{list-style:none;margin:0;padding:0;display:grid;gap:16px}
+.ps-cm{display:grid;grid-template-columns:auto minmax(0,1fr) 32px;gap:12px;align-items:start;scroll-margin-top:96px}
+.ps-cm-face{display:grid;padding-top:2px}
+.ps-cm-b{display:grid;gap:0;min-width:0}
+.ps-cm-b>p{margin:0;font-size:14px;line-height:1.5;color:var(--body);white-space:pre-line;overflow-wrap:anywhere}
+.ps-cm:target>.ps-cm-b>p{background:var(--rose-fill);border-radius:8px}
+.ps-cm-who{font-weight:600;color:var(--text);margin-right:2px}
+.ps-cm-meta{display:flex;flex-wrap:wrap;align-items:center;gap:0 14px;margin:2px 0 0;font-size:12px;color:var(--dim)}
+.ps-cm-meta b{font-weight:600}
+.ps-cm-reply-btn{min-height:32px;font-size:12px;font-weight:600;color:var(--dim)}
+.ps-cm-reply-btn:hover{color:var(--text)}
+.ps-cm-menu summary{width:32px;height:32px;margin:0;font-size:15px;color:var(--dim)}
+.ps-cm-menu .ps-menu-list{left:-60px;right:auto;top:32px}
+.ps-cm-menu form{display:grid}
+.ps-menu-cap{padding:8px 12px 2px;font-size:12px;color:var(--dim)}
+.ps-cm-like{margin:0}
+.ps-cm-like button{display:grid;place-items:center;width:32px;height:44px;margin-top:-8px;color:var(--dim)}
+.ps-cm-like .ic{width:14px;height:14px}
+.ps-cm-like button[aria-pressed="true"] .ps-heart{fill:var(--rose-mark);color:var(--rose-mark)}
+.ps-replies{margin-top:6px}
+.ps-replies summary{display:flex;align-items:center;gap:12px;min-height:32px;list-style:none;cursor:pointer;font-size:12px;font-weight:600;color:var(--dim)}
+.ps-replies summary::-webkit-details-marker{display:none}
+.ps-replies-line{width:24px;height:1px;background:currentColor;opacity:.7}
+.ps-replies[open] .ps-replies-show,.ps-replies:not([open]) .ps-replies-hide{display:none}
+.ps-replies .ps-cm-list{gap:14px;margin-top:10px}
+.ps-cm-reply{grid-template-columns:auto minmax(0,1fr) 32px;gap:10px}
+.ps-view-cap{display:grid;grid-template-columns:auto minmax(0,1fr) 32px;gap:12px;padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid var(--line)}
+.ps-view-cap .ps-cap{font-size:14px;line-height:1.5}
+.ps-view-cap .ps-quote{font-size:14px}
+.ps-view-cap .ps-rate-line{margin:0 0 2px}
+/* 입력칸: 내 사진 · 댓글 달기… · 게시 */
+.ps-cm-form{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;margin-top:14px;padding-top:10px;border-top:1px solid var(--line)}
+.ps-cm-me{display:grid}
+.ps-cm-form textarea{min-height:44px;padding:11px 14px;font-size:15px;border-radius:22px}
+.ps-cm-post{min-height:44px;padding:0 6px;font-size:15px;font-weight:700;color:var(--rose-ink)}
+.ps-cm-post:disabled{opacity:.5}
+.ps-cm-form .ps-hint{grid-column:2/-1;margin:0}
+.ps-replying{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0;padding:2px 4px 2px 12px;border-radius:12px;background:var(--sunken);font-size:13px;color:var(--dim)}
+
+/* ---------- 게시물 화면: 휴대폰은 한 줄, 넓은 화면은 인스타의 게시물 창(왼쪽 그림 · 오른쪽 패널) ---------- */
+.ps-view-side{display:flex;flex-direction:column;min-width:0}
+.ps-view-side [data-cm-wrap]{display:contents}
+.ps-view-acts{order:-1}
+.ps-view .ps-comments{order:1}
+.ps-view .ps-cm-form{order:2}
+.ps-view-acts .ps-when{display:none}
+.ps-view .ps-comments{margin-top:12px}
+.ps-view .ps-view-cap{padding-top:4px}
+@media (min-width:1100px){
+  .ps-detail{max-width:1060px}
+  .ps-view{display:grid;grid-template-columns:minmax(0,1fr) 400px;grid-template-rows:auto minmax(0,1fr);grid-template-areas:"media head" "media side";
+    height:min(84vh,760px);border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface);backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%)}
+  .ps-view>.ps-head{grid-area:head;padding:12px 16px;border-bottom:1px solid var(--line)}
+  .ps-view-media{grid-area:media;display:grid;place-items:center;min-height:0;background:#000;border-right:1px solid var(--line)}
+  .ps-view-media .ps-pic{margin:0;height:100%;max-width:100%;aspect-ratio:var(--ratio)}
+  .ps-view-media .ps-pic .ps-art{height:100%;box-shadow:none;border-radius:0}
+  .ps-view-media .ps-car,.ps-view-media .ps-car-track{height:100%}
+  .ps-view-media .ps-dots{position:absolute;left:0;right:0;bottom:14px;margin:0}
+  .ps-view-media{position:relative}
+  .ps-view-side{grid-area:side;min-height:0}
+  .ps-view .ps-comments{flex:1;min-height:0;overflow:auto;margin:0;padding:14px 16px;order:1}
+  .ps-view-acts{order:2;gap:2px;padding:4px 16px 10px;border-top:1px solid var(--line)}
+  .ps-view-acts .ps-when{display:block}
+  .ps-view .ps-cm-form{order:3;margin:0;padding:6px 16px 8px}
+  .ps-view .ps-cm-form .ps-hint{display:none}
+  .ps-view .ps-cm-form textarea{border:0;background:none;padding-left:0;border-radius:0}
+  .ps-view .ps-cm-form textarea:focus-visible{box-shadow:none;border:0;outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+  .ps-view .ps-cm-me{display:none}
+  .ps-view .ps-cm-form{grid-template-columns:minmax(0,1fr) auto}
+  .ps-view .ps-replying{grid-column:1/-1}
+  .ps-detail .ps-manage,.ps-detail .ps-report{max-width:400px;margin-left:auto}
+}
+
+/* ---------- 프로필 ---------- */
+.ps-ig-ava .avatar.xl{box-shadow:none}
+.ps-ig-ava .avatar.xl.ps-ringed{box-shadow:0 0 0 3px var(--bg),0 0 0 5.5px var(--rose-mark)}
+.ps-ig-bio{margin:-4px 0 14px;font-size:14px;line-height:1.55;color:var(--body);white-space:pre-line;overflow-wrap:anywhere}
+.ps-ig-bio a{color:var(--dim)}
+.ps-ig-btns .btn{height:44px}
+.ps-ig-btns .ps-ig-plus{flex:0 0 44px;padding:0}
+.ps-ig-btns .ps-ig-plus .ic{width:20px;height:20px}
+/* 동그라미들(인스타의 하이라이트 자리): 64px 원 + 아래 이름 */
+.ps-hl{list-style:none;display:flex;gap:16px;margin:18px 0 0;padding:2px 2px 4px;overflow-x:auto;scrollbar-width:none}
+.ps-hl::-webkit-scrollbar{display:none}
+.ps-hl li{flex:none}
+.ps-hl-a{display:grid;justify-items:center;gap:6px;width:72px}
+.ps-hl-c{position:relative;display:grid;place-items:center;width:64px;height:64px;border-radius:999px;background:var(--surface);border:1px solid var(--glass-line);box-shadow:0 0 0 3px var(--bg),0 0 0 4px var(--line);transition:transform .4s var(--ease)}
+.ps-hl-a:hover .ps-hl-c{transform:scale(1.04)}
+.ps-hl-c b{position:relative;font:700 13px/1 var(--f-mono);font-variant-numeric:tabular-nums;color:var(--text)}
+.ps-hl-l{max-width:76px;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ps-hl-ring{position:absolute;inset:3px;width:calc(100% - 6px);height:calc(100% - 6px);transform:rotate(-90deg)}
+.ps-hl-ring circle{fill:none;stroke-width:3}
+.ps-hl-ring .tr{stroke:var(--sunken)}
+.ps-hl-ring .fl{stroke:color-mix(in srgb,#9be7c4 78%,var(--text));stroke-linecap:round}
+.t-goal .ps-hl-c{background:rgba(155,231,196,.1)}
+.t-grass .ps-hl-c{background:color-mix(in srgb,var(--ok) 8%,var(--surface))}
+.t-grass .ps-mini-grass{grid-template-columns:repeat(8,4px);grid-template-rows:repeat(7,4px);gap:1px}
+.t-mileage .ps-hl-c{background:rgba(230,195,106,.12);border-color:rgba(230,195,106,.45)}
+.t-mileage .ps-hl-c b{font-size:12px;color:color-mix(in srgb,#e6c36a 70%,var(--text))}
+/* 아이콘 탭 */
+.ps-prof-tabs a{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0}
+.ps-prof-tabs .ic{width:22px;height:22px}
+.ps-prof-tabs a span{display:none}
+@media (min-width:600px){.ps-prof-tabs a span{display:inline;font-size:13px;letter-spacing:.02em}.ps-prof-tabs .ic{width:18px;height:18px}}
+.ps-saved-note{display:flex;align-items:center;gap:6px;margin:12px 0 10px}
+.ps-saved-note .ic{width:16px;height:16px}
+/* 격자: 3열 · 2px 틈 · 세로 3:4(인스타 2025년부터의 칸 비율). 첫 사진 또는 표지 */
+.ps-tile{aspect-ratio:3 / 4;overflow:hidden;background:var(--sunken)}
+.ps-tile .ps-art{aspect-ratio:auto;height:100%}
+.ps-tile-img{display:block;width:100%;height:100%;object-fit:cover;transition:filter .3s var(--ease)}
+.ps-tile:hover .ps-tile-img{filter:brightness(1.08)}
+.ps-tile-mark{position:absolute;top:7px;right:7px;display:grid;color:#fff;filter:drop-shadow(0 1px 2px rgba(0,0,0,.65))}
+.ps-tile-mark .ic{width:18px;height:18px}
+/* 탐색: 같은 3열 격자에 다섯 칸마다 큰 칸(세로 두 칸) — 왼쪽 · 오른쪽 번갈아 */
+.ps-explore{list-style:none;margin:2px -20px 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-flow:row dense;gap:2px}
+.ps-explore .ps-big{grid-row:span 2}
+.ps-explore .ps-big.l{grid-column:1}
+.ps-explore .ps-big.r{grid-column:3}
+.ps-explore .ps-big .ps-tile{aspect-ratio:auto;height:100%}
+.ps-explore .ps-big .ps-art .ps-cv{width:62%}
+@media (min-width:768px){
+  .ps-explore{max-width:935px;margin:4px auto 0;gap:4px}
+  .ps-feed .ps-ig-tabs{flex:1}
+  .ps-feed:has(.ps-explore) .ps-feed-top,.ps-feed:has(.ps-explore) .ps-lede{max-width:935px}
+}
+
+/* ---------- 프로필 편집 ---------- */
+.ps-edit{max-width:560px}
+.ps-edit-who{display:flex;align-items:center;gap:14px;padding:16px;margin-bottom:18px;background:var(--surface)}
+.ps-edit-who div{display:grid;gap:2px;min-width:0}
+.ps-edit-who a{font-size:13px;color:var(--dim);min-height:32px;display:inline-flex;align-items:center}
+
+/* ---------- 만들기: 위 막대 · 단계 줄 · 사진 고르기 · 자르기 ---------- */
+.ps-topbar{position:sticky;top:0;z-index:8;display:grid;grid-template-columns:72px minmax(0,1fr) 96px;align-items:center;height:52px;margin:0 -20px 10px;padding:0 8px;
+  background:color-mix(in srgb,var(--bg) 84%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+.ps-top-btn{min-width:44px;min-height:44px;padding:0 8px;font-size:15px;font-weight:600;color:var(--text);justify-self:start}
+.ps-top-btn span{font-size:30px;line-height:1;font-weight:400}
+.ps-top-t{margin:0;text-align:center;font-size:16px;font-weight:700;letter-spacing:-.02em}
+.ps-top-next{justify-self:end;color:var(--rose-ink);font-weight:700}
+.ps-top-next:disabled{opacity:.5}
+.ps-stepper{list-style:none;display:flex;gap:6px;margin:0 0 14px;padding:0}
+.ps-stepper li{flex:1;height:3px;border-radius:2px;background:var(--line);font-size:0;transition:background .4s var(--ease)}
+.ps-stepper li.on{background:var(--rose-mark)}
+.ps-compose.js .ps-step[hidden]{display:none}
+.ps-compose.js .ps-n{display:none}
+@media (max-width:1099px){.ps-compose.js:not([data-at="3"]) .ps-preview{display:none}}
+@media (min-width:768px){.ps-topbar{margin:0 0 12px;border:1px solid var(--line);border-radius:16px;top:12px}}
+.ps-drop{position:relative}
+.ps-drop-in{display:grid;justify-items:center;gap:6px;padding:36px 16px;border:1.5px dashed var(--line);border-radius:18px;background:var(--sunken);text-align:center;cursor:pointer;transition:border-color .3s var(--ease),background .3s var(--ease)}
+.ps-drop-in b{font-size:16px}
+.ps-drop-ic{width:44px;height:44px;color:var(--rose-mark)}
+.ps-drop.over .ps-drop-in,.ps-drop-in:hover{border-color:var(--rose-line);background:var(--rose-fill)}
+.ps-drop:has(.ps-file:focus-visible) .ps-drop-in{outline:2px solid var(--accent);outline-offset:2px}
+.ps-compose.js .ps-file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip-path:inset(50%)}
+.ps-compose:not(.js) .ps-file{margin-top:8px;max-width:100%}
+.ps-drop.slim{display:none}
+@media (hover:none){.ps-drop-desk{display:none}}
+.ps-crop{display:grid;gap:12px}
+.ps-crop[hidden]{display:none}
+.ps-crop-stage{display:grid;place-items:center;margin:0 -18px;padding:0;background:#000;overflow:hidden}
+.ps-crop-frame{position:relative;width:100%;max-width:460px;touch-action:none;cursor:grab;user-select:none}
+.ps-crop-frame.dragging{cursor:grabbing}
+.ps-crop-frame canvas{display:block;width:100%;height:100%}
+.ps-crop-grid{position:absolute;inset:0;pointer-events:none;opacity:.35;transition:opacity .25s var(--ease)}
+.ps-crop-grid::before,.ps-crop-grid::after{content:"";position:absolute;border:0 solid rgba(255,255,255,.7)}
+.ps-crop-grid::before{inset:0 33.333%;border-left-width:1px;border-right-width:1px}
+.ps-crop-grid::after{inset:33.333% 0;border-top-width:1px;border-bottom-width:1px}
+.ps-crop-frame.dragging .ps-crop-grid{opacity:1}
+.ps-crop-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.ps-aspect{flex:1 1 230px;width:auto}
+.ps-zoom{display:flex;align-items:center;gap:10px;flex:1 1 180px;min-height:44px;font-size:13px;color:var(--dim)}
+.ps-zoom input{flex:1;accent-color:var(--rose);min-height:44px}
+.ps-thumbs{list-style:none;display:flex;gap:10px;margin:0;padding:4px 2px 6px;overflow-x:auto}
+.ps-th{flex:none;width:76px}
+.ps-th-pick{position:relative;display:grid;place-items:center;width:76px;padding:0;border-radius:10px;overflow:hidden;border:2px solid transparent;background:var(--sunken);cursor:pointer}
+.ps-th.on .ps-th-pick{border-color:var(--rose-mark)}
+.ps-th-pick canvas{display:block;width:100%;height:auto}
+.ps-th-n{position:absolute;top:4px;left:4px;display:grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:rgba(10,10,10,.65);color:#fff;font-size:11px}
+.ps-th.on .ps-th-n{background:var(--rose);color:#1a0a10}
+.ps-th-add .ps-th-pick{border:1.5px dashed var(--line);font-size:24px;color:var(--dim);min-height:76px}
+.ps-photo-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.ps-photo-tools .btn{height:44px;padding:0 14px;font-size:14px}
+.ps-photo-tools [data-tool-n]{margin-right:auto}
+.ps-photo-tools .btn:disabled{opacity:.45}
+.ps-nophoto{margin-top:2px}
+.ps-progress{display:grid;gap:6px}
+.ps-progress[hidden]{display:none}
+.ps-progress-t{font-size:13px;color:var(--dim)}
+.ps-bar{height:6px;border-radius:3px;background:var(--sunken);overflow:hidden}
+.ps-bar i{display:block;width:0;height:100%;background:var(--rose-mark);transition:width .3s var(--ease)}
+.ps-pv-photo{position:relative;margin:0;aspect-ratio:var(--ratio)}
+.ps-pv-photo img{display:block;width:100%;height:100%;object-fit:cover}
+.ps-card .ps-who-t{display:grid;line-height:1.3;min-width:0}
+.ps-card .ps-who-t b{font-size:14px}
+.ps-card .ps-actions{padding:6px 8px 0}
+.ps-card .ps-cap{font-size:14px}
+
+@media (prefers-reduced-motion:reduce){
+  dialog.ps-sheet[open]{animation:none}
+  .ps-car-btn,.ps-dots i,.ps-mark,.ps-hl-c,.ps-tile-img,.ps-stepper li,.ps-bar i,.ps-drop-in,.ps-plus{transition:none}
+  .ps-hl-a:hover .ps-hl-c{transform:none}
+}
+/* 만들기: 위 막대 · 단계 줄은 두 칸 격자에서도 한 줄 전체. 휴대폰에서는 고정 메뉴 버튼(오른쪽 위)을 피한다 */
+.ps-compose>.ps-topbar,.ps-compose>.ps-stepper{grid-column:1/-1}
+.ps-topbar{user-select:none;-webkit-user-select:none}
+.ps-crop-tools>.ps-field{flex:1 1 240px}
+.ps-aspect label span{white-space:nowrap}
+@media (max-width:767px){.ps-topbar{padding-right:64px;grid-template-columns:64px minmax(0,1fr) auto}}
+@media (min-width:768px){.ps-topbar{position:relative;top:auto}}
+@media (min-width:1100px){.ps-view-acts .ps-actions{margin-left:-6px;margin-right:-6px}}
