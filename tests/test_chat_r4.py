@@ -76,3 +76,18 @@ async def test_thread_has_intro_and_quiet_composer(api, session_factory):
     assert "helpBtn" not in pill  # 쓰는 법은 입력칸 밖(머리의 ⋯ 메뉴)
     for c in (a, b):
         await c.aclose()
+
+
+async def test_shared_card_shows_the_first_photo_when_the_post_has_photos(trio, session_factory):  # noqa: F811
+    """사진을 올린 게시물을 채팅에 붙이면 카드에 책 표지 대신 첫 사진이 나온다."""
+    from app.models_posts import PostPhoto
+
+    h, m = trio["h"], trio["m"]
+    pid = await _post(session_factory, trio["ids"][0], "all", "사진 기록")
+    async with session_factory() as s:
+        s.add(PostPhoto(post_id=pid, idx=0, data=b"\xff\xd8\xff\xd9", width=1080, height=1350, digest="abcd1234abcd1234"))
+        await s.commit()
+    url = f"/api/v1/chat/room/{trio['room']}/messages"
+    await post(h, url, text=f"/p/{pid}", channel="chat")
+    card = (await m.get(url, params={"channel": "chat"})).json()["items"][0]["cards"][0]
+    assert card["cover"] == f"/media/p/{pid}/0.jpg?v=abcd1234abcd1234"
