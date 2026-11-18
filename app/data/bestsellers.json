@@ -1,6 +1,6 @@
 {
  "source": "Yes24 분야별 베스트 (소설·인문·에세이)",
- "updated": "2026-11-17",
+ "updated": "2026-11-18",
  "books": [
   {
    "id": "y197068949",
@@ -58,13 +58,13 @@
    "category": "인문"
   },
   {
-   "id": "y125085536",
-   "title": "쇼펜하우어 인생수업 (30만 부 기념 개정증보판)",
-   "author": "아르투어 쇼펜하우어",
-   "publisher": "하이스트",
-   "price": 15750,
-   "cover": "https://image.yes24.com/goods/125085536/XL",
-   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EC%87%BC%ED%8E%9C%ED%95%98%EC%9A%B0%EC%96%B4+%EC%9D%B8%EC%83%9D%EC%88%98%EC%97%85+%2830%EB%A7%8C+%EB%B6%80+%EA%B8%B0%EB%85%90+%EA%B0%9C%EC%A0%95%EC%A6%9D%EB%B3%B4%ED%8C%90%29",
+   "id": "y197648352",
+   "title": "서늘한 대화",
+   "author": "정재승",
+   "publisher": "어크로스",
+   "price": 19800,
+   "cover": "https://image.yes24.com/goods/197648352/XL",
+   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EC%84%9C%EB%8A%98%ED%95%9C+%EB%8C%80%ED%99%94",
    "rank": 3,
    "category": "인문"
   },
@@ -91,13 +91,13 @@
    "category": "에세이"
   },
   {
-   "id": "y196261854",
-   "title": "박완서의 낱말들",
-   "author": "박완서",
-   "publisher": "웅진지식하우스",
-   "price": 17820,
-   "cover": "https://image.yes24.com/goods/196261854/XL",
-   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EB%B0%95%EC%99%84%EC%84%9C%EC%9D%98+%EB%82%B1%EB%A7%90%EB%93%A4",
+   "id": "y196781015",
+   "title": "오래 곁에 두어 좋은 말",
+   "author": "나민애",
+   "publisher": "북다",
+   "price": 16920,
+   "cover": "https://image.yes24.com/goods/196781015/XL",
+   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EC%98%A4%EB%9E%98+%EA%B3%81%EC%97%90+%EB%91%90%EC%96%B4+%EC%A2%8B%EC%9D%80+%EB%A7%90",
    "rank": 3,
    "category": "에세이"
   }
