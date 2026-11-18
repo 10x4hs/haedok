@@ -1,35 +1,52 @@
 {% extends "app.html" %}
-{% from "_ui.html" import book_card, empty_state %}
-{% block title %}서재 — 偕讀 해독{% endblock %}
+{% from "_nav.html" import nav_icon %}
+{% from "_ui.html" import icon %}
+{# 서재 = 내 책 + 대결. /library 는 내 책, /races · /library?tab=races 는 대결이 골라진 채로 열린다.
+   두 칸 내용은 예전 화면 그대로(_shelf_books · _shelf_races), 위에 밑줄 탭만 얹었다 #}
+{% block title %}{{ '대결 · 서재' if seg == 'races' else '서재' }} — 偕讀 해독{% endblock %}
 {% block content_class %}wide{% endblock %}
-{% block heading %}내 서재{% endblock %}
+{% block heading %}서재{% endblock %}
+{% block top_extra %}<a class="rl-rank" href="/leaderboard" aria-label="주간 순위" data-shelf-only="races"{% if seg != 'races' %} hidden{% endif %}>순위</a>{% endblock %}
 {% block main %}
-<div class="seg" role="tablist" aria-label="서재 분류">
-  <button role="tab" id="tab-reading" aria-controls="panel-reading" data-tab="reading" aria-selected="true">읽는 중 <span>{{ tabs.reading|length }}</span></button>
-  <button role="tab" id="tab-done" aria-controls="panel-done" data-tab="done" aria-selected="false" tabindex="-1">다 읽음 <span>{{ tabs.done|length }}</span></button>
-  <button role="tab" id="tab-mine" aria-controls="panel-mine" data-tab="mine" aria-selected="false" tabindex="-1">내 파일 <span>{{ uploaded|length }}</span></button>
+{% set on_races = seg == 'races' %}
+{% set unread_rooms = rooms|selectattr('unread')|list|length %}
+<link rel="stylesheet" href="/static/racelist.css">
+<div class="shelf-tabs" role="tablist" aria-label="서재 나누기">
+  <a role="tab" id="shelf-tab-books" href="/library" data-seg="books" aria-controls="shelf-books" aria-selected="{{ 'false' if on_races else 'true' }}" tabindex="{{ '-1' if on_races else '0' }}">{{ icon('book') }}내 책</a>
+  <a role="tab" id="shelf-tab-races" href="/library?tab=races" data-seg="races" aria-controls="shelf-races" aria-selected="{{ 'true' if on_races else 'false' }}" tabindex="{{ '0' if on_races else '-1' }}"{% if unread_rooms %} aria-label="대결, 새 메시지가 있는 방 {{ unread_rooms }}개"{% endif %}>{{ icon('flag') }}대결{% if unread_rooms %}<i class="nv-n" aria-hidden="true">{{ unread_rooms|badge_text }}</i>{% endif %}</a>
 </div>
-<div class="grid" role="tabpanel" id="panel-reading" aria-labelledby="tab-reading" data-panel="reading">{% for e, b in tabs.reading %}{{ book_card(b, e, eager=loop.first) }}{% else %}{{ empty_state('book', '아직 읽는 책이 없어요', '탐색에서 고르거나 내 파일을 올리면 여기서 이어 읽어요.', '/discover', '책 찾아보기') }}{% endfor %}</div>
-<div class="grid" role="tabpanel" id="panel-done" aria-labelledby="tab-done" data-panel="done" hidden>{% for e, b in tabs.done %}{{ book_card(b, e) }}{% else %}{{ empty_state('book', '다 읽은 책이 아직 없어요', '마지막 쪽까지 읽으면 여기에 모여요.') }}{% endfor %}</div>
-<div class="grid" role="tabpanel" id="panel-mine" aria-labelledby="tab-mine" data-panel="mine" hidden>
-  <a class="card add" href="/upload"><div class="cover add-cover">＋</div><b>파일 올리기</b><span>EPUB · PDF · TXT</span></a>
-  {% for b in uploaded %}{{ book_card(b) }}{% endfor %}
-</div>
+<section class="shelf-panel" id="shelf-books" role="tabpanel" aria-labelledby="shelf-tab-books"{% if on_races %} hidden{% endif %}>
+{% include "_shelf_books.html" %}
+</section>
+<section class="shelf-panel" id="shelf-races" role="tabpanel" aria-labelledby="shelf-tab-races"{% if not on_races %} hidden{% endif %}>
+{% include "_shelf_races.html" %}
+</section>
 <script nonce="{{ csp_nonce }}">
 (() => {
-  const tabs = [...document.querySelectorAll('.seg [role=tab]')];
-  const pick = (btn, focus = false) => {
-    tabs.forEach(b => { b.setAttribute('aria-selected', b === btn); b.tabIndex = b === btn ? 0 : -1; });
-    document.querySelectorAll('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== btn.dataset.tab);
-    if (focus) btn.focus();
+  // 밑줄 탭: 누르면 그 자리에서 바뀌고 주소도 바뀐다(새로 고쳐도 그대로). ← → Home End 로 옮긴다
+  const tabs = [...document.querySelectorAll('.shelf-tabs [role=tab]')];
+  const only = document.querySelectorAll('[data-shelf-only]');
+  const pick = (tab, focus) => {
+    tabs.forEach(t => {
+      const on = t === tab;
+      t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+    only.forEach(el => { el.hidden = el.dataset.shelfOnly !== tab.dataset.seg; });
+    const url = tab.dataset.seg === 'races' ? '/library?tab=races' : '/library';
+    if (location.pathname + location.search !== url) history.replaceState(null, '', url);
+    if (focus) tab.focus();
   };
-  tabs.forEach((btn, i) => {
-    btn.onclick = () => pick(btn);
-    btn.onkeydown = e => {   // 탭 사이는 ← →, 처음·끝은 Home/End
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', e => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;  // 새 탭으로 열기는 그대로
+      e.preventDefault(); pick(tab, false);
+    });
+    tab.addEventListener('keydown', e => {
       const k = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
       if (k === undefined) return;
       e.preventDefault(); pick(tabs[(k + tabs.length) % tabs.length], true);
-    };
+    });
   });
 })();
 </script>

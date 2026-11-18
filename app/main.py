@@ -27,6 +27,7 @@ from app.core.config import Settings, get_settings
 from app.core.logging import request_id_var, setup_logging
 from app.db.session import get_session
 from app.mileage import router as mileage_router
+from app.nav import FeedDot
 from app.posts import router as posts_router
 
 USER_AGENT = "haedok/0.1 (+https://github.com/10x4hs/haedok)"  # Wikimedia는 UA 명시 요구
@@ -94,6 +95,7 @@ app = FastAPI(title="해독(偕讀) API", version=VERSION, lifespan=lifespan, do
 if os.environ.get("VERCEL") and _settings.secret_key == Settings.model_fields["secret_key"].default:
     # 기본 키는 공개 저장소에 있어 누구나 세션 쿠키를 위조할 수 있다
     raise RuntimeError("SECRET_KEY 환경 변수를 설정해야 배포할 수 있어요")
+app.add_middleware(FeedDot)  # 피드의 '친구 새 글' 점 — 세션을 읽으므로 SessionMiddleware 안쪽
 app.add_middleware(ChatMenuDot)  # 메뉴의 채팅 점 — 세션을 읽으므로 SessionMiddleware 안쪽(먼저 추가)
 app.add_middleware(
     SessionMiddleware,

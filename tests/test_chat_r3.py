@@ -12,7 +12,7 @@ async def test_messages_tab_in_main_nav_with_unread_count(trio):  # noqa: F811
     h, m = trio["h"], trio["m"]
     page = (await m.get("/me")).text
     nav = page.split('<nav class="tabbar"')[1].split("</nav>")[0]
-    assert 'href="/chat"' in nav and "<span>메시지</span>" in nav and "--tabs:6" in nav
+    assert 'href="/chat"' in nav and "<span>메시지</span>" in nav and "--tabs:5" in nav  # 홈 · 탐색 · 피드 · 서재 · 메시지 (나는 레일에만)
     assert nav.index("서재") < nav.index("메시지") < nav.index("<span>나</span>")  # 서재와 나 사이
     menu = page.split('id="menu"')[1]
     assert "채팅" not in menu.split("</nav>")[0]  # 햄버거 메뉴의 중복 항목은 없앴다
