@@ -1,0 +1,118 @@
+{% extends "app.html" %}
+{% from "posts/_parts.html" import post_art, stars, rich, heart %}
+{% from "_ui.html" import avatar, flat_cover, icon %}
+{% block title %}게시물 올리기 — 偕讀 해독{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/posts.css">{% endblock %}
+{% block content_class %}wide{% endblock %}
+{% block heading %}<small><a href="/u/{{ user.id }}">‹ 내 프로필</a></small>게시물 올리기{% endblock %}
+
+{% macro choice(value, pick, kind='') -%}
+{% set c = cover(pick.title, pick.author) %}
+<label class="ps-pick">
+  <input class="sr" type="radio" name="book" value="{{ value }}" form="psForm" required{% if draft.book == value %} checked{% endif %}
+    data-title="{{ pick.title }}" data-author="{{ pick.author or '' }}" data-cover="{{ pick.cover or '' }}" data-palette="{{ c.palette }}" data-pattern="{{ c.pattern }}">
+  {{ flat_cover(pick.title, pick.author, pick.cover|small_cover) }}
+  <b>{{ pick.title }}</b>
+  <span>{% if kind %}<em class="ps-kind">{{ kind }}</em> {% endif %}{{ pick.author or '' }}</span>
+</label>
+{%- endmacro %}
+
+{% block main %}
+<div class="ps ps-compose">
+  <div class="ps-steps">
+    {% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
+
+    <section class="ps-step glass-card" aria-labelledby="s1">
+      <h2 class="ps-step-h" id="s1"><span class="ps-n mono" aria-hidden="true">1</span>책 고르기</h2>
+      {% if library %}
+      <h3 class="ps-sub">내 서재 · 다 읽은 책과 읽는 중</h3>
+      <div class="ps-picks" role="radiogroup" aria-label="내 서재에서 고르기">{% for value, pick, shelf in library %}{{ choice(value, pick, '다 읽음' if shelf == 'done' else '읽는 중') }}{% endfor %}</div>
+      {% else %}
+      <p class="muted small">서재에 다 읽었거나 읽는 중인 책이 없어요. 아래에서 찾아 골라 주세요.</p>
+      {% endif %}
+
+      <form class="ps-search" method="get" action="/posts/new" role="search" data-draft-form>
+        <label class="ps-sub" for="psQ">다른 책 찾기</label>
+        <div class="ps-search-row">
+          <input class="ps-input" id="psQ" name="q" value="{{ q }}" maxlength="100" placeholder="제목이나 지은이" autocomplete="off" enterkeyhint="search">
+          <button class="btn ghost">{{ icon('search') }}<span class="sr">찾기</span></button>
+        </div>
+        {% for k in ('book', 'status', 'rating', 'caption', 'quote', 'visibility') %}<input type="hidden" name="{{ k }}" value="{{ draft[k] }}" data-draft="{{ k }}">{% endfor %}
+      </form>
+      {% if found is not none %}
+        {% if found %}
+        <div class="ps-picks" role="radiogroup" aria-label="찾은 책에서 고르기">{% for value, pick, kind in found %}{{ choice(value, pick, kind) }}{% endfor %}</div>
+        {% elif q %}
+        <p class="muted small" role="status">‘{{ q }}’(으)로 찾은 책이 없어요. 다른 말로 찾아 보세요.</p>
+        {% endif %}
+        {% if search_errors %}<p class="muted small">일부 도서관이 응답하지 않아 결과가 적을 수 있어요.</p>{% endif %}
+      {% endif %}
+      <p class="muted small ps-note">내가 올린 개인 파일은 고를 수 없어요. 제목이 다른 사람에게 보이면 안 되니까요.</p>
+    </section>
+
+    <form id="psForm" class="ps-form" method="post" action="/posts" data-compose>
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <section class="ps-step glass-card" aria-labelledby="s2">
+        <h2 class="ps-step-h" id="s2"><span class="ps-n mono" aria-hidden="true">2</span>별점과 글</h2>
+        <fieldset class="ps-field"><legend class="sr">읽은 정도</legend>
+          <div class="ps-seg">{% for k, label in statuses.items() %}<label><input class="sr" type="radio" name="status" value="{{ k }}"{% if draft.status == k %} checked{% endif %}><span>{{ label }}</span></label>{% endfor %}</div>
+        </fieldset>
+        <fieldset class="ps-field ps-rate"><legend><b>별점</b> <span class="muted small">고르지 않아도 돼요</span></legend>
+          <div class="ps-rate-row">
+            {% for n in range(1, 6) %}<label class="ps-star"><input class="sr" type="radio" name="rating" value="{{ n }}"{% if draft.rating == n|string %} checked{% endif %}><span aria-hidden="true">★</span><span class="sr">{{ n }}점</span></label>{% endfor %}
+            <label class="ps-star-none"><input class="sr" type="radio" name="rating" value=""{% if not draft.rating %} checked{% endif %}><span>안 매길래요</span></label>
+          </div>
+        </fieldset>
+        <div class="ps-field"><label for="psCaption"><b>어땠나요?</b></label>
+          <textarea class="ps-input" id="psCaption" name="caption" rows="4" maxlength="{{ max_caption }}" placeholder="읽고 남은 생각을 자유롭게 적어 주세요" aria-describedby="capHint" data-count="capCount">{{ draft.caption }}</textarea>
+          <p class="muted small ps-hint" id="capHint"><span class="mono" id="capCount">{{ draft.caption|length }}/{{ max_caption }}</span> · 줄거리 이야기는 <code>||이렇게||</code> 감싸면 가려져요</p></div>
+        <div class="ps-field"><label for="psQuote"><b>좋았던 문장</b> <span class="muted small">한 줄, 없어도 돼요</span></label>
+          <input class="ps-input" id="psQuote" name="quote" maxlength="{{ max_quote }}" value="{{ draft.quote }}" placeholder="마음에 남은 한 문장" data-count="quoteCount" aria-describedby="quoteCount">
+          <span class="mono muted ps-count" id="quoteCount">{{ draft.quote|length }}/{{ max_quote }}</span></div>
+      </section>
+
+      <section class="ps-step glass-card" aria-labelledby="s3">
+        <h2 class="ps-step-h" id="s3"><span class="ps-n mono" aria-hidden="true">3</span>누가 볼까요</h2>
+        <fieldset class="ps-field"><legend class="sr">공개 범위</legend>
+          <div class="ps-vis">
+            {% for k, label in visibilities.items()|reverse %}
+            <label><input class="sr" type="radio" name="visibility" value="{{ k }}"{% if draft.visibility == k %} checked{% endif %}>
+              <span><b>{{ label }}</b><small>{{ '가입한 사람 누구나 소식의 ‘모두’와 내 프로필에서 봐요' if k == 'all' else '친구만 봐요. 다른 사람에겐 게시물이 있는지도 보이지 않아요' }}</small></span></label>
+            {% endfor %}
+          </div>
+        </fieldset>
+        <button class="btn primary wide">올리기</button>
+        <p class="muted small ps-note">같은 책은 하루에 한 번만 올릴 수 있어요. 사진 대신 책 표지가 게시물 그림이 돼요.</p>
+      </section>
+    </form>
+  </div>
+
+  <aside class="ps-preview" aria-labelledby="pvH">
+    <h2 class="ps-pv-h" id="pvH">미리 보기</h2>
+    {% set pt = chosen.title if chosen else '' %}
+    {% set pa = chosen.author if chosen else '' %}
+    <article class="ps-card glass-card" data-preview aria-live="off">
+      <header class="ps-head">
+        <span class="ps-who">{{ avatar(user, 'sm') }}<b>{{ user.nickname }}</b></span>
+        <span class="ps-meta"><span data-pv-vis{% if draft.visibility != 'friends' %} hidden{% endif %}><svg class="ic ps-lock" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg> 친구만 · </span>방금</span>
+      </header>
+      <div class="ps-art-link" data-pv-art>
+        {% if chosen %}{{ post_art(pt, pa, chosen.cover, eager=True) }}{% else %}
+        <div class="ps-art ps-art-empty"><p>책을 고르면<br>표지가 여기에 와요</p></div>{% endif %}
+      </div>
+      <div class="ps-actions">
+        <span class="ps-act">{{ heart() }}<span class="mono">0</span></span>
+        <span class="ps-act">{{ icon('chat') }}<span class="mono">0</span></span>
+        <span class="ps-status tag" data-pv-status>{{ statuses[draft.status] }}</span>
+      </div>
+      <div class="ps-body">
+        <h3 class="ps-title"><b data-pv-title>{{ pt or '어떤 책인가요?' }}</b> <span data-pv-author>{{ pa or '' }}</span></h3>
+        <span class="ps-stars" data-pv-stars{% if not draft.rating %} hidden{% endif %} role="img" aria-label="별점">{% for i in range(5) %}<i class="{{ 'on' if draft.rating and i < draft.rating|int else '' }}" aria-hidden="true">★</i>{% endfor %}</span>
+        <p class="ps-caption clamp" data-pv-caption{% if not draft.caption %} hidden{% endif %}>{{ rich(draft.caption) }}</p>
+        <blockquote class="ps-quote" data-pv-quote{% if not draft.quote %} hidden{% endif %}>{{ draft.quote }}</blockquote>
+      </div>
+    </article>
+  </aside>
+</div>
+<script src="/static/posts.js" defer></script>
+{% endblock %}

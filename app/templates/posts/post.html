@@ -1,0 +1,104 @@
+{% extends "app.html" %}
+{% from "posts/_parts.html" import post_art, stars, rich, like_form, lock_icon, face %}
+{% set p = c.post %}
+{% set mine = p.author_id == user.id %}
+{% block title %}{{ p.book_title }} · {{ c.author.nickname }} — 偕讀 해독{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/posts.css">{% endblock %}
+{% block content_class %}split{% endblock %}
+{% block heading %}<small><a href="/feed">‹ 소식</a></small>게시물{% endblock %}
+{% block main %}
+<section class="ps ps-hero glass-card" aria-labelledby="bookT">
+  {{ post_art(p.book_title, p.book_author, p.cover_url, eager=True) }}
+  <div class="ps-hero-b">
+    <span class="ps-status tag">{{ c.status_label }}</span>
+    <h2 class="ps-book" id="bookT">{{ p.book_title }}</h2>
+    {% if p.book_author %}<p class="muted ps-book-a">{{ p.book_author }}</p>{% endif %}
+    {{ stars(p.rating, 'lg') }}
+  </div>
+</section>
+
+<div class="ps ps-detail">
+  {% if msg %}<p class="form-ok" role="status">{{ msg }}</p>{% endif %}
+  {% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
+  <header class="ps-head ps-head-lg">
+    <a class="ps-who" href="/u/{{ c.author.id }}">{{ face(c.author, faces) }}<b>{{ c.author.nickname }}</b></a>
+    <span class="ps-meta">{% if p.visibility == 'friends' %}{{ lock_icon() }} 친구만 · {% endif %}<time datetime="{{ p.created_at.isoformat() if p.created_at else '' }}">{{ p.created_at|post_when }}</time>{% if p.updated_at %} · 고침{% endif %}</span>
+  </header>
+  {% if p.caption %}<p class="ps-caption">{{ rich(p.caption) }}</p>{% endif %}
+  {% if p.quote %}<blockquote class="ps-quote lg"><span class="ps-q-label">좋았던 문장</span>{{ rich(p.quote) }}</blockquote>{% endif %}
+  {% if not p.caption and not p.quote %}<p class="muted">글 없이 표지만 올렸어요.</p>{% endif %}
+
+  <div class="ps-actions ps-actions-lg">
+    {{ like_form(c, csrf, '/p/' ~ p.id) }}
+    <a class="ps-act" href="#commentBody" aria-label="댓글 쓰기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4z"/></svg><span class="mono">{{ comments|length }}</span></a>
+  </div>
+
+  <section class="row ps-comments" id="comments" aria-labelledby="cmH">
+    <div class="row-h"><h2 id="cmH">댓글</h2><span class="mono muted">{{ comments|length }}</span></div>
+    {% if comments %}
+    <ul class="ps-cm-list">
+      {% for cm, who in comments %}
+      <li id="c{{ cm.id }}">
+        <a href="/u/{{ who.id }}" aria-label="{{ who.nickname }} 프로필">{{ face(who, faces, 'sm') }}</a>
+        <div class="ps-cm-b">
+          <p><a class="ps-cm-who" href="/u/{{ who.id }}">{{ who.nickname }}</a> {{ rich(cm.body) }}</p>
+          <span class="ps-time">{{ cm.created_at|post_when }}</span>
+        </div>
+        {% if who.id == user.id or mine %}
+        <form method="post" action="/p/{{ p.id }}/comments/{{ cm.id }}/delete"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="ps-cm-del" aria-label="댓글 지우기">지우기</button></form>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted small">아직 댓글이 없어요. 첫 마디를 남겨 보세요.</p>
+    {% endif %}
+    <form class="ps-cm-form" method="post" action="/p/{{ p.id }}/comments">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label class="sr" for="commentBody">댓글</label>
+      <textarea id="commentBody" name="body" rows="1" maxlength="{{ max_comment }}" required placeholder="댓글 달기…" aria-describedby="cmHint" data-count="cmCount"></textarea>
+      <button class="btn primary">올리기</button>
+      <p class="muted small ps-hint" id="cmHint"><span class="mono" id="cmCount">0/{{ max_comment }}</span> · <code>||이렇게||</code> 감싸면 가려져요</p>
+    </form>
+  </section>
+
+  {% if mine %}
+  <section class="row" aria-labelledby="ownH">
+    <div class="row-h"><h2 id="ownH">내 게시물</h2></div>
+    <details class="ps-more-box">
+      <summary class="btn ghost wide">고치기</summary>
+      <form class="ps-form" method="post" action="/p/{{ p.id }}/edit">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="status" value="{{ p.status }}">
+        <input type="hidden" name="rating" value="{{ p.rating or '' }}">
+        <div class="ps-field"><label for="editCaption"><b>글</b></label>
+          <textarea class="ps-input" id="editCaption" name="caption" rows="4" maxlength="{{ max_caption }}" data-count="editCount">{{ p.caption }}</textarea>
+          <span class="mono muted ps-count" id="editCount">{{ p.caption|length }}/{{ max_caption }}</span></div>
+        <div class="ps-field"><label for="editQuote"><b>좋았던 문장</b></label>
+          <input class="ps-input" id="editQuote" name="quote" maxlength="{{ max_quote }}" value="{{ p.quote or '' }}"></div>
+        <fieldset class="ps-field"><legend><b>누가 볼까요</b></legend>
+          <div class="ps-seg">{% for k, label in visibilities.items() %}<label><input class="sr" type="radio" name="visibility" value="{{ k }}"{% if p.visibility == k %} checked{% endif %}><span>{{ label }}</span></label>{% endfor %}</div>
+        </fieldset>
+        <button class="btn primary wide">저장</button>
+      </form>
+    </details>
+    <details class="ps-more-box">
+      <summary class="btn ghost wide">지우기</summary>
+      <form method="post" action="/p/{{ p.id }}/delete"><input type="hidden" name="csrf" value="{{ csrf }}">
+        <p class="muted small">지우면 좋아요와 댓글도 함께 보이지 않아요. 되돌릴 수 없어요.</p>
+        <button class="btn ghost wide ps-danger">게시물 지우기</button></form>
+    </details>
+  </section>
+  {% else %}
+  <details class="ps-report">
+    <summary>이 게시물 신고하기</summary>
+    <form method="post" action="/p/{{ p.id }}/report"><input type="hidden" name="csrf" value="{{ csrf }}">
+      <fieldset><legend class="muted small">어떤 문제가 있나요?</legend>
+      {% for key, label in reasons.items() %}<label class="ps-radio"><input type="radio" name="reason" value="{{ key }}"{% if loop.first %} required{% endif %}><span>{{ label }}</span></label>{% endfor %}
+      </fieldset>
+      <button class="btn ghost wide">신고 보내기</button></form>
+  </details>
+  {% endif %}
+</div>
+<script src="/static/posts.js" defer></script>
+{% endblock %}

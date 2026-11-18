@@ -1,0 +1,66 @@
+{% extends "app.html" %}
+{% from "posts/_parts.html" import grid_tile %}
+{% from "_ui.html" import empty_state %}
+{% from "posts/_parts.html" import face %}
+{% set me = prof.state == 'self' %}
+{% block title %}{{ prof.user.nickname }} — 偕讀 해독{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/posts.css">{% endblock %}
+{% block heading %}{% if not me %}<small><a href="/feed">‹ 소식</a></small>{% endif %}{{ '내 프로필' if me else prof.user.nickname }}{% endblock %}
+{% block main %}
+<div class="ps ps-profile">
+  {% if msg %}<p class="form-ok" role="status">{{ msg }}</p>{% endif %}
+  {% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
+  <section class="ps-prof glass-card" aria-labelledby="profName">
+    <div class="ps-prof-top">
+      {{ face(prof.user, faces, 'xl') }}
+      <div class="ps-prof-id">
+        <h2 id="profName">{{ prof.user.nickname }}</h2>
+        {% if prof.state == 'friends' %}<span class="tag ps-friend-tag">친구</span>{% elif prof.state == 'incoming' %}<span class="tag">나에게 친구 신청</span>{% endif %}
+      </div>
+    </div>
+    <dl class="ps-counts">
+      <div><dt>게시물</dt><dd class="mono">{{ prof.posts }}</dd></div>
+      <div><dt>친구</dt><dd class="mono">{{ prof.friends }}</dd></div>
+      <div><dt>다 읽은 책</dt><dd class="mono">{{ prof.done }}</dd></div>
+    </dl>
+    <div class="ps-prof-actions">
+      {% if me %}
+        <a class="btn primary" href="/posts/new">게시물 올리기</a>
+        <a class="btn ghost" href="/feed">소식</a>
+      {% elif chat_on %}
+        {% if prof.state == 'friends' %}
+          <a class="btn primary" href="/chat/dm/{{ prof.user.id }}">메시지</a>
+        {% elif prof.state == 'incoming' %}
+          <form method="post" action="/friends/{{ prof.user.id }}/accept"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn primary">친구 신청 받기</button></form>
+        {% elif prof.state == 'outgoing' %}
+          <button class="btn ghost" type="button" disabled>친구 신청을 보냈어요</button>
+        {% else %}
+          <form method="post" action="/friends/{{ prof.user.id }}/request"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn primary">친구 신청</button></form>
+        {% endif %}
+      {% endif %}
+    </div>
+    {% if grass %}
+    <div class="ps-grass-wrap">
+      <p class="ps-grass-h" id="grassH">최근 {{ (grass|length / 7)|round(0, 'ceil')|int }}주 동안 <b>{{ grass|selectattr('label')|list|length }}일</b> 읽었어요</p>
+      <div class="ps-grass" role="img" aria-labelledby="grassH" style="--weeks:{{ (grass|length / 7)|round(0, 'ceil')|int }}">
+        {% for cell in grass %}<i class="l{{ cell.level }}"{% if cell.label %} title="{{ cell.label }}"{% endif %}></i>{% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="ps-grid-sec" aria-labelledby="gridH">
+    <h2 class="sr" id="gridH">게시물</h2>
+    {% if tiles %}
+    <ul class="ps-grid">{% for p in tiles %}{{ grid_tile(p) }}{% endfor %}</ul>
+    {% if cursor %}<a class="btn ghost wide ps-more" href="/u/{{ prof.user.id }}?before={{ cursor }}">더 보기</a>{% endif %}
+    {% elif paged %}
+    <p class="muted ps-end">여기까지예요.</p>
+    {% elif me %}
+    {{ empty_state('book', '아직 올린 게시물이 없어요', '다 읽었거나 읽고 있는 책을 표지와 함께 올려 보세요.', '/posts/new', '첫 게시물 올리기') }}
+    {% else %}
+    {{ empty_state('book', '아직 보이는 게시물이 없어요', ('친구만 보게 올린 게시물은 친구가 되면 보여요.' if prof.state != 'friends' else '')) }}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

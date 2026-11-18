@@ -27,6 +27,7 @@ from app.core.config import Settings, get_settings
 from app.core.logging import request_id_var, setup_logging
 from app.db.session import get_session
 from app.mileage import router as mileage_router
+from app.posts import router as posts_router
 
 USER_AGENT = "haedok/0.1 (+https://github.com/10x4hs/haedok)"  # Wikimedia는 UA 명시 요구
 VERSION = "0.1.0"
@@ -223,6 +224,7 @@ app.include_router(intro.router)
 app.include_router(pwa.router)
 app.include_router(seo.router)
 app.include_router(chat_router)
+app.include_router(posts_router)
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
 

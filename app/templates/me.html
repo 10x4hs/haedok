@@ -47,6 +47,7 @@
 </style>
 {% include "_goal.html" %}
 <section class="settings">
+  {% include "posts/_me_link.html" %}
   <button class="set-row" type="button" data-open-look>{{ icon('theme') }}<span>화면 꾸미기</span><em>{{ APPEARANCE.MODES[look.mode] }} · ›</em></button>
   <a class="set-row" href="/races">{{ icon('race') }}<span>친구와 대결</span><em>›</em></a>
   {% if chat_enabled is defined and chat_enabled() %}<a class="set-row" href="/friends">{{ icon('me') }}<span>친구</span><em>›</em></a>{% endif %}
