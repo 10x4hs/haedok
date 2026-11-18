@@ -1,7 +1,21 @@
-/* 읽은 책 게시물 — 가리기 열기 · 좋아요(새로고침 없이) · 글자 수 · 올리기 화면의 미리 보기.
- * JS가 없어도 모든 폼은 그대로 동작한다(서버가 처리하고 돌아온다). DOM은 textContent 로만 만든다. */
+/* 읽은 책 게시물 — 인스타그램처럼 동작하는 작은 것들.
+ * 가리기 열기 · 좋아요/저장(새로고침 없이) · 그림 두 번 탭 = 좋아요 · 사진 넘김(밀기 · 화살표 · 점 · 1/3) ·
+ * 보내기 시트(친구에게 DM) · 댓글 시트(휴대폰 피드) · 댓글 좋아요 · 답글 · 글자 수 · 긴 글 '더 보기'.
+ * JS가 없어도 모든 폼은 그대로 동작한다(서버가 처리하고 돌아온다). 사용자 글로 DOM을 만들 때는 textContent 만 쓴다.
+ * 댓글 시트는 서버가 이스케이프해 그린 조각(/p/{id}/comments)을 DOMParser 로 옮겨 붙인다. */
 (() => {
-  const SPOILER = /\|\|([\s\S]+?)\|\|/g; // 채팅(chat.js)과 같은 가리기 표시
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const toast = msg => { if (window.haedokToast) window.haedokToast(msg); };
+  const JSON_H = { Accept: 'application/json' };
+
+  async function post(form, extra) {
+    const body = new FormData(form);
+    if (extra) Object.entries(extra).forEach(([k, v]) => body.set(k, v));
+    const r = await fetch(form.action, { method: 'POST', body, headers: JSON_H, credentials: 'same-origin' });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { const e = new Error(j.detail || String(r.status)); e.status = r.status; e.detail = j.detail; throw e; }
+    return j;
+  }
 
   // ---------- 가리기: 탭하면 흐림이 걷힌다(예의일 뿐 보안이 아니다)
   function openVeil(v) {
@@ -19,21 +33,18 @@
     if (v && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openVeil(v); }
   });
 
-  // ---------- 좋아요: 서버가 JSON으로 켜짐 · 수를 알려 준다. 실패하면 보통 폼으로 보낸다
-  // want=1 은 '켜기만'(그림 두 번 탭) — 몇 번 보내도 같다
-  function paint(form, j) {
-    const btn = form.querySelector('button');
-    btn.setAttribute('aria-pressed', j.liked ? 'true' : 'false');
-    btn.setAttribute('aria-label', j.liked ? '좋아요 취소' : '좋아요');
-    btn.querySelector('.ps-heart').classList.toggle('on', j.liked);
-    const line = (form.closest('.ps-post') || document).querySelector('[data-like-line]');
+  // ---------- 좋아요 줄: 'OO님 외 n명이 좋아합니다' 또는 '좋아요 n개'
+  function likeLine(line, count) {
     if (!line) return;
+    const friend = line.dataset.friend || '';
+    const b = (t, cnt) => { const n = document.createElement('b'); if (cnt) n.dataset.likeCount = ''; n.textContent = t; return n; };
+    const t = s => document.createTextNode(s);
     line.replaceChildren();
-    if (j.count) {
-      const b = document.createElement('b');
-      b.dataset.likeCount = '';
-      b.textContent = String(j.count);
-      line.append(document.createTextNode('좋아요 '), b, document.createTextNode('개'));
+    if (count && friend) {
+      if (count > 1) line.append(b(friend), t('님 외 '), b(String(count - 1), true), t('명이 좋아합니다'));
+      else line.append(b(friend), t('님이 좋아합니다'));
+    } else if (count) {
+      line.append(t('좋아요 '), b(String(count), true), t('개'));
     } else {
       const z = document.createElement('span');
       z.dataset.likeZero = '';
@@ -41,62 +52,276 @@
       line.append(z);
     }
   }
+
+  // want=1 은 '켜기만'(그림 두 번 탭) — 몇 번 보내도 같다
   async function sendLike(form, want) {
     const btn = form.querySelector('button');
     if (btn.disabled) return;
     btn.disabled = true;
-    const body = new FormData(form);
-    if (want) body.set('want', '1');
     try {
-      const r = await fetch(form.action, { method: 'POST', body, headers: { Accept: 'application/json' }, credentials: 'same-origin' });
-      if (r.status === 429) {
-        const j = await r.json().catch(() => ({}));
-        if (window.haedokToast) window.haedokToast(j.detail || '잠시 뒤에 다시 해 주세요');
-        return;
-      }
-      if (!r.ok) throw new Error(String(r.status));
-      paint(form, await r.json());
-    } catch (_) {
-      if (!want) form.submit();
+      const j = await post(form, want ? { want: '1' } : null);
+      btn.setAttribute('aria-pressed', j.liked ? 'true' : 'false');
+      btn.setAttribute('aria-label', j.liked ? '좋아요 취소' : '좋아요');
+      btn.querySelector('.ps-heart').classList.toggle('on', j.liked);
+      // 친구 이름이 들어간 줄은 내가 끄고 켤 때 친구 수를 바꾸지 않는다 — 서버 수에서 나를 빼고 다시 센다
+      likeLine((form.closest('.ps-post') || document).querySelector('[data-like-line]'), j.count);
+    } catch (err) {
+      if (err.status === 429) toast(err.detail || '잠시 뒤에 다시 해 주세요');
+      else if (!want) form.submit();
     } finally {
       btn.disabled = false;
     }
   }
-  document.querySelectorAll('form[data-like]').forEach(form => {
-    form.addEventListener('submit', e => { e.preventDefault(); sendLike(form, false); });
+  document.addEventListener('submit', e => {
+    const f = e.target;
+    if (f.matches('form[data-like]')) { e.preventDefault(); sendLike(f, false); }
+    else if (f.matches('form[data-save]')) { e.preventDefault(); sendSave(f); }
+    else if (f.matches('form[data-cm-like]')) { e.preventDefault(); sendCommentLike(f); }
   });
 
-  // ---------- 그림 두 번 탭(더블클릭) = 좋아요. 하트가 잠깐 떴다 사라진다(움직임 줄이기를 따른다)
-  document.querySelectorAll('[data-dbl-like]').forEach(pic => {
-    const post = pic.closest('.ps-post');
-    const form = post && post.querySelector('form[data-like]');
-    if (!form) return;
-    const pop = pic.querySelector('.ps-pop');
-    let last = 0;
-    pic.addEventListener('click', e => {
-      if (e.target.closest('.ps-veil')) return;
-      const now = Date.now();
-      if (now - last < 350) {
-        last = 0;
-        if (pop) { pop.classList.remove('show'); void pop.offsetWidth; pop.classList.add('show'); }
-        sendLike(form, true);
-      } else {
-        last = now;
-      }
+  // ---------- 저장(책갈피)
+  async function sendSave(form) {
+    const btn = form.querySelector('button');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    try {
+      const j = await post(form);
+      btn.setAttribute('aria-pressed', j.saved ? 'true' : 'false');
+      btn.setAttribute('aria-label', j.saved ? '저장 취소' : '저장');
+      btn.querySelector('.ps-mark').classList.toggle('on', j.saved);
+      toast(j.saved ? '저장했어요 · 내 프로필의 저장됨에서 볼 수 있어요' : '저장을 취소했어요');
+    } catch (err) {
+      if (err.status === 429) toast(err.detail || '잠시 뒤에 다시 해 주세요');
+      else form.submit();
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ---------- 그림 두 번 탭(더블클릭) = 좋아요. 가운데 하트가 커졌다 사라진다(움직임 줄이기면 나타났다 사라지기만)
+  document.addEventListener('click', e => {
+    const pic = e.target.closest('[data-dbl-like]');
+    if (!pic || e.target.closest('.ps-veil, button, a')) return;
+    const now = Date.now();
+    if (now - (pic._last || 0) < 320) {
+      pic._last = 0;
+      const form = (pic.closest('.ps-post') || document).querySelector('form[data-like]');
+      const pop = pic.querySelector('.ps-pop');
+      if (pop) { pop.classList.remove('show'); void pop.offsetWidth; pop.classList.add('show'); }
+      if (form) sendLike(form, true);
+    } else {
+      pic._last = now;
+    }
+  });
+
+  // ---------- 사진 넘김: 가로 스크롤 + scroll-snap. 화살표 · 점 · '1/3' 은 지금 장을 따라간다
+  document.querySelectorAll('[data-car]').forEach(car => {
+    const track = car.querySelector('[data-car-track]');
+    const slides = track.children;
+    const n = slides.length;
+    if (n < 2) return;
+    const pic = car.closest('.ps-pic');
+    const dots = pic && pic.nextElementSibling && pic.nextElementSibling.matches('[data-car-dots]') ? pic.nextElementSibling.children : [];
+    const now = car.querySelector('[data-car-now]');
+    const prev = car.querySelector('[data-car-prev]');
+    const next = car.querySelector('[data-car-next]');
+    let at = 0;
+    const paint = () => {
+      const i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+      if (i === at && now.textContent === String(i + 1)) return;
+      at = Math.max(0, Math.min(n - 1, i));
+      now.textContent = String(at + 1);
+      Array.from(dots).forEach((d, k) => d.classList.toggle('on', k === at));
+      prev.hidden = at === 0;
+      next.hidden = at === n - 1;
+    };
+    const go = i => track.scrollTo({ left: i * track.clientWidth, behavior: reduced ? 'auto' : 'smooth' });
+    track.addEventListener('scroll', () => window.requestAnimationFrame(paint), { passive: true });
+    prev.addEventListener('click', () => go(at - 1));
+    next.addEventListener('click', () => go(at + 1));
+    track.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight') { e.preventDefault(); go(Math.min(n - 1, at + 1)); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); go(Math.max(0, at - 1)); }
     });
   });
+
+  // ---------- 시트(아래에서 올라오는 창) — <dialog> 하나를 열고 닫는다. 바깥 · ✕ · Esc 로 닫힌다
+  function openSheet(d, opener) {
+    if (!d || typeof d.showModal !== 'function') return false;
+    d._opener = opener || null;
+    d.showModal();
+    return true;
+  }
+  function closeSheet(d) {
+    if (!d.open) return;
+    d.close();
+  }
+  document.addEventListener('click', e => {
+    const x = e.target.closest('dialog.ps-sheet [data-close]');
+    if (x) { closeSheet(x.closest('dialog')); return; }
+    if (e.target.matches('dialog.ps-sheet')) closeSheet(e.target); // 바깥(어두운 곳)을 눌렀다
+  });
+  document.querySelectorAll('dialog.ps-sheet').forEach(d => {
+    d.addEventListener('close', () => { if (d._opener && d._opener.focus) d._opener.focus(); });
+  });
+
+  // ---------- 보내기: 친구를 고르면 그 친구와의 개인 채팅에 게시물 링크가 간다
+  const sendSheet = document.getElementById('psSend');
+  if (sendSheet) {
+    const form = sendSheet.querySelector('[data-send-form]');
+    const copy = sendSheet.querySelector('[data-send-copy]');
+    const q = sendSheet.querySelector('[data-send-q]');
+    document.addEventListener('click', e => {
+      const b = e.target.closest('[data-send]');
+      if (!b) return;
+      const id = b.dataset.send;
+      if (form) form.action = `/p/${id}/send`;
+      copy.dataset.share = `/p/${id}`;
+      if (q) { q.value = ''; q.dispatchEvent(new Event('input')); }
+      openSheet(sendSheet, b);
+    });
+    if (q) q.addEventListener('input', () => {
+      const t = q.value.trim();
+      sendSheet.querySelectorAll('[data-name]').forEach(li => { li.hidden = !!t && !li.dataset.name.includes(t); });
+    });
+    if (form) form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const who = e.submitter;
+      if (!who) return;
+      who.disabled = true;
+      try {
+        await post(form, { friend_id: who.value });
+        const go = who.querySelector('.ps-send-go');
+        if (go) go.textContent = '보냄';
+        who.classList.add('sent');
+        toast(`${who.querySelector('b').textContent}님에게 보냈어요`);
+      } catch (err) {
+        who.disabled = false;
+        toast(err.detail || '보내지 못했어요. 잠시 뒤에 다시 해 주세요');
+      }
+    });
+    copy.addEventListener('click', () => closeSheet(sendSheet));
+  }
 
   // ---------- 공유 = 링크 복사
   document.addEventListener('click', async e => {
     const b = e.target.closest('[data-share]');
-    if (!b) return;
+    if (!b || !b.dataset.share) return;
     const url = new URL(b.dataset.share, location.origin).href;
     let ok = false;
     try { await navigator.clipboard.writeText(url); ok = true; } catch (_) { ok = false; }
-    if (window.haedokToast) window.haedokToast(ok ? '링크를 복사했어요' : url);
+    toast(ok ? '링크를 복사했어요' : url);
     const menu = b.closest('details');
     if (menu) menu.open = false;
   });
+
+  // ---------- 댓글 시트(휴대폰 피드): 말풍선 · '댓글 n개 모두 보기'를 누르면 아래에서 올라온다.
+  // 넓은 화면은 게시물 화면(왼쪽 그림 · 오른쪽 댓글)으로 그대로 간다.
+  const cmSheet = document.getElementById('psComments');
+  const phone = window.matchMedia('(max-width: 767px)');
+  async function loadComments(url, keepScroll) {
+    const body = cmSheet.querySelector('[data-sheet-body]');
+    const top = keepScroll ? body.scrollTop : 0;
+    const r = await fetch(url, { credentials: 'same-origin' });
+    if (!r.ok) throw new Error(String(r.status));
+    const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+    const wrap = doc.querySelector('[data-cm-wrap]');
+    body.replaceChildren(document.adoptNode(wrap));
+    body.scrollTop = top;
+    wire(body);
+    return wrap;
+  }
+  if (cmSheet) {
+    document.addEventListener('click', async e => {
+      const a = e.target.closest('[data-comments]');
+      if (!a || !phone.matches || a.closest('.ps-view')) return;
+      e.preventDefault();
+      cmSheet._url = a.dataset.comments;
+      const body = cmSheet.querySelector('[data-sheet-body]');
+      const wait = document.createElement('p');
+      wait.className = 'muted small ps-sheet-wait';
+      wait.textContent = '불러오는 중…';
+      body.replaceChildren(wait);
+      openSheet(cmSheet, a);
+      try {
+        await loadComments(cmSheet._url);
+        if (a.matches('.ps-act')) { const t = cmSheet.querySelector('textarea'); if (t) t.focus(); }
+      } catch (_) {
+        location.href = a.getAttribute('href');
+      }
+    });
+  }
+
+  // ---------- 댓글: 좋아요(작은 하트) · 답글 달기 · 입력칸
+  async function sendCommentLike(form) {
+    const btn = form.querySelector('button');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    try {
+      const j = await post(form);
+      btn.setAttribute('aria-pressed', j.liked ? 'true' : 'false');
+      btn.setAttribute('aria-label', j.liked ? '댓글 좋아요 취소' : '댓글 좋아요');
+      btn.querySelector('.ps-heart').classList.toggle('on', j.liked);
+      const li = form.closest('.ps-cm');
+      const meta = li && li.querySelector(':scope > .ps-cm-b > .ps-cm-meta [data-cm-likes]');
+      if (meta) { meta.hidden = !j.count; meta.querySelector('b').textContent = String(j.count); }
+    } catch (err) {
+      if (err.status === 429) toast(err.detail || '잠시 뒤에 다시 해 주세요');
+      else form.submit();
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function wire(root) {
+    root.querySelectorAll('[data-cm-wrap]').forEach(wrap => {
+      if (wrap._wired) return;
+      wrap._wired = true;
+      const form = wrap.querySelector('[data-cm-form]');
+      const t = form.querySelector('textarea');
+      const parent = form.querySelector('[data-parent]');
+      const chip = form.querySelector('[data-replying]');
+      const stopReply = () => { parent.value = ''; parent.disabled = true; chip.hidden = true; };
+      wrap.addEventListener('click', e => {
+        const r = e.target.closest('[data-reply]');
+        if (r) {
+          parent.disabled = false;
+          parent.value = r.dataset.reply;
+          chip.querySelector('[data-replying-t]').textContent = `${r.dataset.nick}님에게 답글 남기는 중`;
+          chip.hidden = false;
+          const tag = `@${r.dataset.nick} `;
+          if (!t.value.startsWith(tag)) t.value = tag + t.value;
+          t.focus();
+          t.setSelectionRange(t.value.length, t.value.length);
+          t.dispatchEvent(new Event('input'));
+        }
+        if (e.target.closest('[data-replying-x]')) { stopReply(); t.focus(); }
+      });
+      t.addEventListener('input', () => { t.style.height = 'auto'; t.style.height = `${Math.min(t.scrollHeight + 2, 140)}px`; });
+      bindCount(t);
+      // 시트 안에서는 보내고 나서 목록만 다시 불러온다(화면이 넘어가지 않게)
+      if (cmSheet && cmSheet.contains(wrap)) {
+        form.addEventListener('submit', async e => {
+          e.preventDefault();
+          const btn = form.querySelector('.ps-cm-post');
+          btn.disabled = true;
+          try {
+            const j = await post(form);
+            const fresh = await loadComments(cmSheet._url, true);
+            const row = fresh.querySelector(`#c${j.id}`);
+            if (row) {
+              const box = row.closest('details');
+              if (box) box.open = true;
+              row.scrollIntoView({ block: 'nearest' });
+            }
+          } catch (err) {
+            toast(err.detail || '댓글을 올리지 못했어요');
+            btn.disabled = false;
+          }
+        });
+      }
+    });
+  }
 
   // ---------- 긴 글은 두 줄에서 접고 '더 보기'
   document.querySelectorAll('[data-clamp]').forEach(cap => {
@@ -114,104 +339,17 @@
   });
 
   // ---------- 글자 수
-  document.querySelectorAll('[data-count]').forEach(input => {
+  function bindCount(input) {
     const out = document.getElementById(input.dataset.count);
-    if (!out) return;
+    if (!out || input._counted) return;
+    input._counted = true;
     const sync = () => { out.textContent = `${input.value.length}/${input.maxLength}`; };
     input.addEventListener('input', sync);
     sync();
-  });
-
-  // ---------- 댓글 칸은 쓰는 만큼 늘어난다
-  document.querySelectorAll('.ps-cm-form textarea').forEach(t => {
-    const fit = () => { t.style.height = 'auto'; t.style.height = `${Math.min(t.scrollHeight + 2, 160)}px`; };
-    t.addEventListener('input', fit);
-  });
-
-  // ---------- 올리기 화면
-  const form = document.querySelector('form[data-compose]');
-  if (!form) return;
-  const card = document.querySelector('[data-preview]');
-  const $ = s => card.querySelector(s);
-  const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
-  const value = name => { const c = document.querySelector(`input[name="${name}"]:checked`); return c ? c.value : ''; };
-
-  function rich(parent, text) {
-    parent.replaceChildren();
-    let last = 0;
-    text.replace(SPOILER, (m, inner, at) => {
-      if (at > last) parent.append(document.createTextNode(text.slice(last, at)));
-      const v = el('span', 'ps-veil');
-      v.append(el('span', 'ps-veil-t', inner));
-      parent.append(v);
-      last = at + m.length;
-      return m;
-    });
-    if (last < text.length) parent.append(document.createTextNode(text.slice(last)));
   }
+  document.querySelectorAll('[data-count]').forEach(bindCount);
+  wire(document);
 
-  function art(pick) {
-    const box = el('div', `ps-art p${pick.dataset.palette || 0}`);
-    const title = pick.dataset.title, cover = pick.dataset.cover;
-    if (cover) {
-      const bg = el('img', 'ps-bg'); bg.src = cover; bg.alt = ''; bg.setAttribute('aria-hidden', 'true');
-      const cv = el('img', 'ps-cv'); cv.src = cover; cv.alt = `${title} 표지`;
-      box.append(bg, cv);
-    } else {
-      const cv = el('div', `ps-cv cover p${pick.dataset.palette || 0} m${pick.dataset.pattern || 0}`);
-      cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', `${title} 표지`);
-      cv.append(el('span', 'cv-art'), el('span', 'cv-t', title), el('span', 'cv-a', pick.dataset.author || ''));
-      box.append(cv);
-    }
-    return box;
-  }
-
-  function book() {
-    const pick = document.querySelector('input[name="book"]:checked');
-    if (!pick) return;
-    $('[data-pv-title]').textContent = pick.dataset.title;
-    $('[data-pv-author]').textContent = pick.dataset.author || '';
-    $('[data-pv-art]').replaceChildren(art(pick));
-  }
-
-  const rateRow = form.querySelector('.ps-rate-row');
-  function stars() {
-    const n = Number(value('rating')) || 0;
-    rateRow.dataset.n = String(n);
-    const s = $('[data-pv-stars]');
-    s.hidden = !n;
-    s.setAttribute('aria-label', `별점 ${n}점`);
-    s.querySelectorAll('i').forEach((i, k) => i.classList.toggle('on', k < n));
-  }
-
-  const caption = form.querySelector('#psCaption'), quote = form.querySelector('#psQuote');
-  function text() {
-    const c = caption.value.trim(), q = quote.value.trim();
-    const cp = $('[data-pv-caption]'), qp = $('[data-pv-quote]');
-    cp.hidden = !c; rich(cp, c);
-    qp.hidden = !q; rich(qp, q);
-  }
-
-  function meta() {
-    const st = form.querySelector('input[name="status"]:checked');
-    if (st) $('[data-pv-status]').textContent = st.nextElementSibling.textContent;
-    $('[data-pv-vis]').hidden = value('visibility') !== 'friends';
-  }
-
-  document.addEventListener('change', e => {
-    const n = e.target.name;
-    if (n === 'book') book();
-    else if (n === 'rating') stars();
-    else if (n === 'status' || n === 'visibility') meta();
-  });
-  caption.addEventListener('input', text);
-  quote.addEventListener('input', text);
-  stars();
-
-  // 검색해도 쓰던 글이 남는다: 검색 폼의 숨은 칸에 지금 값을 옮겨 보낸다
-  const search = document.querySelector('form[data-draft-form]');
-  if (search) search.addEventListener('submit', () => {
-    const now = { book: value('book'), status: value('status'), rating: value('rating'), caption: caption.value, quote: quote.value, visibility: value('visibility') };
-    search.querySelectorAll('[data-draft]').forEach(h => { h.value = now[h.dataset.draft] || ''; });
-  });
+  // 다른 스크립트(올리기 화면)가 같이 쓴다
+  window.haedokPosts = { post, toast, reduced };
 })();

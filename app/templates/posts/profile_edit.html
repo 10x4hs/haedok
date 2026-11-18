@@ -1,0 +1,22 @@
+{% extends "app.html" %}
+{% from "posts/_parts.html" import face %}
+{% block title %}프로필 편집 — 偕讀 해독{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/posts.css">{% endblock %}
+{% block heading %}<small><a href="/profile">‹ 내 프로필</a></small>프로필 편집{% endblock %}
+{% block main %}
+<div class="ps ps-profile ps-edit">
+  {% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
+  <div class="ps-edit-who glass-card">
+    {{ face(user, faces, 'lg') }}
+    <div><b>{{ user.nickname }}</b><a href="/me">사진 · 이름은 설정에서 바꿔요 ›</a></div>
+  </div>
+  <form class="ps-form" method="post" action="/profile/bio">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="ps-field"><label for="psBio"><b>소개</b> <span class="muted small">프로필의 이름 아래에 보여요</span></label>
+      <textarea class="ps-input" id="psBio" name="bio" rows="3" maxlength="{{ max_bio }}" placeholder="요즘 읽는 책, 좋아하는 장르…" data-count="bioCount">{{ bio }}</textarea>
+      <span class="mono muted ps-count" id="bioCount">{{ bio|length }}/{{ max_bio }}</span></div>
+    <button class="btn primary wide">저장</button>
+  </form>
+</div>
+<script src="/static/posts.js" defer></script>
+{% endblock %}

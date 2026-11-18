@@ -1,21 +1,37 @@
 {% extends "app.html" %}
-{% block title %}소식 — 偕讀 해독{% endblock %}
+{% from "posts/_parts.html" import grid_tile, plus_icon, send_sheet, comments_sheet %}
+{% from "_ui.html" import empty_state %}
+{% block title %}{{ '탐색' if tab == 'all' else '소식' }} — 偕讀 해독{% endblock %}
 {% block head_extra %}<link rel="stylesheet" href="/static/posts.css">{% endblock %}
-{% block heading %}소식{% endblock %}
+{% block content_class %}{{ 'wide' if tab == 'all' else '' }}{% endblock %}
+{% block heading %}<small><a href="/profile">‹ 내 프로필</a></small>소식{% endblock %}
 {% block main %}
+{# 친구: 나와 친구의 게시물이 한 줄로 이어지는 피드. 모두: 인스타의 탐색처럼 '가입한 모두' 게시물 격자(다섯 칸마다 큰 칸) #}
 <div class="ps ps-feed">
   <div class="ps-feed-top">
     <nav class="ps-ig-tabs" aria-label="소식 범위">
       <a href="/feed" aria-current="{{ 'page' if tab == 'friends' else 'false' }}">친구</a>
       <a href="/feed?tab=all" aria-current="{{ 'page' if tab == 'all' else 'false' }}">모두</a>
     </nav>
-    <a class="ps-new pill" href="/posts/new"><span aria-hidden="true">＋</span> 올리기</a>
+    <a class="ps-plus" href="/posts/new" aria-label="새 게시물 만들기">{{ plus_icon() }}</a>
   </div>
-  <p class="muted small ps-lede">{{ '나와 친구가 올린 읽은 책이에요.' if tab == 'friends' else '가입한 모두에게 보이게 올린 읽은 책이에요.' }}</p>
+  <p class="muted small ps-lede">{{ '나와 친구가 올린 읽은 책이에요.' if tab == 'friends' else '가입한 모두에게 보이게 올린 읽은 책이에요. 눌러서 열어 보세요.' }}</p>
   {% if msg %}<p class="form-ok" role="status">{{ msg }}</p>{% endif %}
   {% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
-  {% include "posts/_feed_list.html" %}
-  {% if not cards and not paged and tab == 'friends' %}<p class="ps-alt"><a href="/feed?tab=all">모두의 게시물 둘러보기 ›</a></p>{% endif %}
+  {% if tab == 'all' %}
+    {% if tiles %}
+    <ul class="ps-explore" aria-label="모두의 게시물">{% for t in tiles %}{{ grid_tile(t, ('ps-big ' ~ ('l' if (loop.index0 // 5) % 2 == 0 else 'r')) if t.big else '') }}{% endfor %}</ul>
+    {% if cursor %}<a class="btn ghost wide ps-more" href="/feed?tab=all&before={{ cursor }}">더 보기</a>{% endif %}
+    {% elif paged %}
+    <p class="muted ps-end">여기까지예요. 더 지난 게시물은 없어요.</p>
+    {% else %}
+    {{ empty_state('book', '아직 아무도 올리지 않았어요', '가입한 모두에게 보이게 올리면 여기에 보여요.', '/posts/new', '게시물 만들기') }}
+    {% endif %}
+  {% else %}
+    {% include "posts/_feed_list.html" %}
+    {% if not cards and not paged %}<p class="ps-alt"><a href="/feed?tab=all">모두의 게시물 둘러보기 ›</a></p>{% endif %}
+  {% endif %}
 </div>
+{% if tab != 'all' %}{{ send_sheet(friends, csrf) }}{{ comments_sheet() }}{% endif %}
 <script src="/static/posts.js" defer></script>
 {% endblock %}
