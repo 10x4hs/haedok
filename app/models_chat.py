@@ -60,6 +60,9 @@ class ChatThread(Base):
     user_high: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
     )
+    # 방 공지 한 줄 — 방장만 정한다. 두 채널 맨 위에 보인다(쪽 도장이 없는 공개 글)
+    notice: Mapped[str | None] = mapped_column(String(140), nullable=True)
+    notice_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -83,11 +86,39 @@ class ChatMessage(Base):
     veiled: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     deleted_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    # 답장한 메시지 — 인용은 읽는 사람마다 다시 판정한다(잠겼으면 '잠긴 메시지')
+    reply_to_id: Mapped[int | None] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"),
+        ForeignKey("chat_messages.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    # 반응이 바뀌거나 지워진 시각 — 폴링이 이 뒤로 바뀐 메시지를 다시 보내 준다
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ChatReaction(Base):
+    """메시지 반응 — 한 사람이 한 메시지에 이모지 하나(바꾸면 덮어쓴다)."""
+
+    __tablename__ = "chat_reactions"
+
+    message_id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"),
+        ForeignKey("chat_messages.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True
+    )
+    emoji: Mapped[str] = mapped_column(String(16))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class ChatRead(Base):
-    """사람마다 대화마다 마지막으로 본 메시지 id — 안 읽은 수는 이보다 큰 남의 메시지 수다."""
+    """사람마다 대화 · 채널마다 마지막으로 본 메시지 id — 안 읽은 수는 이보다 큰 남의 메시지 수다.
+
+    채널: 방의 '# 책 이야기'(book) · '# 수다'(chat). 개인 채팅은 늘 chat 이다.
+    """
 
     __tablename__ = "chat_reads"
 
@@ -97,6 +128,7 @@ class ChatRead(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True
     )
+    channel: Mapped[str] = mapped_column(String(8), primary_key=True, default="chat", server_default="chat")
     last_read_id: Mapped[int] = mapped_column(BigInteger, default=0, server_default="0")
 
 

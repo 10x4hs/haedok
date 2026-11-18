@@ -1,6 +1,8 @@
 {% extends "app.html" %}
-{% from "_ui.html" import avatar, empty_state %}
+{% from "_ui.html" import avatar, flat_cover, icon %}
+{% from "chat_parts/_bubbles.html" import bubble_row %}
 {% block title %}친구 — 偕讀 해독{% endblock %}
+{% block content_class %}wide{% endblock %}
 {% block heading %}<small>함께 읽는 사람들</small>친구{% endblock %}
 {% block top_extra %}<a class="pill" href="/chat">채팅</a>{% endblock %}
 
@@ -11,93 +13,148 @@
 
 {% block main %}
 <link rel="stylesheet" href="/static/chat.css">
+<div class="ch-scope ch-friends">
 {% if msg %}<p class="form-ok" role="status">{{ msg }}</p>{% endif %}
 {% if err %}<p class="form-err" role="alert">{{ err }}</p>{% endif %}
 
-<form class="ch-search" method="get" action="/friends" role="search">
-  <label for="friendQ" class="ch-sr">닉네임으로 찾기</label>
-  <input id="friendQ" name="q" value="{{ q }}" maxlength="40" placeholder="닉네임을 정확히 적어요" autocomplete="off">
-  <button class="btn ghost">찾기</button>
-</form>
-{% if q %}
-<section class="row" aria-labelledby="foundH">
-  <div class="row-h"><h2 id="foundH">‘{{ q }}’ 찾은 결과</h2></div>
-  {% if not found %}<p class="muted small">그 닉네임을 쓰는 사람이 없어요. 글자 하나까지 똑같이 적어 주세요.</p>{% endif %}
-  <ul class="ch-people">
-  {% for u, state in found %}
-    <li>{{ avatar(u) }}<div><b>{{ u.nickname }}</b></div>
-      {% if state == 'none' %}{{ act(u, 'request', '친구 신청', 'ch-go') }}
-      {% elif state == 'incoming' %}{{ act(u, 'accept', '수락', 'ch-go') }}
-      {% elif state == 'outgoing' %}<span class="tag">신청함</span>
-      {% elif state == 'friends' %}<a class="pill ch-act" href="/chat/dm/{{ u.id }}">채팅</a>
-      {% elif state == 'blocking' %}<span class="tag">차단함</span>{% endif %}
-    </li>
-  {% endfor %}
-  </ul>
-</section>
-{% endif %}
+{% if cards %}{{ bubble_row(cards, '친구가 지금 읽는 책') }}{% endif %}
 
-{% if people.incoming %}
-<section class="row" aria-labelledby="inH">
-  <div class="row-h"><h2 id="inH">받은 신청</h2><span class="mono muted">{{ people.incoming|length }}</span></div>
-  <ul class="ch-people">
-  {% for u in people.incoming %}
-    <li>{{ avatar(u) }}<div><b>{{ u.nickname }}</b></div>{{ act(u, 'accept', '수락', 'ch-go') }}{{ act(u, 'decline', '거절') }}{{ act(u, 'block', '차단', 'ch-bad') }}</li>
-  {% endfor %}
-  </ul>
-</section>
-{% endif %}
+<div class="ch-fr-grid">
+  <div class="ch-fr-main">
+    <section aria-labelledby="friendsH">
+      <div class="row-h"><h2 id="friendsH">친구</h2><span class="mono muted">{{ cards|length }}명</span></div>
+      {% if cards %}
+      <ul class="ch-fcards">
+        {% for c in cards %}
+        <li class="ch-fcard">
+          <div class="ch-fcard-top">
+            <span class="ch-ring{{ ' on' if c.active }}">{{ avatar(c.user, 'ch-av') }}</span>
+            <div class="ch-fcard-who">
+              <b>{{ c.user.nickname }}</b>
+              <span class="{{ 'ch-live-t' if c.active }}">{% if c.active %}지금 읽는 중{% elif c.book %}최근에 읽은 책{% else %}아직 공개된 책이 없어요{% endif %}</span>
+            </div>
+            <details class="ch-more-d">
+              <summary class="pill ch-act" aria-label="{{ c.user.nickname }} 더 보기">⋯</summary>
+              <div class="ch-more-menu">{{ act(c.user, 'remove', '친구 끊기') }}{{ act(c.user, 'block', '차단', 'ch-bad') }}</div>
+            </details>
+          </div>
+          {% if c.book %}
+          <a class="ch-fbook" href="/books/{{ c.book.id }}">
+            <span class="ch-fbook-cover">{{ flat_cover(c.book.title, c.book.author, cover_of(c.book)|small_cover) }}</span>
+            <span class="ch-fbook-t">
+              <b>{{ c.book.title }}</b>
+              <span class="mono">{{ c.page }} / {{ c.total }}쪽</span>
+              <span class="ch-prog" aria-hidden="true"><i style="width:{{ ((c.page / c.total * 100) if c.total else 0)|round|int }}%"></i></span>
+            </span>
+          </a>
+          {% endif %}
+          {% if goals_on and c.week %}
+          <div class="ch-week" role="img" aria-label="이번 주 읽은 날: {% for d in c.week if d.read %}{{ d.day }}{% if not loop.last %}·{% endif %}{% else %}아직 없어요{% endfor %}">
+            {% for d in c.week %}<span class="{{ 'read' if d.read }}{{ ' future' if d.future }}"><i></i><small>{{ d.day }}</small></span>{% endfor %}
+          </div>
+          {% endif %}
+          <div class="ch-fcard-acts">
+            <a class="btn ch-go" href="/chat/dm/{{ c.user.id }}">{{ icon('chat') }}채팅</a>
+            <a class="btn ghost" href="{{ invite_href(c.book) }}">같이 읽기 초대</a>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="ch-start">
+        <span class="ch-start-ic" aria-hidden="true">{{ icon('me') }}</span>
+        <b>첫 친구를 만드는 방법</b>
+        <ol>
+          <li><b>대결방에 들어가요.</b> 초대 코드로 들어가면 아래 ‘같은 대결방 사람’에 그 사람이 나와요.</li>
+          {% if board_on %}<li><b>같이 읽을 사람을 모아요.</b> 모집 글을 올리면 참가한 사람과 같은 방이 생겨요.</li>{% endif %}
+          <li><b>닉네임을 알면 바로 찾아요.</b> 오른쪽 찾기 칸에 정확히 적어 주세요.</li>
+        </ol>
+        <div class="ch-start-acts">
+          <a class="btn ch-go" href="/races">대결방 보기</a>
+          {% if board_on %}<a class="btn ghost" href="/together">같이 읽기 모집</a>{% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </section>
+  </div>
 
-<section class="row" aria-labelledby="friendsH">
-  <div class="row-h"><h2 id="friendsH">친구</h2><span class="mono muted">{{ people.friends|length }}</span></div>
-  {% if people.friends %}
-  <ul class="ch-people">
-  {% for u in people.friends %}
-    <li>{{ avatar(u) }}<div><b>{{ u.nickname }}</b></div><a class="pill ch-act ch-go" href="/chat/dm/{{ u.id }}">채팅</a>
-      <details class="ch-more"><summary class="pill ch-act" aria-label="{{ u.nickname }} 더 보기">…</summary>
-        <div class="ch-more-menu">{{ act(u, 'remove', '친구 끊기') }}{{ act(u, 'block', '차단', 'ch-bad') }}</div>
-      </details>
-    </li>
-  {% endfor %}
-  </ul>
-  {% else %}
-  {{ empty_state('me', '아직 친구가 없어요', '닉네임으로 찾거나, 같은 대결방 사람에게 신청해 보세요.', cls='compact') }}
-  {% endif %}
-</section>
+  <aside class="ch-fr-side">
+    <section class="ch-panel" aria-labelledby="searchH">
+      <h2 id="searchH">닉네임으로 찾기</h2>
+      <p class="ch-panel-note">닉네임을 한 글자도 틀리지 않게 적어요. 비슷한 이름은 찾아 주지 않아요(예: <b>하린</b>).</p>
+      <form class="ch-search" method="get" action="/friends" role="search">
+        <label for="friendQ" class="ch-sr">닉네임</label>
+        <input id="friendQ" name="q" value="{{ q }}" maxlength="40" placeholder="닉네임" autocomplete="off">
+        <button class="btn ghost">찾기</button>
+      </form>
+      {% if q %}
+      <div class="ch-found" role="status">
+        {% if not found %}
+        <p class="muted small">‘{{ q }}’라는 닉네임은 없어요. 띄어쓰기와 받침까지 똑같은지 확인해 주세요.</p>
+        {% else %}
+        <ul class="ch-people">
+        {% for u, state in found %}
+          <li>{{ avatar(u) }}<div><b>{{ u.nickname }}</b><span>{% if state == 'friends' %}이미 친구예요{% elif state == 'outgoing' %}수락을 기다리는 중{% elif state == 'incoming' %}나에게 신청했어요{% elif state == 'blocking' %}내가 차단했어요{% else %}찾았어요{% endif %}</span></div>
+            {% if state == 'none' %}{{ act(u, 'request', '친구 신청', 'ch-go') }}
+            {% elif state == 'incoming' %}{{ act(u, 'accept', '수락', 'ch-go') }}
+            {% elif state == 'friends' %}<a class="pill ch-act" href="/chat/dm/{{ u.id }}">채팅</a>{% endif %}
+          </li>
+        {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+      {% endif %}
+    </section>
 
-{% if people.outgoing %}
-<section class="row" aria-labelledby="outH">
-  <div class="row-h"><h2 id="outH">보낸 신청</h2><span class="mono muted">{{ people.outgoing|length }}</span></div>
-  <ul class="ch-people">
-  {% for u in people.outgoing %}
-    <li>{{ avatar(u) }}<div><b>{{ u.nickname }}</b><span>수락을 기다리는 중</span></div>{{ act(u, 'cancel', '취소') }}</li>
-  {% endfor %}
-  </ul>
-</section>
-{% endif %}
+    {% if incoming %}
+    <section class="ch-panel tinted" aria-labelledby="inH">
+      <h2 id="inH">받은 신청 <span class="ch-count mono">{{ incoming|length }}</span></h2>
+      <ul class="ch-people">
+      {% for u, rooms in incoming %}
+        <li class="wrap">{{ avatar(u) }}<div><b>{{ u.nickname }}</b><span>{% if rooms %}함께 있는 방: {{ rooms|join(', ') }}{% else %}아직 함께 있는 방이 없어요{% endif %}</span></div>
+          <div class="ch-btns">{{ act(u, 'accept', '수락', 'ch-go') }}{{ act(u, 'decline', '거절') }}{{ act(u, 'block', '차단', 'ch-bad') }}</div>
+        </li>
+      {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
 
-{% if roommates %}
-<section class="row" aria-labelledby="mateH">
-  <div class="row-h"><h2 id="mateH">같은 대결방 사람</h2></div>
-  <ul class="ch-people">
-  {% for u, state in roommates %}
-    <li>{{ avatar(u) }}<div><b>{{ u.nickname }}</b></div>
-      {{ act(u, 'request', '친구 신청', 'ch-go') }}
-    </li>
-  {% endfor %}
-  </ul>
-</section>
-{% endif %}
+    {% if roommates %}
+    <section class="ch-panel" aria-labelledby="mateH">
+      <h2 id="mateH">같은 대결방 사람</h2>
+      <ul class="ch-people">
+      {% for u, state, rooms in roommates %}
+        <li>{{ avatar(u) }}<div><b>{{ u.nickname }}</b><span>‘{{ rooms[0] }}’{% if rooms|length > 1 %} 외 {{ rooms|length - 1 }}곳{% endif %}에 함께 있어요</span></div>
+          {{ act(u, 'request', '친구 신청', 'ch-go') }}
+        </li>
+      {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
 
-{% if people.blocking %}
-<section class="row" aria-labelledby="blockH">
-  <div class="row-h"><h2 id="blockH">차단한 사람</h2><span class="mono muted">{{ people.blocking|length }}</span></div>
-  <p class="muted small">차단한 사람은 친구 신청과 개인 메시지를 보낼 수 없고, 그 사람의 방 메시지는 나에게 보이지 않아요.</p>
-  <ul class="ch-people">
-  {% for u in people.blocking %}
-    <li>{{ avatar(u) }}<div><b>{{ u.nickname }}</b></div>{{ act(u, 'unblock', '차단 풀기') }}</li>
-  {% endfor %}
-  </ul>
-</section>
-{% endif %}
+    {% if people.outgoing %}
+    <section class="ch-panel" aria-labelledby="outH">
+      <h2 id="outH">보낸 신청</h2>
+      <ul class="ch-people">
+      {% for u in people.outgoing %}
+        <li>{{ avatar(u) }}<div><b>{{ u.nickname }}</b><span>수락을 기다리는 중</span></div>{{ act(u, 'cancel', '취소') }}</li>
+      {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    {% if people.blocking %}
+    <section class="ch-panel" aria-labelledby="blockH">
+      <h2 id="blockH">차단한 사람</h2>
+      <p class="ch-panel-note">차단한 사람은 친구 신청과 개인 메시지를 보낼 수 없고, 그 사람의 방 메시지는 나에게 보이지 않아요.</p>
+      <ul class="ch-people">
+      {% for u in people.blocking %}
+        <li>{{ avatar(u) }}<div><b>{{ u.nickname }}</b></div>{{ act(u, 'unblock', '차단 풀기') }}</li>
+      {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+  </aside>
+</div>
+</div>
 {% endblock %}

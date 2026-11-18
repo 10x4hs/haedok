@@ -45,12 +45,22 @@ KST = dt.timezone(dt.timedelta(hours=9))
 
 
 def chat_when(t: dt.datetime | None) -> str:
-    """목록의 마지막 활동: 오늘이면 '14:05', 아니면 '11.13'(한국 시각)."""
+    """목록의 마지막 활동(상대 시각): '방금' · '5분' · '3시간' · '어제' · '11.13'(한국 날짜)."""
     if t is None:
         return ""
-    local = (t if t.tzinfo else t.replace(tzinfo=dt.UTC)).astimezone(KST)
-    today = chat.clock().astimezone(KST).date()
-    return local.strftime("%H:%M") if local.date() == today else local.strftime("%m.%d").lstrip("0")
+    t = t if t.tzinfo else t.replace(tzinfo=dt.UTC)
+    now = chat.clock()
+    secs = (now - t).total_seconds()
+    if secs < 60:
+        return "방금"
+    if secs < 3600:
+        return f"{int(secs // 60)}분"
+    local, today = t.astimezone(KST).date(), now.astimezone(KST).date()
+    if local == today:
+        return f"{int(secs // 3600)}시간"
+    if local == today - dt.timedelta(days=1):
+        return "어제"
+    return f"{local.month}.{local.day}"
 
 
 templates.env.filters["chat_when"] = chat_when
@@ -111,6 +121,13 @@ def _back(path: str, msg: str | None = None, err: str | None = None) -> Redirect
     return RedirectResponse(path, status_code=303)
 
 
+def _invite_href(book) -> str:
+    """'같이 읽기 초대' — 모집 게시판이 켜져 있으면 그 책으로 모집 글 쓰기, 아니면 대결 열기."""
+    if get_settings().feature_board:
+        return f"/together/new?book=b:{book.id}" if book is not None else "/together/new"
+    return "/races#newRace"
+
+
 @pages.get("/friends", response_class=HTMLResponse)
 async def friends_page(
     request: Request,
@@ -119,14 +136,22 @@ async def friends_page(
     user: User = Depends(auth.require_user),
 ) -> HTMLResponse:
     q = q.strip()[:40]
+    people = await chat.people(session, user.id)
+    cards = await chat.friend_cards(session, user.id, week=True)
+    incoming = [(u, await chat.shared_rooms(session, user.id, u.id)) for u in people.incoming]
     return _render(
         request,
         "friends.html",
         user,
-        people=await chat.people(session, user.id),
+        people=people,
+        cards=cards,
+        incoming=incoming,
         q=q,
         found=await chat.search(session, user.id, q) if q else [],
         roommates=await chat.roommates(session, user.id),
+        invite_href=_invite_href,
+        board_on=get_settings().feature_board,
+        goals_on=get_settings().feature_goals,
         msg=request.query_params.get("msg"),
         err=request.query_params.get("err"),
     )
@@ -174,6 +199,20 @@ async def friend_action(
 # ---------------------------------------------------------------- 채팅
 
 
+async def _list_ctx(session: AsyncSession, user: User, tab: str) -> dict:
+    """왼쪽 목록(좁은 화면에서는 /chat 한 화면): 탭 · 대화 · 친구 동그라미 줄."""
+    tab = "room" if tab == "room" else "dm"
+    other = "dm" if tab == "room" else "room"
+    convs = await chat.conversations(session, user, tab)
+    other_unread = sum(c["unread"] for c in await chat.conversations(session, user, other))
+    return {
+        "tab": tab,
+        "convs": convs,
+        "unread": {tab: sum(c["unread"] for c in convs), other: other_unread},
+        "bubbles": await chat.friend_cards(session, user.id),
+    }
+
+
 @pages.get("/chat", response_class=HTMLResponse)
 async def chat_home(
     request: Request,
@@ -181,33 +220,32 @@ async def chat_home(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(auth.require_user),
 ) -> HTMLResponse:
-    tab = "room" if tab == "room" else "dm"
-    other = "dm" if tab == "room" else "room"
-    convs = await chat.conversations(session, user, tab)
-    other_unread = sum(c["unread"] for c in await chat.conversations(session, user, other))
-    unread = {tab: sum(c["unread"] for c in convs), other: other_unread}
-    return _render(request, "chat.html", user, tab=tab, convs=convs, unread=unread)
+    return _render(request, "chat.html", user, **await _list_ctx(session, user, tab))
 
 
 async def _conv_page(
-    request: Request, session: AsyncSession, user: User, kind: str, key: int
+    request: Request, session: AsyncSession, user: User, kind: str, key: int, ch: str = "book"
 ) -> HTMLResponse:
     try:
         conv = await (chat.room_conv if kind == "room" else chat.dm_conv)(session, user, key)
     except chat.NotFound as e:
         raise HTTPException(404) from e
-    my_page = None
+    ctx: dict = {"conv": conv, "owner": False, "channel": "chat", "members": [], "notice": None}
     if kind == "room":
-        my_page = await chat.social.verified_of(session, user.id, conv.room.book_id) + 1
-    return _render(
-        request,
-        "chat_thread.html",
-        user,
-        conv=conv,
-        my_page=my_page,
-        owner=kind == "room" and conv.room.owner_id == user.id,
-        api=f"/api/v1/chat/{kind}/{key}/messages",
-    )
+        ctx["channel"] = "chat" if ch == "chat" else "book"
+        ctx["my_page"] = await chat.social.verified_of(session, user.id, conv.room.book_id) + 1
+        ctx["owner"] = conv.room.owner_id == user.id
+        ctx["members"] = await chat.members(session, conv.room, user.id)
+        ctx["channel_unread"] = await chat.channel_unread(session, user, conv)
+        ctx["notice"] = conv.thread.notice if conv.thread else None
+        names = [m["user"].nickname for m in ctx["members"]]
+    else:
+        names = [user.nickname, conv.other.nickname]
+    ctx["names"] = names
+    ctx["emojis"] = list(chat.social.EMOJIS)
+    ctx["api"] = f"/api/v1/chat/{kind}/{key}/messages"
+    ctx |= await _list_ctx(session, user, kind)
+    return _render(request, "chat_thread.html", user, **ctx)
 
 
 @pages.get("/chat/room/{room_id}", response_class=HTMLResponse)
@@ -217,7 +255,7 @@ async def room_chat(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(auth.require_user),
 ) -> HTMLResponse:
-    return await _conv_page(request, session, user, "room", room_id)
+    return await _conv_page(request, session, user, "room", room_id, request.query_params.get("ch", "book"))
 
 
 @pages.get("/chat/dm/{other_id}", response_class=HTMLResponse)
