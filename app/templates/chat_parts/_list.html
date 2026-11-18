@@ -6,32 +6,38 @@
 {%- if feature_posts is defined and feature_posts() -%}<a class="ch-plink" href="/u/{{ u.id }}" aria-label="{{ u.nickname }} 소식">{{ inner }}</a>{%- else -%}{{ inner }}{%- endif -%}
 {%- endmacro %}
 {% macro list_pane(tab, convs, unread, bubbles, current=None) -%}
+{% set reading = {} %}{% for c in bubbles %}{% if c.book %}{% set _ = reading.update({c.user.id: c}) %}{% endif %}{% endfor %}
+{% set live = {} %}{% for c in bubbles %}{% if c.active %}{% set _ = live.update({c.user.id: True}) %}{% endif %}{% endfor %}
 <aside class="ch-listpane" aria-label="메시지 목록">
   <header class="ch-lhead">
     <h1>메시지</h1>
-    <a class="ch-icon-btn" href="/friends" aria-label="친구 관리">{{ icon('me') }}</a>
+    <a class="ch-icon-btn" href="/friends" aria-label="친구 찾기 · 새 대화">
+      <svg class="ch-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>
+    </a>
   </header>
   <div class="ch-lscroll">
     {% if bubbles %}{{ bubble_row(bubbles) }}{% endif %}
-    <nav class="ch-seg" aria-label="메시지 종류">
+    <nav class="ch-ltabs" aria-label="메시지 종류">
       {% for key, label in [('dm', '개인'), ('room', '방')] %}
-      <a href="/chat?tab={{ key }}" aria-pressed="{{ 'true' if tab == key else 'false' }}"{% if tab == key %} aria-current="page"{% endif %}>{{ label }}{% if unread[key] %}<span class="ch-pip mono" aria-label="안 읽음 {{ unread[key] }}개">{{ unread[key] if unread[key] < 100 else '99+' }}</span>{% endif %}</a>
+      <a href="/chat?tab={{ key }}" aria-pressed="{{ 'true' if tab == key else 'false' }}"{% if tab == key %} aria-current="page"{% endif %}>{{ label }}{% if unread[key] and tab != key %}<i class="ch-dot" aria-label="안 읽은 메시지 있음"></i>{% endif %}</a>
       {% endfor %}
     </nav>
     {% if convs %}
     <ul class="ch-convs">
       {% for c in convs %}
+      {% set rd = reading.get(c.key) if c.kind == 'dm' else None %}
       <li class="{{ 'unread' if c.unread }}{{ ' on' if current == c.href }}">
         {% if c.kind == 'dm' and feature_posts is defined and feature_posts() %}
-        <a class="ch-conv-ava" href="/u/{{ c.user.id }}" aria-label="{{ c.title }} 소식">{{ avatar(c.user, 'ch-av') }}</a>
+        <a class="ch-conv-ava" href="/u/{{ c.user.id }}" aria-label="{{ c.title }} 소식"><span class="ch-ring{{ ' on' if live.get(c.key) }}">{{ avatar(c.user, 'ch-av') }}</span></a>
         {% endif %}
-        <a class="ch-conv" href="{{ c.href }}" data-unread="{{ c.unread }}"{% if current == c.href %} aria-current="page"{% endif %}>
-          {% if c.kind == 'dm' %}{% if not (feature_posts is defined and feature_posts()) %}{{ avatar(c.user, 'ch-av') }}{% endif %}
+        <a class="ch-conv" href="{{ c.href }}" data-unread="{{ c.unread }}"{% if current == c.href %} aria-current="page"{% endif %}{% if c.unread %} aria-label="{{ c.title }}, 안 읽은 메시지 {{ c.unread }}개"{% endif %}>
+          {% if c.kind == 'dm' %}{% if not (feature_posts is defined and feature_posts()) %}<span class="ch-ring{{ ' on' if live.get(c.key) }}">{{ avatar(c.user, 'ch-av') }}</span>{% endif %}
           {% else %}<span class="ch-cover">{{ flat_cover(c.book.title, c.book.author, cover_of(c.book)|small_cover) }}</span>{% endif %}
           <span class="ch-conv-t">
-            <span class="ch-conv-top"><b>{{ c.title }}</b>{% if c.at %}<time class="mono" datetime="{{ c.at.isoformat() }}">{{ c.at|chat_when }}</time>{% endif %}</span>
-            <span class="ch-conv-bot"><span class="ch-prev{{ ' ch-locked' if c.preview in ('잠긴 메시지', '삭제된 메시지') }}">{% if c.preview %}{% if c.mine %}나: {% endif %}{{ c.preview }}{% elif c.subtitle %}{{ c.subtitle }}{% else %}아직 대화가 없어요{% endif %}</span>{% if c.unread %}<span class="ch-pip mono" aria-label="안 읽은 메시지 {{ c.unread }}개">{{ c.unread if c.unread < 100 else '99+' }}</span>{% endif %}</span>
+            <b>{{ c.title }}</b>
+            <span class="ch-conv-sub"><span class="ch-prev{{ ' ch-locked' if c.preview in ('잠긴 메시지', '삭제된 메시지') }}">{% if c.preview %}{% if c.mine %}나: {% endif %}{{ c.preview }}{% elif rd %}{{ rd.book.title }} 읽는 중{% elif c.subtitle %}{{ c.subtitle }}{% else %}아직 대화가 없어요{% endif %}</span>{% if c.at %}<span class="ch-sep" aria-hidden="true">·</span><time datetime="{{ c.at.isoformat() }}">{{ c.at|chat_when }}</time>{% endif %}</span>
           </span>
+          {% if c.unread %}<i class="ch-dot" aria-hidden="true"></i>{% endif %}
         </a>
       </li>
       {% endfor %}

@@ -31,7 +31,7 @@ async def test_thread_is_an_app_shell_without_page_title(trio):  # noqa: F811
     html = (await trio["h"].get(f"/chat/room/{trio['room']}")).text
     assert "chat-shell chat-at-thread" in html
     assert 'class="ch-thead"' in html and 'class="ch-compose"' in html
-    assert 'class="ch-backdrop room' in html  # 방은 책 표지 배경
+    assert 'class="ch-backdrop' in html  # 방은 책 표지 배경(아주 옅게)
 
 
 async def test_dm_header_status_never_shows_private_upload(api, session_factory):

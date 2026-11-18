@@ -18,11 +18,11 @@
   try { data = JSON.parse(document.getElementById('chatData').textContent); } catch (e) { /* 기본값 */ }
   const names = (data.names || []).slice().sort((a, b) => b.length - a.length);
   const EMOJIS = data.emojis || [];
-  const scroller = $('#scroll'), log = $('#log'), older = $('#older'), empty = $('#empty'), loadErr = $('#loadErr');
+  const scroller = $('#scroll'), log = $('#log'), older = $('#older'), intro = $('#intro'), empty = $('#empty'), loadErr = $('#loadErr');
   const form = $('#compose'), text = $('#text'), hint = $('#hint'), sendBtn = $('#send'), typingHint = $('#typingHint');
   const replying = $('#replying'), replyWho = $('#replyWho'), replyText = $('#replyText');
   const helpBtn = $('#helpBtn'), helpPop = $('#helpPop');
-  const BASE = 3000, MAX = 60000, GROUP_MS = 5 * 60 * 1000, LONG_MS = 450;
+  const BASE = 3000, MAX = 60000, GROUP_MS = 5 * 60 * 1000, TIME_GAP_MS = 60 * 60 * 1000, LONG_MS = 450;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const msgs = new Map();   // id -> 마지막으로 받은 메시지 모양
   const locked = new Set(); // 잠긴 채 들고 있는 id
@@ -41,6 +41,7 @@
     lock: ['M8 11V8a4 4 0 0 1 8 0v3', 'rect:5,11,14,9'],
     reply: ['M10 8 5 12l5 4', 'M5 12h9a5 5 0 0 1 5 5v1'],
     smile: ['circle:12,12,9', 'M8.5 14a4 4 0 0 0 7 0', 'M9 9.5h.01', 'M15 9.5h.01'],
+    book: ['M5 5a2 2 0 0 1 2-2h12v15H7a2 2 0 0 0-2 2z', 'M5 20a2 2 0 0 1 2-2h12', 'M9 7h6'],
   };
   function svg(name) {
     const NS = 'http://www.w3.org/2000/svg';
@@ -61,6 +62,7 @@
   // ---------- 시간 · 날짜
   const sameDay = (a, b) => a.toDateString() === b.toDateString();
   const clock = d => d.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
+  const stamp = d => `${dayLabel(d)} ${clock(d)}`;
   function dayLabel(d) {
     const now = new Date(), y = new Date(now); y.setDate(now.getDate() - 1);
     if (sameDay(d, now)) return '오늘';
@@ -128,16 +130,38 @@
   }
 
   function quote(m) {
+    // 답장: "OO에게 답장" 한 줄 + 옅은 작은 말풍선(잠겼으면 '잠긴 메시지'만) + 가는 연결선(CSS)
     if (!m.reply) return null;
-    const q = btn('ch-quote' + (m.reply.locked || m.reply.gone ? ' locked' : ''), null);
-    q.append(el('b', '', (m.reply.mine ? '나' : m.reply.nickname) + '에게 답장'), el('span', '', m.reply.text));
+    const box = document.createDocumentFragment();
+    const who = m.reply.mine ? '나에게 답장' : `${m.reply.nickname}에게 답장`;
+    box.append(el('span', 'ch-rlabel', who));
+    const q = btn('ch-quote' + (m.reply.locked || m.reply.gone ? ' locked' : ''), `원문 보기: ${m.reply.text}`, m.reply.text);
     q.addEventListener('click', () => {
       const t = log.querySelector(`li[data-id="${m.reply.id}"]`);
       if (!t) return;
-      t.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+      centerIn(t, true);
       t.classList.add('flash'); setTimeout(() => t.classList.remove('flash'), 1200);
     });
-    return q;
+    box.append(q);
+    return box;
+  }
+
+  function cards(m) {
+    // 읽기 게시물 링크(/p/숫자) — 서버가 볼 수 있는 게시물만 cards 로 준다(그 밖에는 링크 글자 그대로)
+    if (!m.cards || !m.cards.length) return null;
+    const frag = document.createDocumentFragment();
+    m.cards.forEach(c => {
+      const a = el('a', 'ch-card');
+      a.href = c.href;
+      const cv = el('span', 'ch-card-cover');
+      if (c.cover) { const i = el('img'); i.src = c.cover; i.alt = ''; i.width = 36; i.height = 54; i.loading = 'lazy'; cv.append(i); }
+      else cv.append(svg('book'));
+      const t = el('span', 'ch-card-t');
+      t.append(el('b', '', c.title), el('span', '', `${c.author}님의 읽기 기록`));
+      a.append(cv, t);
+      frag.append(a);
+    });
+    return frag;
   }
 
   function chips(m) {
@@ -158,6 +182,7 @@
     const p = el('div', 'ch-pop');
     p.setAttribute('role', 'group');
     p.setAttribute('aria-label', '반응과 메뉴');
+    if (m.at) p.append(el('span', 'ch-pop-time', stamp(new Date(m.at))));
     const canTouch = !m.deleted && !m.sealed;
     if (canTouch) {
       const mine = (m.reactions || []).find(r => r.mine);
@@ -184,6 +209,7 @@
 
   function tools(m) {
     const t = el('div', 'ch-tools');
+    if (m.at) { const tm = el('time', '', clock(new Date(m.at))); tm.dateTime = m.at; t.append(tm); }
     if (!m.deleted && !m.sealed) {
       const r = btn('', '답장');
       r.append(svg('reply'));
@@ -224,13 +250,14 @@
   function node(m, first, last, seen) {
     const li = el('li', 'ch-msg' + (m.mine ? ' me' : '') + (first ? ' first' : '') + (last ? ' last' : ''));
     li.dataset.id = m.id;
+    if (m.at) li.title = stamp(new Date(m.at));
     const stack = el('div', 'ch-stack');
     if (first && !m.mine && kind === 'room') stack.append(el('span', 'ch-name', m.nickname));
     const q = quote(m);
     if (q) stack.append(q);
     const b = bubble(m);
     b.tabIndex = 0;
-    b.setAttribute('aria-label', `${m.mine ? '나' : m.nickname}, ${m.at ? clock(new Date(m.at)) : ''}. Enter로 반응·메뉴`);
+    b.setAttribute('aria-label', `${m.mine ? '나' : m.nickname}, ${m.at ? stamp(new Date(m.at)) : ''}. Enter로 반응·메뉴`);
     b.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === b) { e.preventDefault(); togglePop(m.id, true); } });
     longPress(b, m);
     const line = el('div', 'ch-bline');
@@ -239,19 +266,10 @@
     stack.append(line);
     const c = chips(m);
     if (c) stack.append(c);
+    const cd = cards(m);
+    if (cd) stack.append(cd);
     if (openPop === m.id) stack.append(pop(m));
-    if (last) {
-      const meta = el('div', 'ch-meta');
-      const t = el('time', '', m.at ? clock(new Date(m.at)) : '');
-      if (m.at) t.dateTime = m.at;
-      meta.append(t);
-      if (seen) meta.append(document.createTextNode(' · '), el('span', 'ch-seen', '읽음'));
-      stack.append(meta);
-    } else if (seen) {
-      const meta = el('div', 'ch-meta');
-      meta.append(el('span', 'ch-seen', '읽음'));
-      stack.append(meta);
-    }
+    if (seen) stack.append(el('span', 'ch-seen', '읽음'));
     li.append(stack);
     li.append(tools(m));
     return li;
@@ -260,21 +278,27 @@
   // ---------- 전체 그리기(묶음 · 날짜 · 안 읽음 · 읽음)
   function draw() {
     const list = [...msgs.values()].sort((a, b) => a.id - b.id);
+    // '읽음'은 내 마지막 메시지 아래에만(개인 채팅) — 친구가 거기까지 봤을 때
     let seenId = 0;
-    if (kind === 'dm' && seenUpto) list.forEach(m => { if (m.mine && m.id <= seenUpto) seenId = m.id; });
-    const focusedId = document.activeElement && document.activeElement.closest && (document.activeElement.closest('li[data-id]') || {}).dataset;
+    if (kind === 'dm' && seenUpto) {
+      const mine = list.filter(m => m.mine);
+      const lastMine = mine[mine.length - 1];
+      if (lastMine && lastMine.id <= seenUpto) seenId = lastMine.id;
+    }
+    const focusedLi = document.activeElement && document.activeElement.closest ? document.activeElement.closest('li[data-id]') : null;
+    const focusedId = focusedLi ? focusedLi.dataset.id : null;
     const frag = document.createDocumentFragment();
     let dividerAt = null;
     if (readUpto !== null) { const u = list.find(m => m.id > readUpto && !m.mine); if (u) dividerAt = u.id; }
-    const brk = (a, b) => !a || !b || a.user_id !== b.user_id || (new Date(b.at) - new Date(a.at)) > GROUP_MS ||
-      !sameDay(new Date(a.at), new Date(b.at)) || b.id === dividerAt;
+    // 시각은 Instagram처럼: 날이 바뀌거나 한 시간 넘게 비면 가운데 작은 시각 한 줄. 묶음마다 시각을 붙이지 않는다
+    const gap = (a, b) => !a || !sameDay(new Date(a.at), new Date(b.at)) || (new Date(b.at) - new Date(a.at)) > TIME_GAP_MS;
+    const brk = (a, b) => !a || !b || a.user_id !== b.user_id || (new Date(b.at) - new Date(a.at)) > GROUP_MS || gap(a, b) || b.id === dividerAt;
     list.forEach((m, i) => {
       const prev = list[i - 1], next = list[i + 1];
-      const d = new Date(m.at || Date.now());
-      if (!prev || !sameDay(new Date(prev.at || Date.now()), d)) {
-        const sep = el('li', 'ch-day', dayLabel(d));
-        sep.setAttribute('role', 'separator');
-        frag.append(sep);
+      if (gap(prev, m)) {
+        const t = el('li', 'ch-time', stamp(new Date(m.at || Date.now())));
+        t.setAttribute('role', 'separator');
+        frag.append(t);
       }
       if (m.id === dividerAt) {
         const u = el('li', 'ch-new');
@@ -287,7 +311,7 @@
     });
     log.replaceChildren(frag);
     empty.hidden = !loaded || list.length > 0;
-    if (focusedId && focusedId.id) { const f = log.querySelector(`li[data-id="${focusedId.id}"] .ch-bubble`); if (f) f.focus({ preventScroll: true }); }
+    if (focusedId) { const f = log.querySelector(`li[data-id="${focusedId}"] .ch-bubble`); if (f) f.focus({ preventScroll: true }); }
   }
 
   function togglePop(id, keyboard) {
@@ -296,6 +320,11 @@
     if (openPop !== null && keyboard) { const first = log.querySelector(`li[data-id="${id}"] .ch-pop button`); if (first) first.focus(); }
   }
 
+  // scrollIntoView 는 overflow:hidden 인 바깥 칸까지 밀어 올려 머리가 잘린다 — 메시지 칸만 직접 스크롤한다
+  function centerIn(node, smooth) {
+    const top = node.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+    scroller.scrollTo({ top: Math.max(0, top - scroller.clientHeight / 2), behavior: smooth && !reduce ? 'smooth' : 'auto' });
+  }
   const nearBottom = () => scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 120;
   const toBottom = () => { scroller.scrollTop = scroller.scrollHeight; };
 
@@ -322,7 +351,7 @@
     if (d.seen_upto != null) seenUpto = d.seen_upto;
     const other = channel === 'book' ? 'chat' : 'book';
     const cnt = root.querySelector(`[data-ch-count="${other}"]`);
-    if (cnt && d.other_unread != null) { cnt.textContent = d.other_unread; cnt.hidden = !d.other_unread; }
+    if (cnt && d.other_unread != null) cnt.hidden = !d.other_unread;  // 다른 채널의 새 글은 점 하나로
     const notice = $('#notice'), nt = $('#noticeText');
     if (notice && nt && d.notice !== undefined) { nt.textContent = d.notice || ''; notice.hidden = !d.notice && !owner; }
   }
@@ -335,11 +364,12 @@
       lastId = d.last_id; since = d.now; readUpto = d.read_upto; loaded = true;
       oldest = d.items.length ? d.items[0].id : 0;
       older.hidden = !d.has_more;
+      intro.hidden = d.has_more;  // 대화의 맨 처음이 보일 때만 소개
       side(d);
       draw();
       log.setAttribute('aria-busy', 'false');
       const divider = log.querySelector('.ch-new');
-      if (divider) divider.scrollIntoView({ block: 'center' }); else toBottom();
+      if (divider) centerIn(divider); else toBottom();
       schedule(BASE);
     } catch (e) {
       log.replaceChildren();
@@ -355,6 +385,7 @@
       d.items.forEach(m => msgs.set(m.id, m));
       if (d.items.length) oldest = d.items[0].id;
       older.hidden = !d.has_more;
+      intro.hidden = d.has_more;
       draw();
       scroller.scrollTop += scroller.scrollHeight - h;  // 보던 자리 유지
     } catch (e) {
@@ -404,8 +435,10 @@
     replyWho.textContent = m.mine ? '나' : m.nickname;
     const t = masked(m.body || '');
     replyText.textContent = t.length > 60 ? t.slice(0, 60) + '…' : t;
+    const stick = nearBottom();
     replying.hidden = false;
     openPop = null; draw();
+    if (stick) toBottom();  // 답장 줄이 생겨도 마지막 메시지가 가려지지 않게
     text.focus();
   }
   function cancelReply() { replyTo = null; replying.hidden = true; }
@@ -457,6 +490,7 @@
 
   // 입력칸: 다섯 줄까지 늘어나고, 비어 있으면 보내기가 꺼진다. ||나 @를 칠 때만 짧은 힌트
   function grow() {
+    const stick = nearBottom();
     text.style.height = 'auto';
     text.style.height = Math.min(text.scrollHeight, 132) + 'px';
     const v = text.value;
@@ -468,7 +502,33 @@
     else if (/(^|\s)@\S*$/.test(v)) tip = names.length ? `부를 수 있어요: ${names.slice(0, 6).map(n => '@' + n).join(' ')}` : '';
     typingHint.textContent = tip;
     typingHint.hidden = !tip;
+    if (stick) toBottom();
   }
+
+  // 머리의 ⋯ 메뉴(멤버 · 대결 보기 · 프로필 · 쓰는 법)
+  const moreBtn = $('#moreBtn'), moreMenu = $('#moreMenu');
+  const setMenu = open => { moreMenu.hidden = !open; moreBtn.setAttribute('aria-expanded', String(open)); };
+  moreBtn.addEventListener('click', () => {
+    setMenu(moreMenu.hidden);
+    if (!moreMenu.hidden) { const f = moreMenu.querySelector('a,button'); if (f) f.focus(); }
+  });
+  moreMenu.addEventListener('click', e => { if (e.target.closest('a,button')) setMenu(false); });
+
+  // 입력칸 왼쪽 이모지: 앱의 반응 이모지 세트를 커서 자리에 넣는다
+  const emojiBtn = $('#emojiBtn'), emojiPop = $('#emojiPop');
+  EMOJIS.forEach(e => {
+    const b = btn('ch-emo', `${e} 넣기`, e);
+    b.addEventListener('click', () => {
+      const a = text.selectionStart ?? text.value.length, z = text.selectionEnd ?? a;
+      text.value = text.value.slice(0, a) + e + text.value.slice(z);
+      text.focus();
+      text.setSelectionRange(a + e.length, a + e.length);
+      grow();
+    });
+    emojiPop.append(b);
+  });
+  const setEmoji = open => { emojiPop.hidden = !open; emojiBtn.setAttribute('aria-expanded', String(open)); };
+  emojiBtn.addEventListener('click', () => setEmoji(emojiPop.hidden));
 
   helpBtn.addEventListener('click', () => {
     const open = helpPop.hidden;
@@ -502,20 +562,24 @@
     if (!panel) return;
     panel.hidden = !open;
     if (mb) mb.setAttribute('aria-expanded', String(open));
-    if (open && mc) mc.focus(); else if (!open && mb) mb.focus();
+    if (open && mc) mc.focus(); else if (!open) moreBtn.focus();
   };
   if (mb && panel) mb.addEventListener('click', () => setMembers(panel.hidden));
   if (mc) mc.addEventListener('click', () => setMembers(false));
 
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    if (panel && !panel.hidden) setMembers(false);
+    if (!moreMenu.hidden) { setMenu(false); moreBtn.focus(); }
+    else if (!emojiPop.hidden) { setEmoji(false); emojiBtn.focus(); }
+    else if (panel && !panel.hidden) setMembers(false);
     else if (!helpPop.hidden) { helpPop.hidden = true; helpBtn.setAttribute('aria-expanded', 'false'); }
     else if (openPop !== null) { const id = openPop; openPop = null; draw(); const b = log.querySelector(`li[data-id="${id}"] .ch-bubble`); if (b) b.focus(); }
     else if (replyTo) cancelReply();
   });
   document.addEventListener('pointerdown', e => {
     if (openPop !== null && !e.target.closest('.ch-pop') && !e.target.closest('.ch-tools') && !e.target.closest('.ch-bubble')) { openPop = null; draw(); }
+    if (!moreMenu.hidden && !e.target.closest('.ch-more-wrap')) setMenu(false);
+    if (!emojiPop.hidden && !e.target.closest('#emojiPop') && !e.target.closest('#emojiBtn')) setEmoji(false);
     if (!helpPop.hidden && !e.target.closest('#helpPop') && e.target !== helpBtn) { helpPop.hidden = true; helpBtn.setAttribute('aria-expanded', 'false'); }
   });
 

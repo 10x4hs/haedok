@@ -466,6 +466,53 @@ def _quote(q: ChatMessage | None, author: User | None, me: int, reader_page: int
     return out
 
 
+POST_LINK = re.compile(r"(?:https?://[^\s/]+)?/p/(\d{1,9})\b")
+MAX_CARDS = 2
+
+
+def post_ids(text: str) -> list[int]:
+    """메시지 안의 읽기 게시물 링크(/p/{id}) — 앞에서부터 두 개까지."""
+    out: list[int] = []
+    for mm in POST_LINK.finditer(text or ""):
+        pid = int(mm.group(1))
+        if pid not in out:
+            out.append(pid)
+    return out[:MAX_CARDS]
+
+
+async def _post_cards(session: AsyncSession, me: int, msgs: list[ChatMessage]) -> dict[int, dict]:
+    """게시물 카드: 읽는 사람이 그 게시물을 볼 수 있을 때만(posts.can_see). 못 보면 링크 글자만 남는다.
+
+    게시물 기능(FEATURE_POSTS)이 꺼져 있거나 모듈이 없으면 아무것도 붙이지 않는다.
+    """
+    from app.core.config import get_settings
+
+    if not getattr(get_settings(), "feature_posts", False):
+        return {}
+    ids = {pid for m in msgs for pid in post_ids(m.body)}
+    if not ids:
+        return {}
+    try:  # 기능끼리 얽히지 않게 필요할 때만 불러온다
+        from app.models_posts import ReadingPost
+        from app.services import posts
+    except ImportError:  # pragma: no cover - 게시물 기능이 없는 배포
+        return {}
+    found = {p.id: p for p in await session.scalars(select(ReadingPost).where(ReadingPost.id.in_(ids)))}
+    authors = await _users(session, [p.author_id for p in found.values()])
+    cards: dict[int, dict] = {}
+    for pid, p in found.items():
+        if await posts.can_see(session, me, p):
+            a = authors.get(p.author_id)
+            cards[pid] = {
+                "id": pid,
+                "href": f"/p/{pid}",
+                "title": p.book_title,
+                "author": a.nickname if a else "",
+                "cover": posts.safe_cover(p.cover_url),
+            }
+    return cards
+
+
 def render(
     m: ChatMessage,
     author: User | None,
@@ -473,6 +520,7 @@ def render(
     reader_page: int | None,
     reactions: list[ChatReaction] | None = None,
     quote: dict | None = None,
+    cards: dict[int, dict] | None = None,
 ) -> dict:
     """메시지 한 줄의 응답. 잠기거나 지운 메시지는 'body' 키 자체를 넣지 않고 반응도 싣지 않는다."""
     out = {
@@ -493,6 +541,9 @@ def render(
         out["sealed"] = True
         return out
     out["body"] = m.body
+    shown = [cards[pid] for pid in post_ids(m.body) if cards and pid in cards]
+    if shown:
+        out["cards"] = shown
     if m.veiled:
         out["veiled"] = True
     if quote is not None:
@@ -526,11 +577,15 @@ async def render_many(
     reacts: dict[int, list[ChatReaction]] = {}
     for r in await session.scalars(select(ChatReaction).where(ChatReaction.message_id.in_(ids))):
         reacts.setdefault(r.message_id, []).append(r)
+    # 잠긴 메시지의 링크는 카드로도 풀지 않는다(본문을 안 주는 것과 같은 이유)
+    cards = await _post_cards(
+        session, me, [m for m in msgs if _open_for(m, me, reader_page) or m.user_id == me]
+    )
     out = []
     for m in msgs:
         q = quoted.get(m.reply_to_id) if m.reply_to_id else None
         quote = _quote(q, authors.get(q.user_id) if q else None, me, reader_page) if q else None
-        out.append(render(m, authors.get(m.user_id), me, reader_page, reacts.get(m.id), quote))
+        out.append(render(m, authors.get(m.user_id), me, reader_page, reacts.get(m.id), quote, cards))
     return out
 
 
