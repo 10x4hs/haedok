@@ -8,12 +8,12 @@
 <link rel="stylesheet" href="/static/chat.css">
 <div class="ch-app ch-scope">
   {{ list_pane(tab, convs, unread, bubbles) }}
-  <section class="ch-threadpane ch-idle" aria-hidden="true">
-    <div class="ch-backdrop dm"></div>
+  <section class="ch-threadpane ch-idle" aria-label="대화를 고르세요">
     <div class="ch-idle-box">
       <span class="ch-lempty-ic">{{ icon('chat') }}</span>
-      <b>대화를 골라요</b>
-      <p>왼쪽에서 친구나 대결방을 누르면 여기에 열려요.</p>
+      <b>내 메시지</b>
+      <p>친구나 대결방 사람과 읽는 책 이야기를 나눠 보세요.</p>
+      <a class="ch-cta" href="/friends">메시지 보내기</a>
     </div>
   </section>
 </div>

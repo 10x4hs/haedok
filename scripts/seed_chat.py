@@ -184,8 +184,8 @@ async def main(db_url: str) -> None:
 
         low, high = sorted((h.id, m.id))
         s.add(Friendship(user_low=low, user_high=high, requester_id=h.id, status="accepted"))
-        lo, hi = sorted((h.id, y.id))
-        s.add(Friendship(user_low=lo, user_high=hi, requester_id=y.id, status="accepted"))
+        lo_hy = sorted((h.id, y.id))
+        s.add(Friendship(user_low=lo_hy[0], user_high=lo_hy[1], requester_id=y.id, status="accepted"))
         dm = ChatThread(user_low=low, user_high=high)
         s.add(dm)
         await s.flush()
@@ -206,6 +206,58 @@ async def main(db_url: str) -> None:
         dms[4].reply_to_id = dms[3].id
         s.add(ChatReaction(message_id=dms[3].id, user_id=h.id, emoji="😂"))
         s.add(ChatRead(thread_id=dm.id, user_id=m.id, channel="chat", last_read_id=dms[3].id))
+        # 민준이 올린 읽기 기록을 개인 채팅에 공유(게시물 기능이 있을 때 카드로 보인다)
+        try:
+            from app.models_posts import ReadingPost
+
+            rp = ReadingPost(
+                author_id=m.id,
+                book_source="wikisource",
+                external_id="채팅시연2",
+                book_title="메밀꽃 필 무렵",
+                book_author="이효석",
+                status="reading",
+                caption="달밤 장면이 좋아요",
+                visibility="all",
+                post_day=now.strftime("%Y-%m-%d"),
+            )
+            s.add(rp)
+            await s.flush()
+            s.add(
+                ChatMessage(
+                    thread_id=dm.id,
+                    user_id=m.id,
+                    body=f"제 기록이에요 /p/{rp.id}",
+                    created_at=now - dt.timedelta(minutes=1),
+                )
+            )
+        except ImportError:
+            pass
+        # 서연과의 긴 대화(사흘에 걸쳐 40개) — 긴 대화 화면용
+        long_t = ChatThread(user_low=lo_hy[0], user_high=lo_hy[1])
+        s.add(long_t)
+        await s.flush()
+        lines = [
+            "오늘 몇 쪽 읽었어요?",
+            "저는 열 쪽!",
+            "와 빠르다",
+            "출퇴근길에 읽어요",
+            "저도 그래 볼까 봐요",
+            "이 책 문장이 너무 좋아요",
+            "어떤 문장이요?",
+            "‘비가 오면 운수가 좋다’는 부분이요",
+            "ㅋㅋ 아이러니하죠",
+            "내일 대결 시작해요?",
+            "좋아요 저녁 9시!",
+        ]
+        for k in range(40):
+            who = y if k % 3 else h
+            when_ = (
+                now - dt.timedelta(days=3) + dt.timedelta(minutes=k * 3 + (k // 6) * 600)
+            )  # 몇 분 간격 묶음, 묶음 사이 10시간
+            s.add(
+                ChatMessage(thread_id=long_t.id, user_id=who.id, body=lines[k % len(lines)], created_at=when_)
+            )
         lo, hi = sorted((h.id, j.id))
         s.add(Friendship(user_low=lo, user_high=hi, requester_id=j.id, status="pending"))
         s.add(ChatReport(message_id=c4.id, reporter_id=j.id, reason="시연용 신고"))
