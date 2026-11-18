@@ -112,6 +112,9 @@ class Settings(BaseSettings):
     # 다른 인스턴스에 붙은 친구의 소식은 오지 않는다. 브로커를 Redis 등으로 바꾸기 전까지는 폴링이 정답이다
     realtime_ws: bool | None = None
 
+    # 하루 목표 · 잔디 · 연속 읽기(FEATURE_GOALS). 끄면 /api/v1/me/goal 은 404, /me·홈의 목표 칸도 숨는다
+    feature_goals: bool = True
+
     def realtime_ws_enabled(self) -> bool:
         if self.realtime_ws is not None:
             return self.realtime_ws

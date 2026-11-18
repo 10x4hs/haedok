@@ -6,6 +6,7 @@
 {% block top_extra %}<a class="top-search" href="/search" aria-label="책 검색">{{ icon('search') }}<span>제목이나 저자로 찾기</span></a>{% endblock %}
 {% block main %}
 {% if first_run %}{% include "_welcome.html" %}{% endif %}
+{% include "_goal_chip.html" %}
 {% if not drum %}
 <section class="home-empty glass-card" aria-label="비어 있는 서가">
   <style>

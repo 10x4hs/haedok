@@ -1,0 +1,62 @@
+/* 하루 목표 · 잔디 (feature goals). 색은 app.css 토큰만 쓴다.
+   보호권 칸의 파랑은 화면 꾸미기 강조 색 '파랑'(app/core/appearance.py ACCENTS.blue)과 같은 값이다 — 초록과 섞이지 않게 따로 둔다 */
+:root{--goal-freeze:#5aa0ff}
+
+.goal{margin-top:10px;padding:18px;background:var(--surface);scroll-margin-top:24px}
+.goal-h{margin:0 0 14px;font-size:13px;font-weight:600;color:var(--dim);letter-spacing:.02em}
+.goal-top{display:flex;align-items:center;gap:16px}
+.goal-ring{position:relative;flex:none;width:72px;height:72px}
+.goal-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.goal-ring circle{fill:none;stroke-width:4.5;stroke-linecap:round}
+.goal-ring .track{stroke:var(--sunken)}
+.goal-ring .fill{stroke:var(--accent);stroke-dasharray:0 100;transition:stroke-dasharray .9s var(--ease)}
+.goal-ring span{position:absolute;inset:0;display:grid;place-items:center;font-size:15px;letter-spacing:-.03em}
+.goal-sum{min-width:0;display:grid;gap:4px}
+.goal-sum p{margin:0}
+.goal-now b{font-size:22px;font-weight:500;letter-spacing:-.04em}
+.goal-now span{font-size:13px;color:var(--dim)}
+.goal-line{font-size:14px;color:var(--body);line-height:1.45}
+.goal-meta{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--dim)}
+.goal-freeze-count::before{content:"";display:inline-block;width:8px;height:8px;margin-right:5px;border-radius:2px;background:var(--goal-freeze);vertical-align:1px}
+.goal-freeze-count:empty::before{display:none}
+
+.goal-grass-wrap{margin-top:18px}
+.goal-months{display:grid;grid-template-columns:repeat(var(--weeks,17),1fr);gap:3px;height:14px;margin-bottom:4px;font-size:10px;color:var(--dim);white-space:nowrap}
+.goal-grass{display:grid;grid-template-columns:repeat(var(--weeks,17),1fr);grid-template-rows:repeat(7,auto);grid-auto-flow:column;gap:3px}
+.goal-grass button{aspect-ratio:1;width:100%;min-width:0;padding:0;border-radius:3px;background:var(--sunken);border:0;cursor:pointer}
+.goal-grass button:focus-visible{outline:2px solid var(--text);outline-offset:1px}
+.goal-grass button[aria-current="date"]{box-shadow:inset 0 0 0 1px var(--text)}
+.goal-grass .l1,.goal-legend .l1{background:color-mix(in srgb,var(--ok) 30%,var(--sunken))}
+.goal-grass .l2,.goal-legend .l2{background:color-mix(in srgb,var(--ok) 52%,var(--sunken))}
+.goal-grass .l3,.goal-legend .l3{background:color-mix(in srgb,var(--ok) 76%,var(--sunken))}
+.goal-grass .l4,.goal-legend .l4{background:var(--ok)}
+.goal-grass .fz,.goal-legend .fz{background:var(--goal-freeze)}
+.goal-grass .rp{background:color-mix(in srgb,var(--goal-freeze) 55%,var(--sunken))}
+.goal-grass .pad{visibility:hidden}
+.goal-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.goal-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin-top:10px}
+.goal-tip{margin:0;min-height:20px;font-size:13px;color:var(--body)}
+.goal-legend{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--dim)}
+.goal-legend i{width:11px;height:11px;border-radius:2px;background:var(--sunken)}
+.goal-legend span{margin:0 3px}
+.goal-legend .fz{margin-left:8px}
+
+.goal-edit{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:48px;margin-top:12px;padding:0 2px;border-top:1px solid var(--line);font-size:15px;color:var(--text);text-align:left}
+.goal-edit em{font-style:normal;color:var(--dim);transition:transform .3s var(--ease)}
+.goal-edit[aria-expanded="true"] em{transform:rotate(90deg)}
+.goal-tiers .seg.full{margin:4px 0 10px}
+.goal-tiers .seg button{min-height:44px;padding:0 6px}
+.goal-note{margin:6px 2px 0;font-size:12px;color:var(--dim);line-height:1.55}
+
+/* 홈: 헤더 아래 왼쪽, 나선(3D 책)보다 위 — 스크롤하면 함께 올라간다 */
+.goal-chip{position:relative;z-index:3;display:inline-flex;align-items:center;gap:8px;height:34px;margin:2px 0 0;padding:0 14px 0 12px;border-radius:999px;font-size:13px;color:var(--text);white-space:nowrap}
+.goal-chip::after{content:"";position:absolute;inset:-5px -2px}  /* 누르는 자리는 44px */
+.goal-chip-dot{width:8px;height:8px;border-radius:50%;background:var(--sunken);box-shadow:inset 0 0 0 1.5px var(--ok)}
+.goal-chip.met .goal-chip-dot{background:var(--ok)}
+.goal-chip:active{transform:scale(.97)}
+
+@media (prefers-reduced-motion:reduce){
+  .goal-ring .fill,.goal-edit em{transition:none}
+  .goal-chip:active{transform:none}
+}
