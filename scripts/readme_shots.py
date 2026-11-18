@@ -31,6 +31,8 @@ ACCOUNTS = [("지우", "admin@haedok.app"), ("하린", "harin@example.com"), ("�
 PASSWORD = "password123"
 # 따로 받은 크로미움(예: chrome-headless-shell)을 쓰려면 CHROME=/path/to/chrome
 CHROME = os.environ.get("CHROME") or None
+# readme_photos.py 가 그린 사진 폴더(올리기 화면 촬영에 쓴다). 없으면 그 화면은 건너뛴다
+PHOTOS = Path(os.environ["PHOTOS"]) if os.environ.get("PHOTOS") else None
 
 
 async def seed_users(db_url: str) -> None:
@@ -225,6 +227,39 @@ async def world(out: Path) -> None:
         await shot(h, out, "/discover", "w-discover", wait=2500)
         await shot(h, out, "/leaderboard", "w-leaderboard", wait=1500)
 
+        # --- 게시물(seed_posts → seed_posts_ig): 친구 소식 · 프로필 격자 · 게시물과 댓글 · 올리기 1단계
+        await shot(h, out, "/feed", "w-feed", wait=2000)
+        # 하린의 「데미안」 — 사진 세 장, 댓글 · 답글
+        card = await h.evaluate(
+            "[...document.querySelectorAll('article[id^=post-]')]"
+            ".find(a => a.textContent.includes('데미안')).id"
+        )
+        post = "/p/" + card.removeprefix("post-")
+        # 손가락으로 한 장 넘긴 모습(2/3) — 휴대폰에서는 화살표 대신 밀어서 넘긴다
+        await h.eval_on_selector(f"#{card} [data-car-track]", "t => t.scrollBy({left: t.clientWidth})")
+        await h.eval_on_selector(f"#{card}", "a => a.scrollIntoView({block: 'start'})")
+        await h.wait_for_timeout(1600)
+        await h.screenshot(path=str(out / "w-feed.png"))
+        print("shot w-feed (2/3)")
+        # 댓글 시트(답글 펼침)
+        await h.click(f"#{card} [data-comments].ps-all-cm")
+        await h.wait_for_selector("#psComments [data-cm-wrap]")
+        await h.click("#psComments .ps-replies summary")
+        await h.wait_for_timeout(900)
+        await h.screenshot(path=str(out / "w-comments.png"))
+        print("shot w-comments")
+        await shot(h, out, "/profile", "w-profile", wait=2000)
+        await shot(h, out, post, "w-post", wait=2000)
+        await shot(h, out, "/feed?tab=all", "w-explore-posts", wait=2000)
+        if PHOTOS:
+            await h.goto(f"{BASE}/posts/new", wait_until="domcontentloaded")
+            await h.wait_for_timeout(800)
+            await h.set_input_files("#psFiles", [str(PHOTOS / f"{n}.jpg") for n in ("desk", "page", "cafe")])
+            await h.wait_for_selector(".ps-th")
+            await h.wait_for_timeout(1200)
+            await h.screenshot(path=str(out / "w-create.png"))
+            print("shot w-create")
+
         # --- 관리자(지우): 리워드 교환 관리
         A = await br.new_context(**PHONE)
         a = await login(A, ACCOUNTS[0][1])
@@ -236,6 +271,7 @@ async def world(out: Path) -> None:
         await shot(d, out, "/", "pc-home", wait=3000)
         await shot(d, out, room, "pc-chat", wait=2500)
         await shot(d, out, race, "pc-race", wait=2500)
+        await shot(d, out, post, "pc-post", wait=2500)
         await br.close()
 
 
@@ -267,6 +303,13 @@ JPEG_NAMES = {
     "docs": "app/21-docs",
     "developers": "app/22-developers",
     "pc-race": "app/23-pc-race",
+    "w-feed": "app/24-feed",
+    "w-profile": "app/25-profile",
+    "w-post": "app/26-post",
+    "w-comments": "app/27-comments",
+    "w-create": "app/28-create",
+    "w-explore-posts": "app/29-explore-posts",
+    "pc-post": "app/30-pc-post",
     "admin-dashboard": "admin/1-dashboard",
     "admin-users": "admin/2-users",
     "admin-rooms": "admin/3-rooms",

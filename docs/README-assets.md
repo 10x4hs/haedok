@@ -6,6 +6,7 @@ README에 들어가는 이미지는 세 종류예요. 스크린샷은 손으로 
 |---|---|---|
 | 소셜 배너 1200×630 (영어 README) | `docs/images/banner.png` | `scripts/readme_assets.sh` |
 | 앱 · 관리자 스크린샷 | `docs/images/app/*.jpg` · `docs/images/admin/*.jpg` | `scripts/readme_shots.sh` (아래) |
+| 게시물 예시 사진(합성) | 촬영 때마다 `$OUT/photos` | `scripts/readme_photos.py` (아래) |
 | 41초 소개 영상 · 포스터 | `app/static/demo/haedok-demo.mp4` · `haedok-demo-poster.jpg` | 랜딩에 쓰는 파일을 README가 링크해요 |
 
 한국어 README 맨 위 그림은 GitHub에 올린 이미지(user-attachments)라 저장소 밖에 있어요.
@@ -35,7 +36,7 @@ scripts/readme_shots.sh                                             # 몇 분 �
 `scripts/readme_shots.sh`가 빈 SQLite로 앱을 두 번 띄워요(`DWELL_SCALE=0.01`, `ADMIN_EMAILS=admin@haedok.app`).
 
 1. **이야기 세계** — `readme_shots.py --seed`로 계정 셋(지우=관리자 · 하린 · 민준, 비밀번호 `password123`)을 넣고, `readme_shots.py <폴더>`가 UI를 조작해요: 지우가 위키문헌에서 「운수 좋은 날」을 열고 대결을 만들어요 → 하린 · 민준이 초대 코드로 참가해 몇 쪽 읽고 반응을 남겨요 → 서연이 가입 폼을 채워 6자리 인증 화면까지 가요. 찍는 화면: 랜딩 · 로그인 · 가입 · 인증 · 리더 · 반응 시트 · 서점 · 관리자 4종 · PC 리더.
-2. **시드 세계** — 계정 셋을 넣고 `seed_board` → `seed_races` → `seed_chat` → `seed_goals` → `seed_mileage` → `seed_posts` 순서로 심어요(네트워크 없이). 그러면 하린에게 친구 · 대결방 넷 · 모집 글 · 방/개인 채팅 · 17주 잔디 · 마일리지가 생겨요. `readme_shots.py --world <폴더>`가 하린 시점으로 찍어요: 공개 페이지 3종 · 홈 · 내 정보 · 대결 목록 · 대결방 · 모집 · 친구 · 메시지 · 방 채팅 · 개인 채팅 · 마일리지 · 탐색 · 순위 · 관리자 리워드 · PC 홈 · PC 방 채팅 · PC 대결방.
+2. **시드 세계** — `readme_photos.py`로 게시물 사진 여섯 장을 그리고, 계정 셋을 넣고 `seed_board` → `seed_races` → `seed_chat` → `seed_goals` → `seed_mileage` → `seed_posts` → `seed_posts_ig` 순서로 심어요(네트워크 없이). 그러면 하린에게 친구 · 대결방 넷 · 모집 글 · 방/개인 채팅 · 17주 잔디 · 마일리지 · 사진 게시물(댓글 · 답글 · 저장 · 소개)이 생겨요. `readme_shots.py --world <폴더>`가 하린 시점으로 찍어요: 공개 페이지 3종 · 홈 · 내 정보 · 대결 목록 · 대결방 · 모집 · 친구 · 메시지 · 방 채팅 · 개인 채팅 · 마일리지 · 탐색 · 순위 · 소식 · 댓글 시트 · 프로필 · 게시물 · 모두(탐색) · 새 게시물 1단계 · 관리자 리워드 · PC 홈 · PC 방 채팅 · PC 대결방 · PC 게시물.
 3. **JPEG** — `readme_shots.py --jpeg <폴더>`가 품질 88에서 시작해 250 KB 이하가 될 때까지 4씩 낮춰 저장해요.
 
 ### 파일 이름
@@ -53,9 +54,11 @@ scripts/readme_shots.sh                                             # 몇 분 �
 | `w-mileage` · `w-leaderboard` | `app/18-mileage` · `app/19-leaderboard` | 마일리지 · 순위 |
 | `guide` · `docs` · `developers` | `app/20-guide` · `app/21-docs` · `app/22-developers` | 공개 페이지 |
 | `pc-race` | `app/23-pc-race` | PC 대결방 |
+| `w-feed` · `w-profile` · `w-post` · `w-comments` | `app/24-feed` · `app/25-profile` · `app/26-post` · `app/27-comments` | 친구 소식(사진 넘김 2/3) · 내 프로필 격자 · 게시물 · 댓글 시트(답글 펼침) |
+| `w-create` · `w-explore-posts` · `pc-post` | `app/28-create` · `app/29-explore-posts` · `app/30-pc-post` | 새 게시물 1단계(사진 셋 고름) · 모두(탐색) 격자 · PC 게시물 |
 | `admin-dashboard` · `admin-users` · `admin-rooms` · `admin-mail` · `admin-rewards` | `admin/1-dashboard` … `admin/5-rewards` | 관리자 |
 
-`app/24-feed` · `app/25-profile` 자리는 게시물 화면용으로 비워 뒀어요(README의 `SLOT:posts-*` 주석). 게시물 화면을 찍을 때 `world()`에 `/feed` · `/profile`을 더하고 `JPEG_NAMES`에 이어 붙이면 돼요.
+게시물 사진 여섯 장(`desk` · `page` · `cafe` · `shelf` 4:5, `bed` · `park` 1:1)은 `scripts/readme_photos.py`가 앱의 표지 그림(`app/static/covers/showcase`)으로 책상 · 밑줄 그은 쪽 · 창가 · 책장 · 침대 · 벤치 장면을 HTML로 그려 만들어요 — 실제 사진이 아니에요. `seed_posts_ig.py`가 서버와 똑같이 검사하고 EXIF를 걷어 붙이고, 올리기 화면 촬영(`PHOTOS=<폴더>`)도 이 사진을 써요.
 
 ### 하나씩 돌리기
 
@@ -65,7 +68,9 @@ DWELL_SCALE=0.01 ADMIN_EMAILS=admin@haedok.app SECRET_KEY=readme-shots \
   .venv/bin/uvicorn app.main:app --port 8077 &                       # 빈 DB면 표를 만들어요
 .venv/bin/python scripts/readme_shots.py --seed "$DATABASE_URL"
 for s in board races chat goals mileage posts; do .venv/bin/python scripts/seed_$s.py "$DATABASE_URL"; done
-BASE=http://127.0.0.1:8077 uv run --no-project --with playwright python scripts/readme_shots.py --world /tmp/shots
+uv run --no-project --with playwright python scripts/readme_photos.py /tmp/photos
+.venv/bin/python scripts/seed_posts_ig.py "$DATABASE_URL" /tmp/photos
+PHOTOS=/tmp/photos BASE=http://127.0.0.1:8077 uv run --no-project --with playwright python scripts/readme_shots.py --world /tmp/shots
 uv run --no-project --with pillow python scripts/readme_shots.py --jpeg /tmp/shots
 ```
 

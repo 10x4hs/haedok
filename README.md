@@ -80,15 +80,14 @@
 인정된 쪽(+1), 문단에 처음 남긴 반응(+1, 하루 20번), 문장 공유(+3), 친구 추월(+5), 대결 책 완주(+20), 7일 연속 읽기(+30)로 마일리지가 쌓여요. 모은 마일리지는 기록 보호권(50P)이나 제휴 리워드로 바꾸고, 리워드는 운영자가 확인한 뒤 가입한 이메일로 보내요. 주간 · 전체 순위도 있어요.
 </td>
 </tr>
-<!-- SLOT:posts-feature — 게시물 기능을 맡은 작업이 머지되면 아래 이미지를 그 화면으로 바꿔 주세요(예: docs/images/app/24-feed.jpg). -->
 <tr>
-<td align="center"><img src="docs/images/app/8-me.jpg" alt="(게시물 스크린샷 자리 — 머지 뒤 교체)" width="180"></td>
+<td align="center"><img src="docs/images/app/24-feed.jpg" alt="친구 소식 — 사진 세 장짜리 게시물을 한 장 넘긴 모습" width="180"></td>
 <td>
 <h3>📷 읽은 책 게시물 · 프로필</h3>
-읽은 책을 사진과 함께 올리고, 한 줄 감상과 별점, 마음에 남은 문장을 남겨요. 친구와 가입한 사람들이 피드에서 보고 좋아요 · 댓글을 달아요. 하단의 <b>나</b> 탭은 내 게시물이 모인 프로필(<code>/profile</code>)로 열려요. 공개 범위(전체 · 친구만)를 고를 수 있고, 지우거나 신고할 수 있어요.
+읽은 책을 <b>사진 1~5장</b>과 함께 올려요(사진이 없으면 책 표지). 사진은 게시물 전체를 <b>1:1 또는 4:5</b>로 맞춰 자르고 위치를 옮겨 고르며, 브라우저가 1080px로 다시 그리고 서버가 한 번 더 EXIF · GPS 같은 <b>위치 · 기기 정보를 걷어 내요</b>. 별점, 2,200자까지의 감상, 마음에 남은 문장을 붙이고 공개 범위(전체 · 친구만)를 골라요.<br>
+친구 소식에서 사진을 넘겨 보고 <b>좋아요 · 댓글 · 답글 · 댓글 좋아요 · 저장</b>을 하고, 종이비행기로 <b>친구에게 보내면</b> 개인 채팅에 첫 사진이 담긴 카드로 가요. 하단의 <b>나</b> 탭은 소개 한 줄과 <b>게시물 격자</b> · 소식 · 저장됨 탭이 있는 프로필(<code>/profile</code>)이고, <b>모두</b> 탭은 가입한 모두의 공개 게시물을 격자로 둘러보는 탐색이에요. 지우기 · 신고 · 차단도 서버가 판정해요.
 </td>
 </tr>
-<!-- /SLOT:posts-feature -->
 <tr>
 <td align="center"><img src="docs/images/app/3-explore.jpg" alt="탐색 — 이어 읽기 카드, 유명한 책 표지 띠, 인기 순위" width="180"></td>
 <td>
@@ -112,16 +111,20 @@
 | <img src="docs/images/app/0-landing.jpg" alt="랜딩" width="150"> | <img src="docs/images/app/1-login.jpg" alt="로그인" width="150"> | <img src="docs/images/app/1-signup.jpg" alt="가입" width="150"> | <img src="docs/images/app/1b-verify.jpg" alt="6자리 인증" width="150"> | <img src="docs/images/app/2-home.jpg" alt="홈 — 3D로 쌓인 책과 오늘 목표" width="150"> |
 | **서점** | **대결 목록** | **친구** | **메시지** | **개인 채팅** |
 | <img src="docs/images/app/4-store.jpg" alt="서점 상세" width="150"> | <img src="docs/images/app/12-races.jpg" alt="대결 목록" width="150"> | <img src="docs/images/app/14-friends.jpg" alt="친구" width="150"> | <img src="docs/images/app/15-chat.jpg" alt="메시지 목록" width="150"> | <img src="docs/images/app/17-chat-dm.jpg" alt="개인 채팅" width="150"> |
-| **마일리지 순위** | **Docs** | **Developer** | **게시물 피드** | **프로필** |
-| <img src="docs/images/app/19-leaderboard.jpg" alt="마일리지 순위" width="150"> | <img src="docs/images/app/21-docs.jpg" alt="공개 Docs" width="150"> | <img src="docs/images/app/22-developers.jpg" alt="공개 Developer" width="150"> | <!-- SLOT:posts-feed docs/images/app/24-feed.jpg -->_(머지 뒤 추가)_ | <!-- SLOT:posts-profile docs/images/app/25-profile.jpg -->_(머지 뒤 추가)_ |
+| **마일리지 순위** | **Docs** | **Developer** | **프로필(나 탭)** | **게시물** |
+| <img src="docs/images/app/19-leaderboard.jpg" alt="마일리지 순위" width="150"> | <img src="docs/images/app/21-docs.jpg" alt="공개 Docs" width="150"> | <img src="docs/images/app/22-developers.jpg" alt="공개 Developer" width="150"> | <img src="docs/images/app/25-profile.jpg" alt="내 프로필 — 소개와 게시물 격자" width="150"> | <img src="docs/images/app/26-post.jpg" alt="게시물 하나 — 사진 세 장 중 첫 장" width="150"> |
+| **댓글 · 답글** | **모두(탐색)** | **새 게시물 — 사진 고르기** | | |
+| <img src="docs/images/app/27-comments.jpg" alt="댓글 시트 — 답글을 펼친 모습" width="150"> | <img src="docs/images/app/29-explore-posts.jpg" alt="모두의 게시물 격자" width="150"> | <img src="docs/images/app/28-create.jpg" alt="새 게시물 1단계 — 사진 세 장을 고르고 4:5로 자르기" width="150"> | | |
 
-**PC · 태블릿에서는** 하단 탭 바가 왼쪽 사이드바가 되고, 리더는 두 쪽을 펼치고, 채팅은 목록과 대화가 나란히 보여요.
+**PC · 태블릿에서는** 하단 탭 바가 왼쪽 사이드바가 되고, 리더는 두 쪽을 펼치고, 채팅은 목록과 대화가, 게시물은 사진과 댓글이 나란히 보여요.
 
 | PC 홈 | PC 리더 · 같이 읽는 친구 |
 |:---:|:---:|
 | <img src="docs/images/app/9-pc-home.jpg" alt="PC 홈"> | <img src="docs/images/app/10-pc-reader.jpg" alt="PC 리더"> |
 | **PC 방 채팅** | **PC 대결방** |
 | <img src="docs/images/app/11-pc-chat.jpg" alt="PC 방 채팅"> | <img src="docs/images/app/23-pc-race.jpg" alt="PC 대결방"> |
+| **PC 게시물 · 댓글** | |
+| <img src="docs/images/app/30-pc-post.jpg" alt="PC 게시물 — 사진 왼쪽, 감상과 댓글 오른쪽"> | |
 
 <details>
 <summary><b>관리자 화면</b> — <code>ADMIN_EMAILS</code>에 적힌 계정만 <code>/admin</code>이 열려요(그 밖에는 404)</summary>
@@ -210,7 +213,7 @@ Vercel 함수는 인스턴스마다 메모리가 따로라, 메모리 브로커(
 | `FEATURE_BOARD` | 같이 읽을 사람 모집(`/together`) |
 | `FEATURE_CHAT` | 친구 · 채팅(`/friends`, `/chat`) |
 | `FEATURE_MILEAGE` | 마일리지 상점(`/mileage`, `/admin/rewards`) — 적립은 계속돼요 |
-| `FEATURE_POSTS` | 읽은 책 게시물(`/feed`, `/posts/new`, `/p/{id}`, `/u/{id}`) |
+| `FEATURE_POSTS` | 읽은 책 게시물(`/feed`, `/posts/new`, `/p/{id}`, `/u/{id}`, `/profile`, 사진 주소) — 나 탭은 `/me`로 |
 
 ### 꼭 지키는 규칙 세 가지
 
@@ -248,6 +251,8 @@ export DATABASE_URL="sqlite+aiosqlite:///$PWD/scratch-dev.db" DWELL_SCALE=0.06  
 ```bash
 .venv/bin/python scripts/readme_shots.py --seed "$DATABASE_URL"    # 지우 · 하린 · 민준, 비밀번호 password123
 for s in board races chat goals mileage posts; do .venv/bin/python scripts/seed_$s.py "$DATABASE_URL"; done
+uv run --no-project --with playwright python scripts/readme_photos.py /tmp/haedok-photos  # 게시물 예시 사진(합성) 여섯 장
+.venv/bin/python scripts/seed_posts_ig.py "$DATABASE_URL" /tmp/haedok-photos  # 사진 · 저장 · 답글 · 소개
 ```
 
 `harin@example.com` / `password123`로 로그인하면 친구 · 대결 · 모집 · 채팅 · 잔디 · 마일리지가 다 채워진 화면을 볼 수 있어요. 로그인은 단계형이라 이메일을 넣고 Enter, 비밀번호를 넣고 Enter예요. 관리자 화면을 보려면 `ADMIN_EMAILS=admin@haedok.app`을 넣고 띄워요.
@@ -288,7 +293,7 @@ Postgres로 돌리려면 `docker compose up -d db`로 DB를 띄우고 `DATABASE_
 
 ## DB 마이그레이션
 
-Alembic 리비전은 [`migrations/versions/`](migrations/versions)에 있고, 이 순서로 이어져요(17개).
+Alembic 리비전은 [`migrations/versions/`](migrations/versions)에 있고, 이 순서로 이어져요(18개).
 
 | # | 리비전 | 내용 |
 |---|---|---|
@@ -309,6 +314,7 @@ Alembic 리비전은 [`migrations/versions/`](migrations/versions)에 있고, �
 | 15 | `d44a3f8b0c04` | 마일리지(쓴 기록 · 리워드 상품 · 교환 요청 + 예시 상품) |
 | 16 | `b22e1d6f8a02` | 친구와 채팅(친구 관계 · 대화 · 메시지 · 반응 · 읽음 · 신고) |
 | 17 | `e55b4a9c1d05` | 읽은 책 게시물(게시물 · 좋아요 · 댓글 · 신고) |
+| 18 | `f66c5b0d2e06` | 게시물 사진(`post_photos`) · 저장 · 댓글 좋아요 · 답글(`parent_id`) · 댓글 신고 · 프로필 소개, 감상 2,200자 |
 
 새 리비전은 `alembic revision -m "…"`로 만들고, CI가 Postgres에서 `upgrade → downgrade base → upgrade`와 `alembic check`(모델과 차이 없음)를 돌려요.
 
@@ -322,7 +328,7 @@ env -u COOKIE_SECURE -u MAX_UPLOAD_MB \
 rm -f .env.production.local
 ```
 
-- 13~17번(v3 기능)은 더하기만 해요(새 표 · 인덱스, 예시 상품 행). 그래서 새 코드가 배포되기 전에 올려도 지금 돌고 있는 앱이 깨지지 않아요. 새 리비전도 이렇게 더하기만으로 써 주세요.
+- 13~18번(v3 · v5 기능)은 더하기만 해요(새 표 · 인덱스 · 비어도 되는 열, 예시 상품 행, 18번은 감상 열을 넓히기만). 그래서 새 코드가 배포되기 전에 올려도 지금 돌고 있는 앱이 깨지지 않아요. 새 리비전도 이렇게 더하기만으로 써 주세요.
 - 먼저 `.venv/bin/alembic current`로 지금 리비전을 확인하고, 문제가 생기면 `alembic downgrade -1`로 하나 되돌려요(모든 리비전에 `downgrade()`가 있어요).
 
 ## 테스트
@@ -331,7 +337,7 @@ rm -f .env.production.local
 .venv/bin/pytest -q && .venv/bin/ruff check .
 ```
 
-지금 **509개** 테스트가 통과해요(2026-11-18, 약 95초). 외부 API는 `httpx.MockTransport` · respx로 흉내 내고 DB는 메모리 속 SQLite라 네트워크 없이 돌아요. 화면 HTML을 파싱해 CSP nonce · 인라인 핸들러를 확인하는 테스트와, `node`로 돌리는 JS 폴링 테스트(`tests/js/`)도 들어 있어요.
+지금 **547개** 테스트가 통과해요(2026-11-18, 약 110초). 외부 API는 `httpx.MockTransport` · respx로 흉내 내고 DB는 메모리 속 SQLite라 네트워크 없이 돌아요. 화면 HTML을 파싱해 CSP nonce · 인라인 핸들러를 확인하는 테스트와, `node`로 돌리는 JS 폴링 테스트(`tests/js/`)도 들어 있어요.
 
 ## 배포
 
@@ -352,7 +358,7 @@ app/
   board.py            모집 게시판 /together
   chat.py             친구 /friends · 채팅 /chat
   mileage.py          마일리지 /mileage · 관리자 리워드
-  posts.py            게시물 /feed · /posts/new · /p/{id} · /u/{id} · /profile
+  posts.py            게시물 /feed · /posts/new · /p/{id} · /u/{id} · /profile · 사진 /media/p/{id}/{n}.jpg
   admin.py            /admin (현황 · 사용자 · 대결방 · 메일 · 신고)
   auth.py             세션 · BCrypt · CSRF · 6자리 코드 · 비밀번호 재설정
   seo.py · pwa.py     robots · sitemap · OG / manifest · service worker · assetlinks
@@ -360,12 +366,12 @@ app/
   models.py           기본 스키마 + models_goals · models_board · models_mileage · models_chat · models_posts
   api/                JSON API(books · me · goals · points · social · chat) · WebSocket
   services/           규칙: pace · books · social · races · race_list · points · goals · board · mileage
-                      · chat · posts · mail · uploads · search · bookstore · bestsellers · chunker
+                      · chat · posts · post_photos · mail · uploads · search · bookstore · bestsellers · chunker
   sources/            도서 소스 어댑터(gutendex · wikisource · kakao · naver · google_books)
   core/               설정 · CSP · 로그 · 화면 꾸미기
   templates/ static/ data/   Jinja2 · CSS/JS/이미지 · 서가 · 서점 · 베스트셀러 JSON
 api/index.py          Vercel 진입점
-migrations/           Alembic(17개)
+migrations/           Alembic(18개)
 scripts/              데이터 만들기(build_*) · 스크린샷(readme_shots.*, seed_*) · 배너 · Apps Script 메일러
 tests/                pytest(+ tests/js)
 docs/                 구조 · README 이미지 만들기 · PRD(처음 MVP 기록) · 예전 시안(archive)
