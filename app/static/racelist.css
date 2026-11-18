@@ -35,15 +35,49 @@
 .rl-main b span{font-weight:400;color:var(--dim)}
 .rl-main>span{font-size:13px;color:var(--dim)}
 .rl-main .rl-pitch{color:var(--body)}
-.rl-post{min-height:88px}
-.rl-meta em{font-style:normal}
-.rl-pace{color:var(--peach-ink);font-weight:600}
-.rl-known{color:var(--peach-ink)}
-.rl-meta .mono{font-size:12px}
 .rl-end{display:flex;align-items:center;gap:10px;color:var(--dim)}
 .rl-end .ic{width:18px;height:18px}
 .rl-dot{width:8px;height:8px;border-radius:50%;background:var(--sky)}
-.rl-join{display:inline-flex;align-items:center;height:32px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;color:var(--peach-ink);background:var(--peach-fill);border:1px solid var(--peach-line)}
+
+/* 모집 글 줄(당근 목록처럼): 큰 표지 · 굵은 핵심 하나(하루 분량) · 자리는 글 대신 얼굴과 빈 점으로 */
+.rl-post{grid-template-columns:84px minmax(0,1fr);gap:14px;align-items:stretch;padding:12px 8px}
+.rl-thumb{width:84px;height:112px;border-radius:8px;overflow:hidden;background:var(--sunken)}
+.rl-thumb .flatbook{margin:0;height:100%;aspect-ratio:auto;border-radius:8px}
+.rl-thumb .flatbook img{height:100%;aspect-ratio:auto;object-position:top}
+.rl-thumb .flatbook .cover{font-size:10px}
+.rl-body{display:grid;grid-template-rows:auto auto 1fr auto;gap:3px;min-width:0}
+.rl-line{display:flex;align-items:baseline;gap:8px;min-width:0}
+.rl-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px;font-weight:700;letter-spacing:-.02em}
+.rl-t span{font-size:13px;font-weight:400;color:var(--dim)}
+.rl-ago{flex:none;font-size:12px;color:var(--dim)}
+.rl-post .rl-pitch{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--body)}
+.rl-key{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;white-space:nowrap;align-self:center}
+.rl-chip{display:inline-flex;align-items:center;gap:4px;flex:none;height:24px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:600;line-height:1}
+.rl-chip .ic{width:13px;height:13px}
+.rl-pace{background:var(--sunken);color:var(--text);font-size:13px;font-weight:700}
+.rl-min{flex:none;font-size:12px;color:var(--dim)}
+.rl-free{border:1px dashed var(--glass-line);color:var(--body);font-weight:500}
+.rl-known{background:var(--peach-fill);border:1px solid var(--peach-line);color:var(--peach-ink);min-width:0;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto}
+/* 좁은 폰에서는 '약 n분'보다 '아는 사람'이 먼저다 */
+@media (max-width:399px){.rl-key:has(.rl-known) .rl-min{display:none}}
+.rl-state{border:1px solid var(--glass-line);color:var(--body);font-weight:500}
+.rl-foot{align-items:center;justify-content:space-between}
+.rl-seats{display:flex;align-items:center;flex:none}
+.rl-seats .avatar{width:20px;height:20px;font-size:10px;box-shadow:0 0 0 2px var(--bg)}
+.rl-seats .avatar+.avatar{margin-left:-5px}
+.rl-more{margin-left:4px;font-size:11px;color:var(--dim)}
+.rl-seat{width:9px;height:9px;margin-left:5px;border-radius:50%;border:1.5px solid color-mix(in srgb,var(--dim) 75%,transparent)}
+.rl-seats>:first-child.rl-seat{margin-left:0}
+.rl-host{display:flex;align-items:center;gap:5px;min-width:0;font-size:12px;color:var(--dim)}
+.rl-host .avatar{width:16px;height:16px;font-size:9px}
+.rl-host span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 마감 · 다 참: 칩 글자 + 흐린 표지(색에만 기대지 않는다) */
+.rl-post.is-shut .rl-thumb{opacity:.45;filter:grayscale(.8)}
+.rl-post.is-shut .rl-t{color:var(--body)}
+@media (min-width:768px){
+  .rl-post{grid-template-columns:96px minmax(0,1fr);gap:16px}
+  .rl-thumb{width:96px;height:128px}
+}
 
 /* 끝난 방은 접어 둔다 */
 .rl-done{margin-top:6px}

@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Book, RacePresence, RaceQuote, Room, RoomMember, User
 from app.models_board import RecruitPost, RecruitReport
+from app.services import posts as posts_service
 from app.services import races as race_service
 from app.services.search import FULLTEXT_SOURCES
 
@@ -27,6 +28,7 @@ MAX_PITCH = 140
 MAX_OPEN_POSTS = 3  # 한 사람이 동시에 열어 둘 수 있는 모집 글
 TOO_MANY_MSG = f"모집 글은 한 번에 {MAX_OPEN_POSTS}개까지 열 수 있어요. 지난 글을 마감하고 올려 주세요"
 RACE_DAYS = 14  # 모집 글로 여는 방의 기간(races.DURATIONS 중 가장 긴 것)
+FACES = 4  # 모집 줄에 얼굴로 그리는 사람 수(나머지는 +n)
 REASONS = {"spam": "광고·도배", "abuse": "불쾌한 내용", "other": "기타"}
 
 
@@ -76,6 +78,27 @@ class PostView:
     known: int = 0  # 그중 나와 다른 방에서 같이 읽어 본 사람
     is_member: bool = False
     members: list[User] = field(default_factory=list)
+    faces: list[User] = field(default_factory=list)  # 줄에 그리는 얼굴(먼저 들어온 순, 최대 FACES명)
+
+    @property
+    def more(self) -> int:
+        """얼굴로 그리지 못한 사람 수(+n)."""
+        return max(self.count - len(self.faces), 0)
+
+    @property
+    def empty_seats(self) -> int:
+        return max(self.post.capacity - self.count, 0)
+
+    @property
+    def seats_text(self) -> str:
+        """자리 그림의 글 대신(스크린 리더): '6명 중 1명, 5자리 남음'."""
+        if self.empty_seats == 0:
+            return f"{self.post.capacity}명 중 {self.count}명, 자리가 다 찼어요"
+        return f"{self.post.capacity}명 중 {self.count}명, {self.empty_seats}자리 남음"
+
+    @property
+    def ago(self) -> str:
+        return posts_service.when(self.post.created_at)
 
     @property
     def is_open(self) -> bool:
@@ -166,16 +189,20 @@ async def _known_ids(session: AsyncSession, user_id: int) -> set[int]:
 async def _views(session: AsyncSession, rows, viewer_id: int, known: set[int]) -> list[PostView]:
     out = []
     room_ids = [room.id for _, room, _, _ in rows]
-    members: dict[int, list[int]] = {}
+    members: dict[int, list[User]] = {}
     if room_ids:
-        for rid, uid in (
+        for rid, u in (
             await session.execute(
-                select(RoomMember.room_id, RoomMember.user_id).where(RoomMember.room_id.in_(room_ids))
+                select(RoomMember.room_id, User)
+                .join(User, User.id == RoomMember.user_id)
+                .where(RoomMember.room_id.in_(room_ids))
+                .order_by(RoomMember.joined_at, User.id)
             )
         ).all():
-            members.setdefault(rid, []).append(uid)
+            members.setdefault(rid, []).append(u)
     for post, room, book, host in rows:
-        ids = members.get(room.id, [])
+        people = members.get(room.id, [])
+        ids = [u.id for u in people]
         out.append(
             PostView(
                 post=post,
@@ -185,6 +212,7 @@ async def _views(session: AsyncSession, rows, viewer_id: int, known: set[int]) -
                 count=len(ids),
                 known=len(known & (set(ids) - {viewer_id})),
                 is_member=viewer_id in ids,
+                faces=people[:FACES],
             )
         )
     return out

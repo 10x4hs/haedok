@@ -15,6 +15,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.models import Book, LibraryEntry, Room, User
+from app.models_board import RecruitPost
+from app.services import board as board_service
 from app.services import chat
 from app.services import races as race_service
 
@@ -57,6 +59,23 @@ async def main(db_url: str) -> None:
         await verify(s, minjun, books["감자"], 17)
         done = await s.get(Room, done.id)
         done.ends_at = dt.datetime.now(dt.UTC) - dt.timedelta(days=2)
+        await s.commit()
+        # 모집 글: 거의 다 찬 글(얼굴 4 + 1), 다 찬 글, 올린 시각을 서로 다르게
+        posts = {p.book_id: p for p in await s.scalars(select(RecruitPost))}
+        crowd = posts[books["B사감과 러브레터"].id]
+        for email in ("admin@haedok.app", "minjun@example.com", "doyun@example.com", "seoyeon@example.com"):
+            await board_service.join(s, await s.get(RecruitPost, crowd.id), users[email])
+        full = posts[books["벙어리 삼룡이"].id]
+        await board_service.join(s, await s.get(RecruitPost, full.id), minjun)
+        now = dt.datetime.now(dt.UTC)
+        for title, hours in (
+            ("감자", 26),
+            ("운수 좋은 날", 3),
+            ("벙어리 삼룡이", 7),
+            ("B사감과 러브레터", 0.2),
+        ):
+            p = await s.get(RecruitPost, posts[books[title].id].id)
+            p.created_at = now - dt.timedelta(hours=hours)
         await s.commit()
     await engine.dispose()
     print("seeded races for harin")
