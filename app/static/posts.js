@@ -115,7 +115,9 @@
   });
 
   // ---------- 사진 넘김: 가로 스크롤 + scroll-snap. 화살표 · 점 · '1/3' 은 지금 장을 따라간다
-  document.querySelectorAll('[data-car]').forEach(car => {
+  function initCar(car) {
+    if (car._ready) return;
+    car._ready = true;
     const track = car.querySelector('[data-car-track]');
     const slides = track.children;
     const n = slides.length;
@@ -143,7 +145,7 @@
       if (e.key === 'ArrowRight') { e.preventDefault(); go(Math.min(n - 1, at + 1)); }
       if (e.key === 'ArrowLeft') { e.preventDefault(); go(Math.max(0, at - 1)); }
     });
-  });
+  }
 
   // ---------- 시트(아래에서 올라오는 창) — <dialog> 하나를 열고 닫는다. 바깥 · ✕ · Esc 로 닫힌다
   function openSheet(d, opener) {
@@ -324,14 +326,22 @@
   }
 
   // ---------- 긴 글은 두 줄에서 접고 '더 보기'
-  document.querySelectorAll('[data-clamp]').forEach(cap => {
+  function initClamp(cap) {
     const more = cap.nextElementSibling;
-    if (!more || !more.matches('[data-more]')) return;
+    if (cap._ready || !more || !more.matches('[data-more]')) return;
+    cap._ready = true;
     if (cap.scrollHeight - cap.clientHeight > 2) {
       more.hidden = false;
       more.addEventListener('click', () => { cap.classList.add('open'); more.remove(); });
     }
-  });
+  }
+  // 처음 그린 화면과, 나중에 끼워 넣은 칸(피드의 이어 읽기 · 새 게시물)에 같은 동작을 붙인다
+  function enhance(root) {
+    root.querySelectorAll('[data-car]').forEach(initCar);
+    root.querySelectorAll('[data-clamp]').forEach(initClamp);
+    root.querySelectorAll('[data-count]').forEach(bindCount);
+  }
+  enhance(document);
 
   // ---------- ⋯ 메뉴는 바깥을 누르면 닫힌다
   document.addEventListener('click', e => {
@@ -351,5 +361,5 @@
   wire(document);
 
   // 다른 스크립트(올리기 화면)가 같이 쓴다
-  window.haedokPosts = { post, toast, reduced };
+  window.haedokPosts = { post, toast, reduced, enhance };
 })();

@@ -465,11 +465,12 @@ async def test_explore_shows_only_everyone_visible_posts_with_big_tiles(api, ses
     async with done(a, f, x):
         open_ids = [pid_of(await upload(a, [TINY] if i % 2 else [], n=i)) for i in range(8)]
         closed = pid_of(await upload(a, [], visibility="friends", n=99))
-        html = (await f.get("/feed?tab=all")).text  # 친구여도 '모두'에는 친구만 글이 없다
+        page = (await f.get("/feed?tab=all")).text  # 친구여도 '모두'에는 친구만 글이 없다
+        html = page.split('class="ps-explore"', 1)[1].split("</ul>", 1)[0]  # 오른쪽 칸의 인기 게시물은 빼고
         ids = [int(i) for i in re.findall(r'class="ps-tile" href="/p/(\d+)"', html)]
         assert ids == sorted(open_ids, reverse=True) and closed not in ids
         assert html.count('class="ps-big l"') == 1 and html.count('class="ps-big r"') == 1  # 0번 칸 · 7번 칸
-        assert 'class="ps-explore"' in html
+        assert 'class="ps-explore"' in page
         await relate(session_factory, ix, ia, status="blocked", blocker=ix)
         assert "ps-tile" not in (await x.get("/feed?tab=all")).text
 
