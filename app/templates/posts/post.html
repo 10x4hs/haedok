@@ -1,69 +1,58 @@
 {% extends "app.html" %}
-{% from "posts/_parts.html" import post_art, stars, rich, like_form, lock_icon, face %}
+{% from "posts/_parts.html" import post_head, post_pic, post_actions, post_book, rich, face %}
 {% set p = c.post %}
 {% set mine = p.author_id == user.id %}
 {% block title %}{{ p.book_title }} · {{ c.author.nickname }} — 偕讀 해독{% endblock %}
 {% block head_extra %}<link rel="stylesheet" href="/static/posts.css">{% endblock %}
-{% block content_class %}split{% endblock %}
+{% block content_class %}wide{% endblock %}
 {% block heading %}<small><a href="/feed">‹ 소식</a></small>게시물{% endblock %}
 {% block main %}
-<section class="ps ps-hero glass-card" aria-labelledby="bookT">
-  {{ post_art(p.book_title, p.book_author, p.cover_url, eager=True) }}
-  <div class="ps-hero-b">
-    <span class="ps-status tag">{{ c.status_label }}</span>
-    <h2 class="ps-book" id="bookT">{{ p.book_title }}</h2>
-    {% if p.book_author %}<p class="muted ps-book-a">{{ p.book_author }}</p>{% endif %}
-    {{ stars(p.rating, 'lg') }}
-  </div>
-</section>
-
 <div class="ps ps-detail">
   {% if msg %}<p class="form-ok" role="status">{{ msg }}</p>{% endif %}
   {% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
-  <header class="ps-head ps-head-lg">
-    <a class="ps-who" href="/u/{{ c.author.id }}">{{ face(c.author, faces) }}<b>{{ c.author.nickname }}</b></a>
-    <span class="ps-meta">{% if p.visibility == 'friends' %}{{ lock_icon() }} 친구만 · {% endif %}<time datetime="{{ p.created_at.isoformat() if p.created_at else '' }}">{{ p.created_at|post_when }}</time>{% if p.updated_at %} · 고침{% endif %}</span>
-  </header>
-  {% if p.caption %}<p class="ps-caption">{{ rich(p.caption) }}</p>{% endif %}
-  {% if p.quote %}<blockquote class="ps-quote lg"><span class="ps-q-label">좋았던 문장</span>{{ rich(p.quote) }}</blockquote>{% endif %}
-  {% if not p.caption and not p.quote %}<p class="muted">글 없이 표지만 올렸어요.</p>{% endif %}
+  <article class="ps-post ps-post-lg" id="post-{{ p.id }}" aria-labelledby="pt{{ p.id }}">
+    {{ post_head(c, faces, user.id, time=False) }}
+    {{ post_pic(c, eager=True) }}
+    <div class="ps-body">
+      {{ post_actions(c, csrf, '/p/' ~ p.id, '#commentBody') }}
+      {{ post_book(c, 'h2') }}
+      {% if p.caption %}<p class="ps-cap"><a class="ps-cap-who" href="/u/{{ c.author.id }}">{{ c.author.nickname }}</a> {{ rich(p.caption) }}</p>{% endif %}
+      {% if p.quote %}<blockquote class="ps-quote">{{ rich(p.quote) }}</blockquote>{% endif %}
 
-  <div class="ps-actions ps-actions-lg">
-    {{ like_form(c, csrf, '/p/' ~ p.id) }}
-    <a class="ps-act" href="#commentBody" aria-label="댓글 쓰기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4z"/></svg><span class="mono">{{ comments|length }}</span></a>
-  </div>
-
-  <section class="row ps-comments" id="comments" aria-labelledby="cmH">
-    <div class="row-h"><h2 id="cmH">댓글</h2><span class="mono muted">{{ comments|length }}</span></div>
-    {% if comments %}
-    <ul class="ps-cm-list">
-      {% for cm, who in comments %}
-      <li id="c{{ cm.id }}">
-        <a href="/u/{{ who.id }}" aria-label="{{ who.nickname }} 프로필">{{ face(who, faces, 'sm') }}</a>
-        <div class="ps-cm-b">
-          <p><a class="ps-cm-who" href="/u/{{ who.id }}">{{ who.nickname }}</a> {{ rich(cm.body) }}</p>
-          <span class="ps-time">{{ cm.created_at|post_when }}</span>
-        </div>
-        {% if who.id == user.id or mine %}
-        <form method="post" action="/p/{{ p.id }}/comments/{{ cm.id }}/delete"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="ps-cm-del" aria-label="댓글 지우기">지우기</button></form>
+      <section class="ps-comments" id="comments" aria-labelledby="cmH">
+        <h3 class="sr" id="cmH">댓글 {{ comments|length }}개</h3>
+        {% if comments %}
+        <ul class="ps-cm-list">
+          {% for cm, who in comments %}
+          <li id="c{{ cm.id }}">
+            <a href="/u/{{ who.id }}" aria-label="{{ who.nickname }} 프로필">{{ face(who, faces, 'sm') }}</a>
+            <div class="ps-cm-b">
+              <p><a class="ps-cm-who" href="/u/{{ who.id }}">{{ who.nickname }}</a> {{ rich(cm.body) }}</p>
+              <span class="ps-time">{{ cm.created_at|post_when }}</span>
+            </div>
+            {% if who.id == user.id or mine %}
+            <form method="post" action="/p/{{ p.id }}/comments/{{ cm.id }}/delete"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="ps-cm-del" aria-label="댓글 지우기">지우기</button></form>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="muted small ps-cm-none">아직 댓글이 없어요. 첫 마디를 남겨 보세요.</p>
         {% endif %}
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <p class="muted small">아직 댓글이 없어요. 첫 마디를 남겨 보세요.</p>
-    {% endif %}
-    <form class="ps-cm-form" method="post" action="/p/{{ p.id }}/comments">
-      <input type="hidden" name="csrf" value="{{ csrf }}">
-      <label class="sr" for="commentBody">댓글</label>
-      <textarea id="commentBody" name="body" rows="1" maxlength="{{ max_comment }}" required placeholder="댓글 달기…" aria-describedby="cmHint" data-count="cmCount"></textarea>
-      <button class="btn primary">올리기</button>
-      <p class="muted small ps-hint" id="cmHint"><span class="mono" id="cmCount">0/{{ max_comment }}</span> · <code>||이렇게||</code> 감싸면 가려져요</p>
-    </form>
-  </section>
+      </section>
+      <p class="ps-when"><time datetime="{{ p.created_at.isoformat() if p.created_at else '' }}">{{ p.created_at|post_when }}</time>{% if p.updated_at %} · 고침{% endif %}{% if p.visibility == 'friends' %} · 친구만{% endif %}</p>
+      <form class="ps-cm-form" method="post" action="/p/{{ p.id }}/comments">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <label class="sr" for="commentBody">댓글</label>
+        <textarea id="commentBody" name="body" rows="1" maxlength="{{ max_comment }}" required placeholder="댓글 달기…" aria-describedby="cmHint" data-count="cmCount"></textarea>
+        <button class="btn primary">올리기</button>
+        <p class="muted small ps-hint" id="cmHint"><span id="cmCount">0/{{ max_comment }}</span> · <code>||이렇게||</code> 감싸면 가려져요</p>
+      </form>
+    </div>
+  </article>
 
   {% if mine %}
-  <section class="row" aria-labelledby="ownH">
+  <section class="row ps-manage" id="manage" aria-labelledby="ownH">
     <div class="row-h"><h2 id="ownH">내 게시물</h2></div>
     <details class="ps-more-box">
       <summary class="btn ghost wide">고치기</summary>
@@ -90,7 +79,7 @@
     </details>
   </section>
   {% else %}
-  <details class="ps-report">
+  <details class="ps-report" id="report">
     <summary>이 게시물 신고하기</summary>
     <form method="post" action="/p/{{ p.id }}/report"><input type="hidden" name="csrf" value="{{ csrf }}">
       <fieldset><legend class="muted small">어떤 문제가 있나요?</legend>

@@ -20,31 +20,97 @@
   });
 
   // ---------- 좋아요: 서버가 JSON으로 켜짐 · 수를 알려 준다. 실패하면 보통 폼으로 보낸다
+  // want=1 은 '켜기만'(그림 두 번 탭) — 몇 번 보내도 같다
+  function paint(form, j) {
+    const btn = form.querySelector('button');
+    btn.setAttribute('aria-pressed', j.liked ? 'true' : 'false');
+    btn.setAttribute('aria-label', j.liked ? '좋아요 취소' : '좋아요');
+    btn.querySelector('.ps-heart').classList.toggle('on', j.liked);
+    const line = (form.closest('.ps-post') || document).querySelector('[data-like-line]');
+    if (!line) return;
+    line.replaceChildren();
+    if (j.count) {
+      const b = document.createElement('b');
+      b.dataset.likeCount = '';
+      b.textContent = String(j.count);
+      line.append(document.createTextNode('좋아요 '), b, document.createTextNode('개'));
+    } else {
+      const z = document.createElement('span');
+      z.dataset.likeZero = '';
+      z.textContent = '가장 먼저 좋아요를 눌러 보세요';
+      line.append(z);
+    }
+  }
+  async function sendLike(form, want) {
+    const btn = form.querySelector('button');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const body = new FormData(form);
+    if (want) body.set('want', '1');
+    try {
+      const r = await fetch(form.action, { method: 'POST', body, headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+      if (r.status === 429) {
+        const j = await r.json().catch(() => ({}));
+        if (window.haedokToast) window.haedokToast(j.detail || '잠시 뒤에 다시 해 주세요');
+        return;
+      }
+      if (!r.ok) throw new Error(String(r.status));
+      paint(form, await r.json());
+    } catch (_) {
+      if (!want) form.submit();
+    } finally {
+      btn.disabled = false;
+    }
+  }
   document.querySelectorAll('form[data-like]').forEach(form => {
-    form.addEventListener('submit', async e => {
-      e.preventDefault();
-      const btn = form.querySelector('button');
-      if (btn.disabled) return;
-      btn.disabled = true;
-      try {
-        const r = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' }, credentials: 'same-origin' });
-        if (r.status === 429) {
-          const j = await r.json().catch(() => ({}));
-          if (window.haedokToast) window.haedokToast(j.detail || '잠시 뒤에 다시 해 주세요');
-          return;
-        }
-        if (!r.ok) throw new Error(String(r.status));
-        const j = await r.json();
-        btn.setAttribute('aria-pressed', j.liked ? 'true' : 'false');
-        btn.setAttribute('aria-label', j.liked ? '좋아요 취소' : '좋아요');
-        btn.querySelector('.ps-heart').classList.toggle('on', j.liked);
-        btn.querySelector('[data-like-count]').textContent = String(j.count);
-      } catch (_) {
-        form.submit();
-      } finally {
-        btn.disabled = false;
+    form.addEventListener('submit', e => { e.preventDefault(); sendLike(form, false); });
+  });
+
+  // ---------- 그림 두 번 탭(더블클릭) = 좋아요. 하트가 잠깐 떴다 사라진다(움직임 줄이기를 따른다)
+  document.querySelectorAll('[data-dbl-like]').forEach(pic => {
+    const post = pic.closest('.ps-post');
+    const form = post && post.querySelector('form[data-like]');
+    if (!form) return;
+    const pop = pic.querySelector('.ps-pop');
+    let last = 0;
+    pic.addEventListener('click', e => {
+      if (e.target.closest('.ps-veil')) return;
+      const now = Date.now();
+      if (now - last < 350) {
+        last = 0;
+        if (pop) { pop.classList.remove('show'); void pop.offsetWidth; pop.classList.add('show'); }
+        sendLike(form, true);
+      } else {
+        last = now;
       }
     });
+  });
+
+  // ---------- 공유 = 링크 복사
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-share]');
+    if (!b) return;
+    const url = new URL(b.dataset.share, location.origin).href;
+    let ok = false;
+    try { await navigator.clipboard.writeText(url); ok = true; } catch (_) { ok = false; }
+    if (window.haedokToast) window.haedokToast(ok ? '링크를 복사했어요' : url);
+    const menu = b.closest('details');
+    if (menu) menu.open = false;
+  });
+
+  // ---------- 긴 글은 두 줄에서 접고 '더 보기'
+  document.querySelectorAll('[data-clamp]').forEach(cap => {
+    const more = cap.nextElementSibling;
+    if (!more || !more.matches('[data-more]')) return;
+    if (cap.scrollHeight - cap.clientHeight > 2) {
+      more.hidden = false;
+      more.addEventListener('click', () => { cap.classList.add('open'); more.remove(); });
+    }
+  });
+
+  // ---------- ⋯ 메뉴는 바깥을 누르면 닫힌다
+  document.addEventListener('click', e => {
+    document.querySelectorAll('details.ps-menu[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; });
   });
 
   // ---------- 글자 수

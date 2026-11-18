@@ -63,7 +63,7 @@ def _notes(request: Request) -> dict:
 
 def _back(back: str, fallback: str) -> str:
     """돌아갈 곳 — 이 기능의 화면만(다른 사이트 · 다른 화면으로 튕기지 않는다)."""
-    if back.startswith(("/feed", "/p/", "/u/")) and "//" not in back and "\\" not in back:
+    if back.startswith(("/feed", "/p/", "/u/", "/profile")) and "//" not in back and "\\" not in back:
         return back[:200]
     return fallback
 
@@ -287,7 +287,7 @@ async def delete_post(
         await svc.remove(session, user, post)
     except svc.NotFound as e:
         raise HTTPException(404) from e
-    return _to(f"/u/{user.id}", msg="게시물을 지웠어요")
+    return _to("/profile", msg="게시물을 지웠어요")
 
 
 @router.post("/p/{post_id}/like", response_model=None)
@@ -296,6 +296,7 @@ async def like(
     post_id: int,
     csrf: str = Form(""),
     back: str = Form(""),
+    want: str = Form(""),  # "1": 그림을 두 번 탭했다 — 켜기만 한다
     session: AsyncSession = Depends(get_session),
     user: User = Depends(auth.require_user),
 ) -> RedirectResponse | JSONResponse:
@@ -303,7 +304,7 @@ async def like(
     post = await _post(session, user, post_id)
     to = _back(back, f"/p/{post_id}")
     try:
-        liked, count = await svc.toggle_like(session, user, post)
+        liked, count = await svc.toggle_like(session, user, post, want=True if want == "1" else None)
     except ratelimit.RateLimited as e:
         if _wants_json(request):
             return JSONResponse({"detail": e.message}, status_code=429)
@@ -371,38 +372,67 @@ async def report(
 
 
 @router.get("/u", include_in_schema=False)
-async def my_profile(user: User = Depends(auth.require_user)) -> RedirectResponse:
-    return RedirectResponse(f"/u/{user.id}", status_code=303)
+async def my_profile_short(user: User = Depends(auth.require_user)) -> RedirectResponse:
+    return RedirectResponse("/profile", status_code=303)
+
+
+async def _profile(
+    request: Request, session: AsyncSession, user: User, user_id: int, tab: str, before: int | None
+) -> HTMLResponse:
+    """프로필 한 화면: 머리(사진 · 이름 · 숫자 · 버튼) → 내 작은 칸들 → 탭(게시물 · 소식) → 격자."""
+    try:
+        prof = await svc.profile(session, user.id, user_id)
+    except svc.NotFound as e:
+        raise HTTPException(404, "사람을 찾을 수 없어요") from e
+    me = prof.state == "self"
+    tab = "feed" if (me and tab == "feed") else "posts"
+    grid, cards, cursor = [], [], None
+    if tab == "feed":
+        cards, cursor = await svc.feed(session, user.id, "friends", before)
+    else:
+        grid, cursor = await svc.grid(session, user.id, user_id, before)
+    settings = get_settings()
+    return _render(
+        request,
+        "posts/profile.html",
+        user,
+        prof=prof,
+        me=me,
+        base="/profile" if me else f"/u/{user_id}",
+        tab=tab,
+        faces=await svc.face_ids(session, user.id),
+        grid=grid,
+        cards=cards,
+        cursor=cursor,
+        paged=bool(before),
+        mine=await svc.tiles(session, user.id) if me else None,
+        chat_on=settings.feature_chat,
+        **_notes(request),
+    )
+
+
+@router.get("/profile", response_class=HTMLResponse)
+async def my_profile(
+    request: Request,
+    tab: str = "posts",
+    before: int | None = Query(None, ge=1),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(auth.require_user),
+) -> HTMLResponse:
+    """하단 메뉴 '나' — 내 프로필이 먼저, 설정은 톱니 버튼 뒤(/me)."""
+    return await _profile(request, session, user, user.id, tab, before)
 
 
 @router.get("/u/{user_id}", response_class=HTMLResponse)
 async def profile_page(
     request: Request,
     user_id: int,
+    tab: str = "posts",
     before: int | None = Query(None, ge=1),
     session: AsyncSession = Depends(get_session),
     user: User = Depends(auth.require_user),
 ) -> HTMLResponse:
-    try:
-        prof = await svc.profile(session, user.id, user_id)
-    except svc.NotFound as e:
-        raise HTTPException(404, "사람을 찾을 수 없어요") from e
-    tiles, cursor = await svc.grid(session, user.id, user_id, before)
-    settings = get_settings()
-    grass = await svc.grass(session, user_id) if prof.state in ("self", "friends") else None
-    return _render(
-        request,
-        "posts/profile.html",
-        user,
-        prof=prof,
-        faces=await svc.face_ids(session, user.id),
-        tiles=tiles,
-        cursor=cursor,
-        paged=bool(before),
-        grass=grass,
-        chat_on=settings.feature_chat,
-        **_notes(request),
-    )
+    return await _profile(request, session, user, user_id, tab, before)
 
 
 @router.get("/feed", response_class=HTMLResponse)
