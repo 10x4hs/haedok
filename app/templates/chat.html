@@ -1,22 +1,20 @@
 {% extends "app.html" %}
-{% from "chat_parts/_bubbles.html" import bubble_row %}
-{% from "chat_parts/_list.html" import conv_list %}
+{% from "chat_parts/_list.html" import list_pane %}
 {% from "_ui.html" import icon %}
-{% block title %}채팅 — 偕讀 해독{% endblock %}
-{% block content_class %}wide{% endblock %}
-{% block heading %}<small>친구 · 대결방</small>채팅{% endblock %}
-{% block top_extra %}<a class="pill" href="/friends">친구</a>{% endblock %}
+{% block title %}메시지 — 偕讀 해독{% endblock %}
+{% block body_class %}app chat-shell chat-at-list{% endblock %}
+{% block content_class %}chat{% endblock %}
 {% block main %}
 <link rel="stylesheet" href="/static/chat.css">
-<div class="ch-scope ch-panes">
-  <section class="ch-side">
-    {{ bubble_row(bubbles) }}
-    {{ conv_list(tab, convs, unread) }}
-  </section>
-  <section class="ch-main ch-pick" aria-hidden="true">
-    <span class="ch-pick-ic">{{ icon('chat') }}</span>
-    <b>대화를 골라요</b>
-    <p>왼쪽에서 친구나 대결방을 누르면 여기에 열려요.</p>
+<div class="ch-app ch-scope">
+  {{ list_pane(tab, convs, unread, bubbles) }}
+  <section class="ch-threadpane ch-idle" aria-hidden="true">
+    <div class="ch-backdrop dm"></div>
+    <div class="ch-idle-box">
+      <span class="ch-lempty-ic">{{ icon('chat') }}</span>
+      <b>대화를 골라요</b>
+      <p>왼쪽에서 친구나 대결방을 누르면 여기에 열려요.</p>
+    </div>
   </section>
 </div>
 {% endblock %}

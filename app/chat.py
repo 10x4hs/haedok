@@ -245,6 +245,8 @@ async def _conv_page(
     ctx["emojis"] = list(chat.social.EMOJIS)
     ctx["api"] = f"/api/v1/chat/{kind}/{key}/messages"
     ctx |= await _list_ctx(session, user, kind)
+    # 개인 채팅 머리의 상태 한 줄 — friend_cards 와 같은 공개 규칙(공개 책 제목만, 수락한 친구만)
+    ctx["status"] = next((c for c in ctx["bubbles"] if c.user.id == key), None) if kind == "dm" else None
     return _render(request, "chat_thread.html", user, **ctx)
 
 
