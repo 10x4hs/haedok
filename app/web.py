@@ -206,6 +206,69 @@ def _drum(free: list[dict], best: list[dict] | None = None) -> list[dict]:
     return top + picks + list(free)
 
 
+# --- 탐색 첫 화면: 표지 띠와 '오늘의 추천'은 누구나 아는 책으로만 ---
+# 전체 카탈로그(1,300여 권)에서 무작위로 뽑으면 낯선 책(사전, 루크레티우스…)이 걸린다. 그래서
+# 유명 고전(popular.json의 order·extra) + 홈에 거는 서점 책(home_picks.json) + 지금의 베스트셀러를
+# 한 풀로 모으고, 같은 책(제목 기준)은 한 번만 — 앱에서 바로 읽는 고전을 먼저 남긴다.
+_POPULAR_JSON = json.loads((DATA / "popular.json").read_text())
+FAMOUS_FREE_KEYS = list(
+    dict.fromkeys(POPULAR_ORDER + [(b["source"], b["id"]) for b in _POPULAR_JSON.get("extra", [])])
+)
+STRIP_FREE, STRIP_STORE = 8, 8  # 표지 띠 16권: 바로 읽는 고전 먼저, 그다음 서점 책
+PICKS_SIZE = 10
+
+
+def _title_key(title: str) -> str:
+    """'죄와 벌 1' == '죄와 벌 (Crime and Punishment)' — 권 번호(1, 상·하)까지 떼고 견준다."""
+    return _same_book(re.sub(r"\s+(\d{1,2}|상|하)$", "", title.strip()))
+
+
+def _famous_pool() -> tuple[list[dict], list[dict]]:
+    """(바로 읽는 고전, 서점 책) — 표지가 있는 유명한 책만, 제목이 겹치면 하나만."""
+    seen: set[str] = set()
+
+    def keep(b: dict) -> bool:
+        key = _title_key(b["title"])
+        if not b.get("cover") or key in seen:
+            return False
+        seen.add(key)
+        return True
+
+    free = [CATALOG_INDEX[k] for k in FAMOUS_FREE_KEYS if k in CATALOG_INDEX and keep(CATALOG_INDEX[k])]
+    store = [b | {"store": True} for b in HOME_PICKS + BESTSELLERS if keep(b)]
+    return free, store
+
+
+def _kst_today() -> dt.date:
+    """'오늘'은 한국 날짜로 — 서버(UTC)의 날짜로 정하면 아침 9시에 추천이 바뀐다. 테스트에서 바꿔 끼운다."""
+    return dt.datetime.now(dt.timezone(dt.timedelta(hours=9))).date()
+
+
+def _famous_rows(day: dt.date | None = None) -> tuple[list[dict], list[dict]]:
+    """(표지 띠, 오늘의 추천). 같은 날은 늘 같고 날이 바뀌면 달라진다. 띠에 걸린 책은 추천에 다시 넣지 않는다.
+
+    풀이 모자라면 무작위 카탈로그가 아니라 유명 고전 순서(popular.json)의 앞에서부터 채운다.
+    """
+    rng = random.Random((day or _kst_today()).toordinal())
+    free, store = _famous_pool()
+    rng.shuffle(free)
+    rng.shuffle(store)
+    strip = free[:STRIP_FREE] + store[:STRIP_STORE]
+    rest = free[STRIP_FREE:] + store[STRIP_STORE:]
+    rng.shuffle(rest)
+    picks = rest[:PICKS_SIZE]
+    if len(picks) < PICKS_SIZE:
+        used = {_title_key(b["title"]) for b in strip + picks}
+        for k in POPULAR_ORDER:
+            b = CATALOG_INDEX.get(k)
+            if len(picks) >= PICKS_SIZE:
+                break
+            if b and _title_key(b["title"]) not in used:
+                used.add(_title_key(b["title"]))
+                picks.append(b)
+    return strip, picks
+
+
 # --- 소개 · 가입 · 로그인 ---
 
 
@@ -667,14 +730,15 @@ async def discover(
         )
     library = await book_service.library_of(session, user.id)
     reading = [(e, b) for e, b in library if e.shelf == Shelf.READING]
+    marquee, picks = _famous_rows()
     return _render(
         request,
         "explore.html",
         user,
         current=reading[0] if reading else None,
         reading=reading[1:6],
-        picks=_daily_picks(10),
-        marquee=_daily_picks(16),
+        picks=picks,
+        marquee=marquee,
         popular=await popular(session, 30),
         shelves={name: books[:14] for name, books in SHELVES.items()},
         **common,

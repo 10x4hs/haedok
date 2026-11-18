@@ -42,7 +42,7 @@
 
 <section class="row">
   <div class="row-h"><h2>오늘의 추천</h2><span class="mono muted">매일 바뀌어요</span></div>
-  <div class="rail big">{% for b in picks %}{{ catalog_card(b) }}{% endfor %}</div>
+  <div class="rail big">{% for b in picks %}{% if b.store %}<a class="card" href="/store/{{ b.id }}">{{ book_cover(b.title, b.author, img=b.cover|small_cover) }}<b>{{ b.title }}</b><span>{{ b.author or '' }}</span></a>{% else %}{{ catalog_card(b) }}{% endif %}{% endfor %}</div>
 </section>
 
 {% for name, books in shelves.items() %}
