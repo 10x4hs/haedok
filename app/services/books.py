@@ -135,7 +135,7 @@ async def record_progress(
     """위치를 저장하고, '다 읽었다'는 요청은 서버가 잰 체류시간으로 판정한다.
 
     쪽을 펼칠 때(verified=False) 시각을 남기고, 다 읽었다는 요청이 오면 그 사이 시간이
-    청크 글자 수로 정한 최소 체류시간을 넘었을 때만 인정한다(PRD BTL-01, GOAL #6).
+    쪽마다 같은 최소 체류시간(15초 × DWELL_SCALE)을 넘었을 때만 인정한다(PRD BTL-01, GOAL #6).
     클라이언트가 보낸 verified 값만 믿으면 API 한 번으로 레이스 점수를 올릴 수 있다.
     """
     entry = await shelve(session, user_id, book.id)

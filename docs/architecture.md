@@ -1,24 +1,68 @@
 # 아키텍처
 
+지금 모습을 먼저 적고, 아래로 갈수록 그 모듈이 생긴 순서대로 결정 기록이 이어져요. 처음 MVP 기획은 [PRD.md](PRD.md)에 있어요.
+
+## 지금 구조 (2026-11)
+
+요청은 네 층을 위에서 아래로 지나가요. 규칙은 셋째 층(서비스)에만 둬요.
+
+| 층 | 어디 | 하는 일 |
+|---|---|---|
+| 1 화면 | `app/templates/` · `app/static/` | Jinja2 서버 렌더링 + 바닐라 JS(빌드 없음). 기능별 CSS/JS는 따로 파일(`chat.css`·`chat.js`, `posts.js`, `goals.js`, `board.css` …) |
+| 2 라우트 | `app/web.py` · `app/*.py` 라우터 · `app/api/` | 주소마다 함수 하나. 로그인·CSRF·기능 스위치를 확인하고 서비스에 넘긴다 |
+| 3 서비스 | `app/services/` | 15초 판정, 스포일러 가드, 대결, 마일리지, 목표, 모집, 채팅, 게시물, 메일 |
+| 4 DB | `app/models.py` + `app/models_*.py` · `migrations/` | SQLAlchemy 2(async). 배포는 Postgres(Neon), 로컬·테스트는 SQLite |
+
 ```
 app/
-  main.py              FastAPI 앱, lifespan에서 공용 httpx.AsyncClient 생성
-  core/config.py       pydantic-settings — 환경변수(.env)
+  main.py              앱 · lifespan(공용 httpx 클라이언트, SQLite면 create_all) · 미들웨어(CSP nonce, 세션, 요청 로그)
+                       · 오류 화면 · 라우터 등록 · /health
+  core/                config.py(설정·기능 스위치) · csp.py · logging.py · ratelimit.py(DB 고정 창)
+                       · appearance.py(테마·배경·강조 색)
   db/                  DeclarativeBase(제약 이름 규칙) · async 세션
-  models.py            전체 스키마 (PRD 10장과 1:1)
+  models.py            기본 스키마(사용자·가입 인증·비밀번호 재설정·메일 기록·책·청크·서재·읽기 기록·방·presence·문장 공유·반응·포인트 원장…)
+  models_goals.py      reading_goals · reading_day_marks
+  models_board.py      recruit_posts · recruit_reports
+  models_mileage.py    mileage_spends · reward_items · reward_redemptions
+  models_chat.py       friendships · chat_threads · chat_messages · chat_reactions · chat_reads · chat_reports
+  models_posts.py      reading_posts · post_likes · post_comments · post_reports
+  web.py               화면: 랜딩 · 로그인/가입/인증/비밀번호 · 홈 · 탐색/서가/검색 · 서점 · 리더 · 서재 · 올리기
+                       · 대결 목록/방/초대 · 순위 · 내 정보
+  auth.py              세션 · BCrypt · CSRF · 6자리 코드(HMAC 지문) · 비밀번호 재설정
+  intro.py             공개 페이지 /guide · /docs · /developers (+ /intro → /guide 308)
+  public_facts.py      공개 페이지의 숫자를 코드 상수에서 읽는다(15초, 마일리지 표, 업로드 한도, 테스트·마이그레이션 수)
+  board.py             /together (모집 글 목록·쓰기·참가·나가기·닫기·신고) · /admin/together
+  chat.py              /friends · /chat · /chat/dm/{id} · /chat/room/{id} · /admin/chat-reports
+                       · 메뉴의 안 읽음 점(ChatMenuDot 미들웨어)
+  mileage.py           /mileage (보호권·리워드 교환·요청 거두기) · /admin/rewards
+  posts.py             /feed · /posts/new · /p/{id} · /u/{id} · /profile · /admin/posts
+  admin.py             /admin (현황·사용자·대결방·메일) — 기능별 관리 화면은 각 라우터에
+  seo.py · pwa.py      robots·sitemap·OG / manifest·service worker·assetlinks
+  realtime.py          책 단위 인메모리 브로커(로컬 WebSocket 전용)
+  api/                 books · me · goals · points · social(반응·친구 위치·presence·대결 순위·WS) · chat
+  services/            pace · books · social · races · race_list · points · goals · board · mileage · chat · posts
+                       · mail · uploads · search · chunker · bookstore · bestsellers · palette
   sources/             외부 도서 소스 어댑터 (어댑터 패턴)
     base.py            BookSource(ABC) · BookMeta · SourceError
     kakao/naver/google_books.py   메타데이터 전용
     gutendex/wikisource.py        퍼블릭 도메인 전문 (fetch_book 구현)
     registry.py        키가 있는 소스만 우선순위 순서로 활성화
-  services/
-    search.py          병렬 조회 · ISBN 병합 · 부분 실패 허용 · 전문 화이트리스트
-    chunker.py         본문 → 청크 (페이지 대체 위치 단위)
-    pace.py            체류시간 검증 규칙
-    books.py           전문 가져오기(캐시) · 청크 조회
-  api/books.py         /api/v1/books/*
-migrations/            Alembic (async)
+  data/                catalog.json(고전) · store.json(서점) · bestsellers.json(매일 갱신) · popular·home_picks …
+api/index.py           Vercel 진입점
+migrations/            Alembic (async, 17개 — README의 표 참고)
 ```
+
+### 기능 스위치
+
+v3 기능은 `app/core/config.py`의 설정 하나로 끈다. 끄면 메뉴·링크가 숨고 주소는 404.
+
+| 설정(환경 변수) | 기능 |
+|---|---|
+| `feature_goals` (`FEATURE_GOALS`) | 하루 목표·잔디·연속 — `/api/v1/me/goal`, 홈·내 정보의 목표 칸 |
+| `feature_board` (`FEATURE_BOARD`) | 같이 읽을 사람 모집 `/together` |
+| `feature_chat` (`FEATURE_CHAT`) | 친구·채팅 `/friends` · `/chat` |
+| `feature_mileage` (`FEATURE_MILEAGE`) | 마일리지 상점 `/mileage` · `/admin/rewards` (적립 자체는 계속된다) |
+| `feature_posts` (`FEATURE_POSTS`) | 게시물 `/feed` · `/posts/new` · `/p/{id}` · `/u/{id}` |
 
 ## 핵심 결정
 
@@ -136,3 +180,82 @@ app/templates/_welcome.html      첫 가입 뒤 홈의 3단계 안내 카드 (�
 | **카카오 SDK를 쓰지 않는다** — `navigator.share` + 클립보드 대체 | 카카오 링크 공유 SDK는 앱 키·도메인 등록이 필요하다. 기기 공유 시트로 카카오톡에 보내면 OG 카드가 그대로 뜬다 |
 | **OG 이미지는 정적 PNG 한 장** (`app/static/og/default.png`) | Pillow·한글 글꼴을 서버리스 번들에 넣지 않으려고. 방별 이미지는 og:title에 책 제목만 넣는다 |
 | **공개 주소는 `SITE_URL` → `VERCEL_PROJECT_PRODUCTION_URL` → `VERCEL_URL` → 요청 base** | 미리보기 배포에서도 절대 주소의 og:image가 깨지지 않게 |
+
+## v3 기능 (2026-11) — 목표 · 모집 · 마일리지 · 친구/채팅 · 게시물 · 공개 페이지
+
+다섯 기능을 따로따로 만들어 합쳤다. 그래서 모듈 경계가 같다: 모델은 `app/models_<기능>.py`, 규칙은 `app/services/<기능>.py`, 화면 라우터는 `app/<기능>.py`, CSS/JS도 기능별 새 파일, 마이그레이션은 기능마다 하나(13~17번), 그리고 기능 스위치 하나.
+
+### 하루 목표 · 잔디 (`services/goals.py`, `api/goals.py`, `static/goals.js`)
+
+| 결정 | 이유 |
+|---|---|
+| **읽기 날짜는 KST 새벽 4시에 바뀐다** | 자정을 넘겨 읽은 쪽이 다음 날로 넘어가 연속이 끊기지 않게, 밤늦게 읽은 쪽은 그 전날로 친다 |
+| **센다 = 체류시간을 통과한 쪽만**, 같은 (책, 쪽)은 처음 인정된 날 한 번 | 잔디도 15초 규칙을 그대로 따른다 |
+| **보호권(최대 2개)·무료 복구(한 달에 한 번)는 화면을 볼 때 한꺼번에 정산(lazy)** | 크론 없이 서버리스에서 돈다. `settled_through`로 한 번만, (user, day) unique로 같은 날을 두 번 메우지 않는다 |
+| **7일 연속 마일리지는 그대로 자정(KST) 경계** | 적립 규칙(points)은 바꾸지 않았다 |
+
+### 같이 읽을 사람 모집 (`board.py`, `services/board.py`)
+
+| 결정 | 이유 |
+|---|---|
+| **모집 글 하나 = 대결방 하나** | 방 만들기·참가는 `races.create_race` / `races.join`을 그대로 거친다 |
+| **정원은 `seats < capacity`일 때만 올리는 UPDATE 한 문장** | Postgres는 행을 잠그고 조건을 다시 보고, SQLite는 쓰기를 한 줄로 세워서 마지막 자리는 한 명만 들어간다 |
+| **신고된 글은 관리자가 내린다** (`/admin/together`) | 글은 닫힘(closed)이 되고, 이미 들어온 사람의 방은 남는다. 방장이 지울 때도 방에 혼자일 때만 방을 같이 지운다 |
+
+### 마일리지 · 제휴 리워드 (`mileage.py`, `services/mileage.py`)
+
+| 결정 | 이유 |
+|---|---|
+| **잔액 = 모은 것(`points_log`) − 쓴 것(`mileage_spends`)**, 순위는 계속 '모은 것' | 적립 원장은 append-only 그대로 두고, 쓰기는 별도 원장 |
+| **동시에 눌러도 더 쓰지 않게**: 사용자 행 잠금(Postgres) + 사용자별 순번 `(user_id, seq)` unique + 폼마다 `idem_key` unique + 기다리는 교환 요청은 사람당 하나(부분 unique 인덱스) + 재고는 조건부 UPDATE | 잠금이 없는 SQLite에서도 unique 제약이 두 번째 요청을 막는다 |
+| **리워드는 관리자가 확인한 뒤 가입 이메일로** — 가입 7일 뒤부터, 한 달 2번 | 전화번호·주소를 받지 않는다. 부정 적립을 사람이 한 번 본다 |
+| **예시 상품(is_sample)은 '제휴 준비 중'** | 진짜 제휴 전에도 화면을 보여 줄 수 있게. 그림은 `app/static/rewards/`(출처 CREDITS.md) 또는 허용한 호스트만 |
+
+### 친구 · 채팅 (`chat.py`, `services/chat.py`, `api/chat.py`, `static/chat.js`)
+
+| 결정 | 이유 |
+|---|---|
+| **두 사람 사이 friendships 한 행(작은 id, 큰 id)** — 신청·수락·거절·취소·끊기·차단 | 방향이 다른 두 행이 어긋나지 않는다 |
+| **방 채팅은 두 채널: `# 책 이야기`(쪽 도장) · `# 수다`(도장 없음)** | 스포일러 걱정 없이 떠들 곳과, 책 이야기를 할 곳을 나눈다 |
+| **도장은 보낼 때 서버가 그 사람의 `verified_chunk`로 찍는다**, 덜 읽은 독자에게는 자리표시만 | 판정은 반응과 같은 `social.page_open`. 따라잡으면 다음 폴링에 본문이 온다. 답장 인용·반응·공지·목록 미리보기에도 잠긴 본문은 나가지 않는다 |
+| **고치기는 없다**(지우고 다시 보낸다) | 도장이 낡지 않는다 |
+| **개인 채팅은 수락한 친구끼리, `||스포일러||`는 흐리게만** | 같은 책을 읽는다는 보장이 없어서 도장 대신 보내는 사람이 가린다 |
+| **폴링 3초 → 실패 시 두 배씩 60초, 가려진 탭은 타이머 없음** | 아래 실시간 원칙과 같다. 메뉴의 안 읽음 점은 `ChatMenuDot` 미들웨어가 화면을 그릴 때 붙인다 |
+
+### 읽은 책 게시물 (`posts.py`, `services/posts.py`, `static/posts.js`)
+
+| 결정 | 이유 |
+|---|---|
+| **모든 읽기에서 서버가 판정** — 지운 글·차단(양쪽)·'친구만' 글은 404 | 있는지조차 알리지 않는다 |
+| **책은 스냅샷으로 저장, 개인이 올린 파일은 게시물의 책이 될 수 없다** | 비공개 파일 제목이 새지 않게 |
+| **같은 사람이 같은 책을 하루(KST)에 한 번** | 같은 글이 피드에 줄줄이 쌓이지 않게 |
+| **친구 관계는 채팅 기능의 friendships를 읽는다** | 채팅이 꺼져 있어도 표는 있다 |
+| **하단 '나' 탭은 `/profile`(내 게시물 격자)로** | 인스타그램 프로필의 생김새를 따른다. 계정 설정은 `/me` |
+
+### 공개 페이지 (`intro.py`, `public_facts.py`)
+
+| 결정 | 이유 |
+|---|---|
+| **`/guide`(사용법) · `/docs`(규칙) · `/developers`(만든 방법)는 로그인 없이 공개** | 처음 오는 사람과 "어떻게 만들었어?" 하는 사람에게 링크 하나로 |
+| **화면의 숫자는 코드 상수에서 읽는다** (`pace.PAGE_DWELL_MS`, `points.RULES`, `uploads.ALLOWED` …, 테스트·마이그레이션 수는 import 때 센다) | 규칙이 바뀌면 문서도 같이 바뀐다. 배포 번들에 `tests/`가 없으면 그 줄만 뺀다 |
+| **Swagger는 `/api/docs`로** | `/docs`는 사람이 읽는 규칙 문서가 쓴다 |
+
+### 실시간 원칙 (모든 기능 공통)
+
+배포(Vercel)에서는 WebSocket을 쓰지 않는다. `app/realtime.py` 브로커가 인스턴스 메모리 안에만 있어서, 다른 인스턴스에 붙은 친구의 소식이 오지 않기 때문이다(`REALTIME_WS`가 비어 있으면 `VERCEL_ENV`가 있을 때 꺼진다).
+
+| 화면 | 주기 | 백오프 | 코드 |
+|---|---|---|---|
+| 리더 친구 소식 `/social` | 3초 (소켓이 열려 있으면 30초 안전망) | 두 배씩 최대 2분 | `reader.js` → `presence.js`의 `haedokLive` |
+| 같이 읽는 중(presence) 박동 | 5초 | 최대 60초, 리더 presence는 60초 · 대결방 presence는 30초 소식 없으면 뺀다 | `presence.js`, `books.PRESENCE_TTL`, `races.PRESENCE_TTL` |
+| 채팅 | 3초 | 두 배씩 최대 60초 | `chat.js` |
+
+공통: 가려진 탭은 타이머를 멈추고 다시 보이면 곧바로 한 번 묻는다. 폴링 응답도 스포일러 가드를 지난다.
+
+### 베스트셀러 (`services/bestsellers.py`, `scripts/build_bestsellers.py`)
+
+GitHub Actions(`bestsellers.yml`)가 매일 06:10 KST에 Yes24 분야별(소설·인문·에세이) 베스트를 읽어 `app/data/bestsellers.json`을 고치고, 테스트를 통과하고 순위가 바뀐 날에만 커밋한다 → Vercel이 다시 배포. 앱은 요청 중에 Yes24에 접속하지 않는다(그 경로는 Yes24 robots.txt가 막지 않는다).
+
+### 메일 순서 (`services/mail.py`)
+
+`transports()`: 배포(`VERCEL_ENV`)는 HTTP 먼저 — Apps Script(`GAS_MAIL_URL`+`GAS_MAIL_SECRET`) → Brevo → Resend → SMTP 465/587. 로컬은 SMTP 먼저. 아무것도 없으면 `log`(로컬은 코드를 로그에). 받는 사람에게 모두 실패하면 `ADMIN_EMAILS`에게 코드를 대신 보낸다(`_relay_to_admin`). 시도는 모두 `mail_logs`.

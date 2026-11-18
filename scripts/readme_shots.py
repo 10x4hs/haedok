@@ -1,12 +1,14 @@
-"""README 스크린샷 — 실제 UI를 Playwright로 조작해 시드 데이터를 만들고 390x844(DPR 2)로 찍는다.
+"""README 스크린샷 — 실제 UI를 Playwright로 조작하거나 시드 스크립트로 채운 DB에서 390x844(DPR 2)로 찍는다.
 
-사용법은 docs/README-assets.md 참고. 요약:
+한 번에 다 하려면 scripts/readme_shots.sh (docs/README-assets.md 참고). 단계별로는:
 
-    python scripts/readme_shots.py --seed "$DATABASE_URL"          # 계정 세 개 심기
-    BASE=http://127.0.0.1:8077 python scripts/readme_shots.py <png 출력 폴더>
+    python scripts/readme_shots.py --seed "$DATABASE_URL"   # 계정 세 개 심기
+    python scripts/readme_shots.py <png 폴더>               # 이야기: 가입·리더·반응·관리자 (BASE=앱 주소)
+    python scripts/readme_shots.py --world <png 폴더>       # 시드 세계: 하린 시점 화면들 (BASE=앱 주소)
+    python scripts/readme_shots.py --jpeg <png 폴더>        # docs/images/ 아래 JPG로(Pillow)
 
 앱은 빈 SQLite + DWELL_SCALE=0.01 + ADMIN_EMAILS=admin@haedok.app 으로 떠 있어야 한다.
-책 본문은 위키문헌에서 실제로 가져오므로 네트워크가 필요하다.
+이야기 쪽은 책 본문을 위키문헌에서 실제로 가져오므로 네트워크가 필요하다.
 """
 
 import asyncio
@@ -16,6 +18,7 @@ import sys
 from pathlib import Path
 
 BASE = os.environ.get("BASE", "http://127.0.0.1:8077")
+DESKTOP = dict(viewport={"width": 1440, "height": 900}, locale="ko-KR", color_scheme="dark")
 PHONE = dict(
     viewport={"width": 390, "height": 844},
     device_scale_factor=2,
@@ -26,6 +29,8 @@ PHONE = dict(
 )
 ACCOUNTS = [("지우", "admin@haedok.app"), ("하린", "harin@example.com"), ("민준", "minjun@example.com")]
 PASSWORD = "password123"
+# 따로 받은 크로미움(예: chrome-headless-shell)을 쓰려면 CHROME=/path/to/chrome
+CHROME = os.environ.get("CHROME") or None
 
 
 async def seed_users(db_url: str) -> None:
@@ -90,7 +95,7 @@ async def react(p, book, chunk, token, emoji=None, comment=None, anchor=0):
 
 
 async def shot(p, out, url, name, wait=1800):
-    await p.goto(f"{BASE}{url}", wait_until="networkidle")
+    await p.goto(f"{BASE}{url}", wait_until="domcontentloaded")
     await p.wait_for_timeout(wait)
     await p.screenshot(path=str(out / f"{name}.png"))
     print("shot", name)
@@ -101,7 +106,7 @@ async def main(out: Path) -> None:
 
     out.mkdir(parents=True, exist_ok=True)
     async with async_playwright() as pw:
-        br = await pw.chromium.launch()
+        br = await pw.chromium.launch(executable_path=CHROME)
 
         # --- 시드: 지우가 책을 열고 대결을 연다
         A = await br.new_context(**PHONE)
@@ -157,23 +162,146 @@ async def main(out: Path) -> None:
         await g.screenshot(path=str(out / "verify.png"))
         print("shot verify")
 
-        # --- 로그인 화면 (지우 시점)
-        await shot(a, out, "/", "home", wait=3000)
+        # --- 로그인 폼 1단계(이메일만 채운 모습)
+        await g.goto(f"{BASE}/login", wait_until="domcontentloaded")
+        await g.fill('input[name="email"]', "seoyeon@example.com")
+        await g.wait_for_timeout(1500)
+        await g.screenshot(path=str(out / "login.png"))
+        print("shot login")
+
+        # --- 로그인 화면 (지우 시점) — 홈·대결·탐색·내 정보는 world()가 더 풍성한 하린 계정으로 찍는다
         await shot(a, out, f"/books/{book}", "reader", wait=3500)
-        await shot(a, out, href, "race", wait=2000)
-        await shot(a, out, "/discover", "explore", wait=2000)
-        await shot(a, out, "/me", "look", wait=1500)
+        await a.click("p[data-a]")  # 문단을 누르면 반응 시트
+        await a.wait_for_selector("#react:not([hidden])")
+        await a.wait_for_timeout(800)
+        await a.screenshot(path=str(out / "react.png"))
+        print("shot react")
+        await shot(a, out, "/store/20628514", "store", wait=2500)  # 서점 상세(데미안)
 
         # --- 관리자
         await shot(a, out, "/admin", "admin-dashboard", wait=1200)
         await shot(a, out, "/admin/users", "admin-users", wait=1200)
         await shot(a, out, "/admin/rooms", "admin-rooms", wait=1200)
         await shot(a, out, "/admin/mail", "admin-mail", wait=1200)
+
+        # --- PC(1440×900): 펼친 두 쪽 리더
+        D = await br.new_context(**DESKTOP)
+        d = await login(D, ACCOUNTS[0][1])
+        await shot(d, out, f"/books/{book}", "pc-reader", wait=3500)
         await br.close()
+
+
+async def world(out: Path) -> None:
+    """시드 스크립트(seed_board → seed_races → seed_chat → seed_goals → seed_mileage → seed_posts)로
+    채운 DB에서 하린 시점의 화면을 찍는다. 네트워크 없이 심지만, 표지 이미지는 바깥에서 불러온다."""
+    from playwright.async_api import async_playwright
+
+    out.mkdir(parents=True, exist_ok=True)
+    async with async_playwright() as pw:
+        br = await pw.chromium.launch(executable_path=CHROME)
+
+        # --- 로그인 전: 공개 페이지
+        G = await br.new_context(**PHONE)
+        g = await G.new_page()
+        for url, name in (("/guide", "guide"), ("/docs", "docs"), ("/developers", "developers")):
+            await shot(g, out, url, name, wait=1500)
+
+        # --- 하린(친구 · 대결 · 모집 · 채팅 · 목표 · 마일리지가 다 있는 계정)
+        H = await br.new_context(**PHONE)
+        h = await login(H, ACCOUNTS[1][1])
+        await shot(h, out, "/", "w-home", wait=3000)
+        await shot(h, out, "/me", "w-me", wait=1500)
+        await shot(h, out, "/races", "w-races", wait=1500)
+        race = await h.get_attribute('a[href^="/races/"]', "href")
+        await shot(h, out, race, "w-race", wait=2500)
+        await shot(h, out, "/together", "w-together", wait=1500)
+        await shot(h, out, "/friends", "w-friends", wait=1500)
+        await shot(h, out, "/chat", "w-chat", wait=1500)
+        room = race.replace("/races/", "/chat/room/")  # 맨 위 대결방 = seed_chat이 대화를 채운 방
+        dm = await h.get_attribute('a[href^="/chat/dm/"]', "href")
+        await shot(h, out, room, "w-chat-room", wait=2500)
+        await shot(h, out, dm, "w-chat-dm", wait=2500)
+        await shot(h, out, "/mileage", "w-mileage", wait=1500)
+        await shot(h, out, "/discover", "w-discover", wait=2500)
+        await shot(h, out, "/leaderboard", "w-leaderboard", wait=1500)
+
+        # --- 관리자(지우): 리워드 교환 관리
+        A = await br.new_context(**PHONE)
+        a = await login(A, ACCOUNTS[0][1])
+        await shot(a, out, "/admin/rewards", "admin-rewards", wait=1200)
+
+        # --- PC(1440×900): 홈 · 방 채팅 · 대결
+        D = await br.new_context(**DESKTOP)
+        d = await login(D, ACCOUNTS[1][1])
+        await shot(d, out, "/", "pc-home", wait=3000)
+        await shot(d, out, room, "pc-chat", wait=2500)
+        await shot(d, out, race, "pc-race", wait=2500)
+        await br.close()
+
+
+# PNG 이름 → docs/images/ 아래 JPG 이름. 숫자는 README에 나오는 순서다.
+JPEG_NAMES = {
+    "landing": "app/0-landing",
+    "login": "app/1-login",
+    "signup": "app/1-signup",
+    "verify": "app/1b-verify",
+    "w-home": "app/2-home",
+    "w-discover": "app/3-explore",
+    "store": "app/4-store",
+    "reader": "app/5-reader",
+    "react": "app/6-react",
+    "w-race": "app/7-race",
+    "w-me": "app/8-me",
+    "pc-home": "app/9-pc-home",
+    "pc-reader": "app/10-pc-reader",
+    "pc-chat": "app/11-pc-chat",
+    "w-races": "app/12-races",
+    "w-together": "app/13-together",
+    "w-friends": "app/14-friends",
+    "w-chat": "app/15-chat",
+    "w-chat-room": "app/16-chat-room",
+    "w-chat-dm": "app/17-chat-dm",
+    "w-mileage": "app/18-mileage",
+    "w-leaderboard": "app/19-leaderboard",
+    "guide": "app/20-guide",
+    "docs": "app/21-docs",
+    "developers": "app/22-developers",
+    "pc-race": "app/23-pc-race",
+    "admin-dashboard": "admin/1-dashboard",
+    "admin-users": "admin/2-users",
+    "admin-rooms": "admin/3-rooms",
+    "admin-mail": "admin/4-mail",
+    "admin-rewards": "admin/5-rewards",
+}
+
+
+def to_jpeg(src: Path, dst: Path = Path("docs/images"), limit: int = 250_000) -> None:
+    """PNG를 JPEG로 — 품질 88에서 시작해 limit 바이트 이하가 될 때까지 4씩 낮춘다(Pillow 필요)."""
+    import io
+
+    from PIL import Image
+
+    for a, b in JPEG_NAMES.items():
+        if not (src / f"{a}.png").exists():
+            print("skip", a)
+            continue
+        im = Image.open(src / f"{a}.png").convert("RGB")
+        for q in range(88, 40, -4):
+            buf = io.BytesIO()
+            im.save(buf, "JPEG", quality=q, optimize=True, progressive=True)
+            if buf.tell() <= limit:
+                break
+        (dst / f"{b}.jpg").parent.mkdir(parents=True, exist_ok=True)
+        (dst / f"{b}.jpg").write_bytes(buf.getvalue())
+        print(b, "q", q, buf.tell() // 1024, "KB")
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 2 and sys.argv[1] == "--seed":
         asyncio.run(seed_users(sys.argv[2]))
+    elif len(sys.argv) > 2 and sys.argv[1] == "--jpeg":
+        to_jpeg(Path(sys.argv[2]))
+    elif len(sys.argv) > 2 and sys.argv[1] == "--world":
+        asyncio.run(world(Path(sys.argv[2])))
     else:
         asyncio.run(main(Path(sys.argv[1] if len(sys.argv) > 1 else "readme-shots")))

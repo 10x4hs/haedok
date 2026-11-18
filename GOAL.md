@@ -1,5 +1,7 @@
 # GOAL — 해독(偕讀) MVP v0.1.0
 
+> **기록용 문서예요.** 처음 MVP의 완료 기준과 그때(2026-10)의 진행 상황이에요. 그 뒤로 포인트(마일리지) 원장 · 순위 · 목표 · 모집 · 채팅 · 게시물이 더해졌고, 지금 모습은 [README](README.md)에 있어요.
+
 > 근거: [docs/PRD.md](docs/PRD.md) 11장 마일스톤 · 결정 로그: [.grill/reading-together-mvp.md](.grill/reading-together-mvp.md)
 
 ## Objective
