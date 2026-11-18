@@ -291,12 +291,17 @@ async def visible_post(session: AsyncSession, viewer_id: int, post_id: int) -> R
 
 
 async def face_ids(session: AsyncSession, viewer_id: int) -> set[int]:
-    """프로필 사진을 볼 수 있는 사람들 — /avatars 규칙(본인 · 같은 대결방)과 같다. 나머지는 이름 첫 글자로."""
+    """프로필 사진을 볼 수 있는 사람들 — /avatars 규칙(본인 · 같은 대결방 · 맺은 친구)과 같다.
+
+    나머지는 깨진 그림 대신 이름 첫 글자로 보인다.
+    """
     from app.models import RoomMember
 
     mine = select(RoomMember.room_id).where(RoomMember.user_id == viewer_id)
-    rows = await session.scalars(select(RoomMember.user_id).where(RoomMember.room_id.in_(mine)))
-    return set(rows) | {viewer_id}
+    out = set(await session.scalars(select(RoomMember.user_id).where(RoomMember.room_id.in_(mine))))
+    if get_settings().feature_chat:  # /avatars 는 채팅(친구) 기능이 켜져 있을 때만 친구에게 사진을 준다
+        out |= (await circle(session, viewer_id))[0]
+    return out | {viewer_id}
 
 
 # ---------------------------------------------------------------- 쓰기
@@ -404,12 +409,19 @@ async def like_count(session: AsyncSession, post_id: int) -> int:
     return await session.scalar(select(func.count()).where(PostLike.post_id == post_id)) or 0
 
 
-async def toggle_like(session: AsyncSession, user: User, post: ReadingPost) -> tuple[bool, int]:
-    """누르면 켜고 다시 누르면 끈다. (켜졌나, 수)."""
+async def toggle_like(
+    session: AsyncSession, user: User, post: ReadingPost, want: bool | None = None
+) -> tuple[bool, int]:
+    """버튼은 켜고 끈다(want=None). 그림을 두 번 탭하면 켜기만 한다(want=True, 몇 번이어도 같다).
+
+    (켜졌나, 수)를 돌려준다.
+    """
     await ratelimit.check(session, f"post-like:{user.id}", LIKE_LIMIT, ratelimit.WINDOW_S, LIKE_MSG)
     post_id = post.id
     mine = await session.get(PostLike, (post_id, user.id))
-    if mine is not None:
+    if mine is not None and want:
+        liked = True
+    elif mine is not None:
         await session.delete(mine)
         await session.commit()
         liked = False
@@ -636,6 +648,40 @@ async def grass(session: AsyncSession, user_id: int, weeks: int = 20) -> list[di
         )
         d += dt.timedelta(days=1)
     return cells
+
+
+@dataclass
+class Tiles:
+    """내 프로필의 작은 칸들 — 각 기능의 서비스에서 읽기만 한다. 기능이 꺼져 있으면 None."""
+
+    goal: dict | None = None  # {"pages": 3, "target": 5, "pct": 60}
+    grass: list[dict] | None = None
+    mileage: int | None = None
+
+    @property
+    def any(self) -> bool:
+        return self.goal is not None or self.grass is not None or self.mileage is not None
+
+
+async def tiles(session: AsyncSession, user_id: int) -> Tiles:
+    out = Tiles()
+    settings = get_settings()
+    if settings.feature_goals:
+        from app.models_goals import ReadingGoal
+        from app.services import goals
+
+        day = goals.reading_day(goals.clock())
+        row = await session.get(ReadingGoal, user_id)
+        target = row.daily_pages if row is not None else goals.DEFAULT_GOAL
+        pages = (await goals.history(session, user_id, day)).pages.get(day, 0)
+        out.goal = {"pages": pages, "target": target, "pct": min(100, round(pages * 100 / max(target, 1)))}
+        out.grass = await grass(session, user_id, weeks=8)
+    if settings.feature_mileage:
+        from app.services import mileage
+
+        card = await mileage.card(session, user_id)
+        out.mileage = card.balance if card is not None else None
+    return out
 
 
 # ---------------------------------------------------------------- 관리자

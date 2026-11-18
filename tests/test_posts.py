@@ -142,7 +142,7 @@ async def test_create_edit_delete(api, session_factory):
             assert (p.caption, p.quote, p.visibility) == ("다시 읽고 고침", None, "friends") and p.updated_at
 
         r = await c.post(f"/p/{pid}/delete", data={"csrf": t})
-        assert r.status_code == 303 and r.headers["location"].startswith(f"/u/{me}")
+        assert r.status_code == 303 and r.headers["location"].startswith("/profile")
         assert (await c.get(f"/p/{pid}")).status_code == 404
         async with session_factory() as s:
             assert (await s.get(ReadingPost, pid)).deleted_at is not None  # 소프트 삭제
@@ -250,7 +250,7 @@ async def test_visibility_self_friend_stranger(api, session_factory):
         mine = (await a.get(f"/u/{ia}")).text
         stranger = (await x.get(f"/u/{ia}")).text
         assert f"/p/{closed}" in mine and f"/p/{closed}" not in stranger and f"/p/{open_}" in stranger
-        assert re.search(r"<dt>게시물</dt><dd class=\"mono\">1</dd>", stranger)
+        assert 'data-count="posts">1<' in stranger
         # 피드: 친구 탭에는 친구의 친구만 글도, 모두 탭에는 '가입한 모두' 글만
         ff = (await f.get("/feed")).text
         assert f"post-{closed}" in ff and f"post-{open_}" in ff
@@ -434,7 +434,7 @@ async def test_feed_newest_first_with_cursor_paging(api, session_factory):
             for x in re.findall(r'id="post-(\d+)"', (await a.get(f"/feed?before={more.group(1)}")).text)
         ]
         assert rest == sorted(ids, reverse=True)[svc.FEED_PAGE :]
-        assert "더 보기" not in (await a.get(f"/feed?before={more.group(1)}")).text
+        assert "wide ps-more" not in (await a.get(f"/feed?before={more.group(1)}")).text  # 마지막 쪽엔 '더 보기' 없음
         # 모두 탭: 친구만 글은 빠지고, 다음 쪽 주소에 탭이 남는다
         all_ids = [int(x) for x in re.findall(r'id="post-(\d+)"', (await a.get("/feed?tab=all")).text)]
         assert all_ids == sorted(ids[:7], reverse=True)
@@ -451,22 +451,22 @@ async def test_profile_counts_and_grid(api, session_factory):
         await relate(session_factory, ix, ia, status="pending")  # 서연 → 하린 신청
 
         def counts(html):
-            return [int(n) for n in re.findall(r'<dd class="mono">(\d+)</dd>', html)]
+            return [int(n) for n in re.findall(r'data-count="\w+">(\d+)<', html)]
 
         mine = (await a.get(f"/u/{ia}")).text
         assert counts(mine) == [3, 1, 2]  # 게시물 · 친구(수락된 것만) · 다 읽은 책
-        assert "게시물 올리기" in mine and "ps-grass" in mine  # 내 프로필: 올리기 버튼 · 잔디
+        assert "게시물 올리기" in mine and 'href="/me"' in mine and "ps-tiles" in mine  # 내 프로필: 올리기 · 설정 · 작은 칸
         friend = (await f.get(f"/u/{ia}")).text
-        assert counts(friend) == [3, 1, 2] and "메시지" in friend and "ps-grass" in friend
+        assert counts(friend) == [3, 1, 2] and "메시지" in friend and "ps-tiles" not in friend  # 남의 프로필엔 작은 칸 없음
         stranger = (await x.get(f"/u/{ia}")).text
-        assert counts(stranger) == [2, 1, 2] and "ps-grass" not in stranger
+        assert counts(stranger) == [2, 1, 2] and "ps-tiles" not in stranger
         assert (
             "친구 신청 받기" not in stranger and "친구 신청을 보냈어요" in stranger
         )  # 서연이 보낸 신청(대기)
         assert len(re.findall(r'class="ps-tile"', stranger)) == 2
         assert (await a.get("/u/999999")).status_code == 404
         r = await a.get("/u")
-        assert r.status_code == 303 and r.headers["location"] == f"/u/{ia}"
+        assert r.status_code == 303 and r.headers["location"] == "/profile"
     assert i_f
 
 
@@ -476,7 +476,7 @@ async def test_profile_hides_chat_and_goals_when_off(api, session_factory, monke
     monkeypatch.setattr(get_settings(), "feature_goals", False)
     async with done(a, f):
         html = (await f.get(f"/u/{ia}")).text
-        assert "메시지" not in html and "친구 신청" not in html and "ps-grass" not in html
+        assert "메시지" not in html and "친구 신청" not in html
 
 
 # ---------------------------------------------------------------- 신고 · 관리자

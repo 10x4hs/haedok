@@ -63,67 +63,121 @@ img.ps-cv{background:var(--c1)}
 .ps-veil.open{cursor:auto;background:none}
 .ps-veil.open .ps-veil-t{filter:none;user-select:text}
 
-/* ---------- 피드 ---------- */
-.ps-feed-top{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:520px;margin:0 auto}
-.ps-tabs{display:inline-flex;padding:4px;gap:2px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
-.ps-tabs a{display:grid;place-items:center;min-width:72px;height:40px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:600;color:var(--dim);transition:background .4s var(--ease),color .4s var(--ease)}
-.ps-tabs a[aria-current="page"]{background:var(--text);color:var(--bg)}
-.ps-new{height:44px;gap:6px;font-weight:600;border-color:var(--rose-line);background:var(--rose-fill)}
+/* ---------- 게시물 한 개(인스타의 뼈대: 머리 → 그림 → 아이콘 줄 → 좋아요 → 글 → 댓글) ---------- */
+/* 피드는 같은 게시물이 한 줄로 이어진다: 휴대폰은 화면 끝까지, 넓은 화면은 약 470px 한 칸 */
+.ps-cards{display:grid;gap:0;max-width:470px;margin:0 auto}
+.ps-post{position:relative;scroll-margin-top:88px}
+.ps-cards .ps-post{padding-bottom:16px;border-bottom:1px solid var(--line)}
+.ps-cards .ps-post+.ps-post{padding-top:12px}
+.ps-post .ps-head{justify-content:flex-start;gap:6px;padding:6px 0 10px}
+.ps-post .ps-who{gap:10px}
+.ps-post .ps-meta{font-size:13px}
+.ps-menu{position:relative;margin-left:auto}
+.ps-menu summary{display:grid;place-items:center;width:44px;height:44px;margin-right:-10px;border-radius:999px;list-style:none;cursor:pointer;font-size:20px;letter-spacing:1px;color:var(--text)}
+.ps-menu summary::-webkit-details-marker{display:none}
+.ps-menu summary:hover{background:var(--sunken)}
+.ps-menu-list{position:absolute;right:0;top:44px;z-index:5;display:grid;min-width:168px;padding:6px;border-radius:16px;background:var(--surface);border:1px solid var(--glass-line);backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);box-shadow:var(--shadow)}
+.ps-menu-list a,.ps-menu-list button{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:10px;font-size:14px;text-align:left;color:var(--text)}
+.ps-menu-list a:hover,.ps-menu-list button:hover{background:var(--sunken)}
+.ps-menu-bad{color:var(--bad)!important}
+/* 그림: 칸 끝까지. 휴대폰에서는 화면 가장자리까지 닿는다(.content 좌우 여백 20px) */
+.ps-pic{position:relative;margin:0 -20px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.ps-pic .ps-art{border-radius:0}
+.ps-pop{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0}
+.ps-pop .ps-heart{width:88px;height:88px;fill:#fff;color:#fff;filter:drop-shadow(0 6px 18px rgba(0,0,0,.35))}
+.ps-pop.show{animation:ps-pop .9s var(--ease) both}
+@keyframes ps-pop{0%{opacity:0;transform:scale(.7)}25%{opacity:.95;transform:scale(1)}70%{opacity:.95}100%{opacity:0;transform:scale(1)}}
+.ps-post .ps-body{display:grid;gap:4px;padding:4px 0 0}
+.ps-post .ps-actions{gap:0;padding:0;margin-left:-10px}
+.ps-act .ic{width:24px;height:24px}
+.ps-likes{margin:0;font-size:14px;color:var(--text)}
+.ps-likes b{font-weight:700}
+.ps-likes [data-like-zero]{color:var(--dim)}
+.ps-book-line{margin:2px 0 0;font-size:15px;font-weight:500;line-height:1.45;overflow-wrap:anywhere}
+.ps-book-line b{font-weight:700}
+.ps-book-line>span:not(.ps-stars){color:var(--dim);font-size:14px}
+.ps-book-line .ps-stars{font-size:13px;vertical-align:1px;margin-left:2px}
+.ps-cap{margin:0;color:var(--body);font-size:15px;line-height:1.55;white-space:pre-line;overflow-wrap:anywhere}
+.ps-cap[data-clamp]{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ps-cap.open{display:block}
+.ps-cap-who{font-weight:700;color:var(--text);margin-right:2px}
+.ps-more-btn{justify-self:start;min-height:32px;font-size:14px;color:var(--dim)}
+.ps-post .ps-quote{margin:4px 0 0;font-size:14px;color:var(--body)}
+.ps-all-cm{justify-self:start;display:inline-flex;align-items:center;min-height:32px;font-size:14px;color:var(--dim)}
+.ps-when{margin:4px 0 0;font-size:12px;color:var(--dim)}
+.ps-lede{max-width:470px;margin:10px auto 14px}
+.ps-feed .form-ok,.ps-feed .form-err,.ps-feed .empty,.ps-feed .ps-alt{max-width:470px;margin-inline:auto}
+.ps-feed-top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;max-width:470px;margin:0 auto}
+.ps-new{height:40px;gap:6px;font-weight:600;border-color:var(--rose-line);background:var(--rose-fill);margin-bottom:6px}
 .ps-new span{color:var(--rose-ink)}
-.ps-lede{max-width:520px;margin:10px auto 16px}
-.ps-feed .form-ok,.ps-feed .form-err{max-width:520px;margin-inline:auto}
-.ps-more{display:flex;max-width:520px;margin:20px auto 0}
+.ps-more{display:flex;max-width:470px;margin:20px auto 0}
 .ps-end{text-align:center;margin:28px 0}
 .ps-alt{text-align:center;margin:14px 0 0;font-size:14px}
 .ps-alt a{color:var(--accent-strong)}
-.ps-feed .empty{max-width:520px;margin:0 auto}
 
-/* ---------- 프로필 ---------- */
+/* 글자 탭(밑줄) — 프로필의 게시물 · 소식, 피드의 친구 · 모두 */
+.ps-ig-tabs{display:flex;gap:0;border-bottom:1px solid var(--line)}
+.ps-ig-tabs a{display:grid;place-items:center;min-width:88px;height:46px;padding:0 18px;font-size:15px;font-weight:600;color:var(--dim);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .3s var(--ease),border-color .3s var(--ease)}
+.ps-ig-tabs a[aria-current="page"]{color:var(--text);border-bottom-color:var(--text)}
+.ps-ig-tabs a:hover{color:var(--text)}
+
+/* ---------- 프로필(인스타의 순서: 사진 · 숫자 → 버튼 → 작은 칸 → 탭 → 격자) ---------- */
 .ps-profile{max-width:640px;margin:0 auto}
-.ps-prof{display:grid;gap:18px;padding:20px;background:var(--surface)}
-.ps-prof-top{display:flex;align-items:center;gap:16px;min-width:0}
-.ps-prof-top .avatar.xl{width:76px;height:76px;font-size:30px;box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--rose-line)}
-.ps-prof-id{display:grid;gap:6px;min-width:0}
-.ps-prof-id h2{margin:0;font-size:22px;font-weight:700;letter-spacing:-.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ps-ig-head{display:flex;align-items:center;gap:20px;padding:4px 0 16px;min-width:0}
+.ps-ig-ava{position:relative;flex:none;border-radius:999px}
+.ps-ig-ava .avatar.xl{width:84px;height:84px;font-size:32px;box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--rose-line)}
+.ps-ig-cam{position:absolute;right:-2px;bottom:-2px;display:grid;place-items:center;width:26px;height:26px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:15px;box-shadow:0 0 0 3px var(--bg)}
+.ps-ig-side{display:grid;gap:8px;flex:1;min-width:0}
+.ps-ig-name{margin:0;font-size:19px;font-weight:700;letter-spacing:-.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ps-ig-name .tag{vertical-align:2px}
 .ps-friend-tag{background:var(--rose-fill);color:var(--rose-ink)}
-.ps-counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}
-.ps-counts div{display:grid;justify-items:center;gap:2px;padding:12px 4px;border-radius:16px;background:var(--sunken)}
-.ps-counts dt{order:2;font-size:12px;color:var(--dim)}
-.ps-counts dd{order:1;margin:0;font-size:22px;letter-spacing:-.03em;color:var(--text)}
-.ps-prof-actions{display:flex;gap:8px}
-.ps-prof-actions>*{flex:1;min-width:0}
-.ps-prof-actions form{display:flex}
-.ps-prof-actions .btn{width:100%;height:46px;font-size:15px;padding:0 14px}
-.ps-prof-actions .btn[disabled]{opacity:.6;cursor:default}
-.ps-grass-wrap{display:grid;gap:8px}
-.ps-grass-h{margin:0;font-size:13px;color:var(--dim)}
-.ps-grass-h b{color:var(--text);font-weight:600}
-.ps-grass{display:grid;grid-template-columns:repeat(var(--weeks,15),minmax(0,11px));grid-template-rows:repeat(7,auto);grid-auto-flow:column;gap:3px}
-.ps-grass i{aspect-ratio:1;border-radius:3px;background:var(--sunken)}
-/* 잔디 색은 목표 기능(goals.css)과 같은 규칙 — 읽은 날은 --ok */
-.ps-grass .l1{background:color-mix(in srgb,var(--ok) 30%,var(--sunken))}
-.ps-grass .l2{background:color-mix(in srgb,var(--ok) 52%,var(--sunken))}
-.ps-grass .l3{background:color-mix(in srgb,var(--ok) 76%,var(--sunken))}
-.ps-grass .l4{background:var(--ok)}
-.ps-grid-sec{margin-top:18px}
-.ps-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;border-radius:16px;overflow:hidden}
+.ps-ig-counts{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin:0;padding:0}
+.ps-ig-counts li>*,.ps-ig-counts li{display:grid;justify-items:start;gap:0;min-width:0}
+.ps-ig-counts b{font:600 18px/1.25 var(--f-ui);letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--text)}
+.ps-ig-counts span{font-size:13px;color:var(--dim);white-space:nowrap}
+.ps-ig-counts a{min-height:44px;align-content:center}
+.ps-ig-btns{display:flex;gap:8px}
+.ps-ig-btns>*{flex:1;min-width:0}
+.ps-ig-btns form{display:flex}
+.ps-ig-btns .btn{width:100%;height:40px;padding:0 14px;font-size:14px;border-radius:12px}
+.ps-ig-btns .btn.ghost{background:var(--sunken);border-color:transparent}
+.ps-ig-btns .btn .ic{width:18px;height:18px}
+.ps-ig-btns .btn[disabled]{opacity:.6;cursor:default}
+/* 내 작은 칸들 — 각 기능의 색(목표 민트 · 잔디 --ok · 마일리지 금색)을 작은 표시에만 */
+.ps-tiles{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;margin:14px 0 0;padding:0}
+.ps-tiles li{display:flex;min-width:0}
+.ps-tile-mini{flex:1;display:flex;align-items:center;gap:10px;min-height:56px;padding:8px 12px;border-radius:14px;background:var(--surface);border:1px solid var(--glass-line);min-width:0}
+.ps-tile-mini:hover{border-color:var(--line)}
+.ps-mini-t{display:grid;min-width:0}
+.ps-mini-t b{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ps-mini-t small{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ps-ring{flex:none;width:30px;height:30px}
+.ps-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ps-ring circle{fill:none;stroke-width:4}
+.ps-ring .tr{stroke:var(--sunken)}
+.ps-ring .fl{stroke:color-mix(in srgb,#9be7c4 78%,var(--text));stroke-linecap:round}
+.ps-mini-grass{flex:none;display:grid;grid-template-columns:repeat(8,5px);grid-template-rows:repeat(7,5px);grid-auto-flow:column;gap:1.5px}
+.ps-mini-grass i{border-radius:1px;background:var(--sunken)}
+.ps-mini-grass .l1{background:color-mix(in srgb,var(--ok) 30%,var(--sunken))}
+.ps-mini-grass .l2{background:color-mix(in srgb,var(--ok) 52%,var(--sunken))}
+.ps-mini-grass .l3{background:color-mix(in srgb,var(--ok) 76%,var(--sunken))}
+.ps-mini-grass .l4{background:var(--ok)}
+.ps-mini-coin{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:999px;font:700 13px var(--f-mono);color:color-mix(in srgb,#e6c36a 70%,var(--text));background:rgba(230,195,106,.13);border:1px solid rgba(230,195,106,.45)}
+.ps-prof-tabs{margin-top:18px}
+.ps-prof-tabs a{flex:1}
+/* 격자: 같은 비율 · 2px 틈 · 둥근 카드 없음. 휴대폰에서는 화면 끝까지 */
+.ps-grid{list-style:none;margin:2px -20px 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px}
 .ps-tile{position:relative;display:block}
-.ps-tile .ps-art{transition:filter .3s var(--ease)}
+.ps-tile .ps-art{border-radius:0;transition:filter .3s var(--ease)}
 .ps-tile:hover .ps-art{filter:brightness(1.08)}
 .ps-tile:focus-visible{outline-offset:-3px}
 .ps-tile-lock{position:absolute;top:6px;right:6px;display:grid;place-items:center;width:24px;height:24px;border-radius:999px;background:rgba(0,0,0,.45);color:#fff}
+.ps-profile .empty{margin-top:16px}
+.ps-profile .ps-cards{margin-top:12px}
 
-/* ---------- 게시물 ---------- */
-.ps-hero{overflow:hidden;background:var(--surface)}
-.ps-hero .ps-art{border-radius:0}
-.ps-hero-b{display:grid;justify-items:start;gap:6px;padding:16px 18px 20px}
-.ps-hero-b .ps-status{margin-left:0}
-.ps-book{margin:4px 0 0;font-size:21px;font-weight:700;letter-spacing:-.03em;line-height:1.35;overflow-wrap:anywhere}
-.ps-book-a{margin:0}
-.ps-detail{margin-top:18px}
-.ps-head-lg{padding:0 0 10px}
-.ps-detail>.ps-caption{font-size:16px;color:var(--text)}
-.ps-actions-lg{padding:12px 0 0;margin-left:-8px}
+/* ---------- 게시물 화면: 휴대폰은 피드와 같은 한 줄, 넓은 화면은 그림 왼쪽 · 글 오른쪽 ---------- */
+.ps-detail{max-width:470px;margin:0 auto}
+.ps-post-lg .ps-cap{font-size:15px}
 .ps-comments{margin-top:22px}
 .ps-cm-list{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:14px}
 .ps-cm-list li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start;scroll-margin-top:96px}
@@ -213,11 +267,36 @@ textarea.ps-input{resize:vertical}
 }
 @media (max-width:380px){
   .ps-star{width:40px;font-size:25px}
-  .ps-prof{padding:16px}
-  .ps-counts dd{font-size:19px}
+  .ps-ig-head{gap:14px}
+  .ps-ig-ava .avatar.xl{width:72px;height:72px}
+  .ps-ig-counts b{font-size:16px}
+  .ps-ig-counts span{font-size:12px}
+}
+@media (max-width:599px){
+  .ps-tile-mini{flex-direction:column;align-items:flex-start;justify-content:space-between;gap:8px;padding:10px}
+  .ps-mini-grass{grid-template-columns:repeat(8,4px);grid-template-rows:repeat(7,4px);gap:1px}
+  .ps-mini-t small{white-space:normal}
+}
+@media (min-width:768px){
+  .ps-ig-head{gap:36px;padding:12px 0 22px}
+  .ps-ig-ava .avatar.xl{width:120px;height:120px;font-size:44px}
+  .ps-ig-name{font-size:21px}
+  .ps-pic{margin:0}
+  .ps-pic .ps-art{border-radius:6px;box-shadow:0 0 0 1px var(--line)}
+  .ps-grid{margin-inline:0}
+}
+@media (min-width:1100px){
+  .ps-detail{max-width:960px}
+  .ps-post-lg{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,1fr);grid-template-areas:"pic head" "pic body";grid-template-rows:auto 1fr;gap:0 28px;align-items:start}
+  .ps-post-lg>.ps-head{grid-area:head;padding-top:0;border-bottom:1px solid var(--line)}
+  .ps-post-lg>.ps-pic{grid-area:pic;position:sticky;top:32px}
+  .ps-post-lg>.ps-body{grid-area:body;padding-top:8px}
+  .ps-detail .ps-manage,.ps-detail .ps-report{max-width:calc(960px * .44);margin-left:auto}
 }
 @media (prefers-reduced-motion:reduce){
-  .ps-act,.ps-heart,.ps-pick .flatbook,.ps-tabs a,.ps-seg label span,.ps-star,.ps-vis label>span,.ps-veil-t,.ps-tile .ps-art{transition:none}
+  .ps-pop.show{animation:ps-pop-still .9s linear both}
+  @keyframes ps-pop-still{0%,80%{opacity:.9}100%{opacity:0}}
+  .ps-ig-tabs a,.ps-act,.ps-heart,.ps-pick .flatbook,.ps-tabs a,.ps-seg label span,.ps-star,.ps-vis label>span,.ps-veil-t,.ps-tile .ps-art{transition:none}
   .ps-act:active,.ps-star:active{transform:none}
   .ps-pick input:checked~.flatbook{transform:none}
 }
