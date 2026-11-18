@@ -1176,6 +1176,18 @@ def avatar_url(user: User | None) -> str | None:
 templates.env.globals["avatar_url"] = avatar_url
 
 
+async def _may_see_avatar(session: AsyncSession, viewer_id: int, user_id: int) -> bool:
+    """프로필 사진을 볼 수 있는 사이인가 — 같은 대결방이거나, 서로 수락한 친구."""
+    if await race_service.shares_room(session, viewer_id, user_id):
+        return True
+    if not get_settings().feature_chat:
+        return False
+    from app.services import chat as chat_service  # 친구 기능이 꺼져 있으면 건드리지 않는다
+
+    relation = await chat_service.relation(session, viewer_id, user_id)
+    return chat_service.state_of(relation, viewer_id) == "friends"
+
+
 @router.get("/avatars/{user_id}")
 async def avatar(
     user_id: int, session: AsyncSession = Depends(get_session), _: User = Depends(auth.require_user)
@@ -1183,8 +1195,8 @@ async def avatar(
     from fastapi.responses import Response
 
     u = await session.get(User, user_id)
-    if u is None or not u.avatar or not await race_service.shares_room(session, _.id, user_id):
-        raise HTTPException(404)  # 본인이나 같은 대결방 사람의 사진만
+    if u is None or not u.avatar or not await _may_see_avatar(session, _.id, user_id):
+        raise HTTPException(404)  # 본인 · 같은 대결방 사람 · 맺은 친구의 사진만
     return Response(
         u.avatar, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=31536000, immutable"}
     )

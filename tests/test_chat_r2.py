@@ -280,3 +280,23 @@ async def test_conversation_pages_render_both_channels(trio):  # noqa: F811
         r = await trio["m"].get(f"/chat/room/{trio['room']}", params={"ch": ch})
         assert r.status_code == 200 and f'data-channel="{ch}"' in r.text
     assert 'id="members"' in r.text and "검증된 쪽" in r.text
+
+
+# ---------------------------------------------------------------- 프로필 사진: 친구에게도
+
+
+async def test_avatar_is_served_to_accepted_friends_only(api, session_factory):
+    """같은 방이 아니어도 수락한 친구는 사진을 받는다. 신청만 한 사이나 모르는 사람은 못 받는다."""
+    a = await login_as(api, "a@example.com", "가")
+    b = await login_as(api, "b@example.com", "나")
+    c = await login_as(api, "c@example.com", "다")
+    a_id, b_id = await uid(session_factory, "a@example.com"), await uid(session_factory, "b@example.com")
+    async with session_factory() as s:
+        (await s.get(User, a_id)).avatar = b"\xff\xd8fake-jpeg"
+        await s.commit()
+    assert (await b.get(f"/avatars/{a_id}")).status_code == 404  # 아직 남
+    await befriend(a, b, b_id, a_id)
+    assert (await b.get(f"/avatars/{a_id}")).status_code == 200
+    assert (await c.get(f"/avatars/{a_id}")).status_code == 404  # 친구가 아닌 사람
+    for x in (a, b, c):
+        await x.aclose()
