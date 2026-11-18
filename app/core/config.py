@@ -130,6 +130,29 @@ class Settings(BaseSettings):
     # 읽은 책 게시물(/feed · /posts/new · /p/{id} · /u/{id}, FEATURE_POSTS). 끄면 입구가 숨고 주소는 404
     feature_posts: bool = True
 
+    # --- AI (책에게 묻기 · 맞춤 추천 · AI 서점 도우미 · 독서 요약) ---
+    # 특정 회사에 묶이지 않도록 OpenAI 호환 API(/chat/completions · /embeddings)를 쓴다.
+    # OpenAI · Gemini(OpenAI 호환 주소) · DeepSeek · Groq · OpenRouter · Ollama 등
+    # 어느 것이든 주소·키·모델만 바꾸면 된다.
+    # AI_PROVIDER: "" (끔) | "openai_compat" | "fake"(키 없이 돌아가는 결정적 가짜 — 테스트·미리보기용)
+    ai_provider: str = ""
+    ai_base_url: str = "https://api.openai.com/v1"
+    ai_api_key: str | None = None
+    ai_chat_model: str = "gpt-4o-mini"
+    # 임베딩만 다른 곳을 쓸 때(비우면 위 주소·키를 쓴다)
+    ai_embed_base_url: str | None = None
+    ai_embed_api_key: str | None = None
+    ai_embed_model: str = "text-embedding-3-small"
+    ai_embed_dim: int = 256  # 저장하는 벡터 길이 — 모델이 지원하면 dimensions 로 줄여 받는다
+    ai_timeout_seconds: float = 20.0
+    ai_daily_requests: int = 40  # 한 사람이 하루에 부를 수 있는 AI 답변 수(비용 상한)
+
+    @property
+    def ai_enabled(self) -> bool:
+        if self.ai_provider == "fake":
+            return True
+        return self.ai_provider == "openai_compat" and bool(self.ai_api_key)
+
 
 @lru_cache
 def get_settings() -> Settings:
