@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% from "_public.html" import public_head, public_nav, public_footer %}
+{% block title %}Developer — 偕讀 해독{% endblock %}
+{% block description %}해독(偕讀)을 어떻게 만들었는지: 화면 → API 라우트 → 서비스 → DB 네 층, 고른 기술과 이유, 직접 돌려 보는 방법.{% endblock %}
+{% block body_class %}landing pub{% endblock %}
+{% block head_extra %}{{ public_head() }}{% endblock %}
+
+{% macro src(path, label='') -%}
+<a class="src mono" translate="no" href="{{ facts.repo }}/blob/main/{{ path }}" rel="noopener">{{ label or path }}</a>
+{%- endmacro %}
+
+{% block body %}
+{{ public_nav('developers', signed_in) }}
+<main id="main" class="pub-wrap dev">
+  <header class="page-head">
+    <h1>해독은 이렇게 만들었어요</h1>
+    <p>“이거 어떻게 만든 거야?” 하고 묻는 친구에게 보여 주려고 적었어요. 코드는 모두 공개돼 있어요.</p>
+    <p class="head-cta"><a class="btn ghost" href="{{ facts.repo }}" rel="noopener">GitHub에서 코드 보기</a></p>
+  </header>
+
+  <section aria-labelledby="h-layers">
+    <h2 id="h-layers">네 층으로 나눴어요</h2>
+    <p class="lede">요청은 늘 위에서 아래로 내려가요. 규칙은 셋째 층(서비스)에만 있어서, 화면을 바꿔도 규칙은 그대로예요.</p>
+    <div class="layers-wrap">
+    <ol class="layers" role="list">
+      <li>
+        <span class="layer-n mono" aria-hidden="true">1</span>
+        <div><h3>화면</h3>
+        <p>서버가 Jinja2 템플릿으로 HTML을 그려 보내요. 리더·3D 책·실시간 같은 움직임은 작은 JS 파일 {{ facts.js_files }}개({{ "{:,}".format(facts.js_lines) }}줄)가 맡아요. 빌드 단계가 없어요.</p>
+        <p class="where">{{ src('app/templates') }} {{ src('app/static') }}</p></div>
+      </li>
+      <li>
+        <span class="layer-n mono" aria-hidden="true">2</span>
+        <div><h3>API 라우트</h3>
+        <p>주소마다 함수 하나예요. 로그인과 CSRF를 확인하고, 실제 일은 서비스에 넘겨요.</p>
+        <p class="where">{{ src('app/web.py') }} {{ src('app/api') }}</p></div>
+      </li>
+      <li>
+        <span class="layer-n mono" aria-hidden="true">3</span>
+        <div><h3>서비스</h3>
+        <p>규칙이 사는 곳이에요. {{ facts.page_s }}초 규칙, 마일리지, 스포일러 가드, 대결방이 여기 있어요.</p>
+        <p class="where">{{ src('app/services/pace.py') }} {{ src('app/services/points.py') }} {{ src('app/services/social.py') }} {{ src('app/services/races.py') }}</p></div>
+      </li>
+      <li>
+        <span class="layer-n mono" aria-hidden="true">4</span>
+        <div><h3>DB</h3>
+        <p>SQLAlchemy 2 모델이에요. 배포는 PostgreSQL(Neon), 로컬과 테스트는 SQLite예요. 표가 바뀐 이력은 Alembic 마이그레이션{% if facts.migrations %} {{ facts.migrations }}개{% endif %}로 남아요.</p>
+        <p class="where">{{ src('app/models.py') }} {{ src('migrations/versions', 'migrations/') }}</p></div>
+      </li>
+    </ol>
+
+    <figure class="trace">
+      <figcaption>예: ‘다 읽음’ 한 번이 지나가는 길</figcaption>
+      <ol role="list">
+        <li><b>화면</b><span>리더가 {{ facts.page_s }}초를 채우면 <code>verified: true</code>만 보내요. 시간은 보내지 않아요.</span></li>
+        <li><b>API</b><span><code>PUT /api/v1/books/{id}/progress</code>가 로그인·CSRF를 확인해요.</span></li>
+        <li><b>서비스</b><span><code>books.record_progress()</code>가 펼친 시각부터 지금까지를 재서 판정해요.</span></li>
+        <li><b>DB</b><span>읽기 기록이 남고, 인정되면 진도와 마일리지가 올라가요.</span></li>
+      </ol>
+    </figure>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-stack">
+    <h2 id="h-stack">고른 기술과 이유</h2>
+    <p class="lede">더 좋아 보이는 것보다, 이 크기의 앱에 맞는 것을 골랐어요. 대신 치른 값도 같이 적었어요.</p>
+    <div class="tbl stackable">
+      <table>
+        <thead><tr><th scope="col">고른 것</th><th scope="col">왜</th><th scope="col">안 고른 것</th><th scope="col">치른 값</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">FastAPI (async)</th><td data-label="왜">DB·메일·책 API를 기다리는 동안 다른 요청을 처리해요. 로그인·DB 세션은 <code>Depends</code>로 함수에 넣어 줘요.</td><td data-label="안 고른 것">Django — 관리 화면까지 딸려 와 이 크기엔 커요.</td><td data-label="치른 값">화면 쪽 도구는 직접 골라야 해요.</td></tr>
+          <tr><th scope="row">Jinja2 + 바닐라 JS</th><td data-label="왜">첫 화면이 HTML로 바로 와요. JS가 {{ "{:,}".format(facts.js_lines) }}줄이라 프레임워크 없이 충분하고, 빌드가 없어요.</td><td data-label="안 고른 것">React·Next.js — 노드 빌드와 API를 따로 관리해야 해요.</td><td data-label="치른 값">화면 상태는 손으로 맞춰요.</td></tr>
+          <tr><th scope="row">PostgreSQL + SQLAlchemy 2</th><td data-label="왜">unique 제약과 트랜잭션이 규칙의 일부예요. 같은 마일리지를 두 번 주지 않는 것도 unique 제약이 지켜요.</td><td data-label="안 고른 것">SQLite만 쓰기 — 서버리스에서는 파일이 오래 남지 않아요.</td><td data-label="치른 값">쿼리를 직접 다듬어야 해요.</td></tr>
+          <tr><th scope="row">Vercel 파이썬 함수</th><td data-label="왜">서버를 계속 켜 두지 않아도 요청이 올 때만 돌아요.</td><td data-label="안 고른 것">늘 켜진 서버 — 아무도 안 쓸 때도 비용이 들어요.</td><td data-label="치른 값">실시간은 소켓 대신 폴링이고, 요청 본문이 4.5MB에서 끊겨 배포에서는 업로드 크기를 작게 둬요.</td></tr>
+          <tr><th scope="row">pytest + GitHub Actions</th><td data-label="왜">규칙이 깨지면 머지 전에 실패해요. 마이그레이션은 진짜 Postgres에서 올렸다 내렸다 다시 올려 봐요.</td><td data-label="안 고른 것">손으로 눌러 보며 확인하기</td><td data-label="치른 값">기능마다 테스트를 같이 써요.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-design">
+    <h2 id="h-design">고민한 결정 네 가지</h2>
+    <p class="lede">고른 방법만큼 버린 방법이 중요했어요. 다음에 고치고 싶은 점도 남겨 둬요.</p>
+    <div class="decisions">
+      <article aria-labelledby="d-dwell">
+        <h3 id="d-dwell">읽은 시간은 서버가 재요</h3>
+        <h4>고른 방법</h4>
+        <ul class="chose">
+          <li>펼친 시각과 ‘다 읽음’ 시각을 둘 다 서버가 적어요. 화면은 시간을 보내지 않아요.</li>
+          <li>바로 다음 쪽만 판정하고, 남는 시간은 {{ facts.cap_x }}배까지만 기록해요.</li>
+        </ul>
+        <h4>고르지 않은 방법</h4>
+        <dl class="rejected">
+          <div><dt>화면이 잰 시간 받기</dt><dd>개발자 도구로 ‘20초 읽음’을 보내면 끝이에요.</dd></div>
+          <div><dt>이해도 퀴즈</dt><dd>책마다 문제를 만들어야 하고, 직접 올린 파일에는 만들 수 없어요.</dd></div>
+        </dl>
+        <p class="better"><b>다음에는</b> 고정 {{ facts.page_s }}초 대신 쪽의 글자 수에 맞춰 보고 싶어요. 지금은 판정 때 쪽 본문을 읽어 오지만 쓰지 않아요.</p>
+      </article>
+      <article aria-labelledby="d-spoil">
+        <h3 id="d-spoil">스포일러는 서버가 가려요</h3>
+        <h4>고른 방법</h4>
+        <ul class="chose">
+          <li>응답을 만들 때 가려요. 아직 안 읽은 쪽이면 응답 안에 감상 본문이 아예 없어요.</li>
+          <li>기준은 DB에 있는 내 진도예요. 화면이 보낸 값은 쓰지 않아요.</li>
+          <li>개수는 알려 줘요. ‘🔒 3개’가 다음 쪽을 읽게 해요.</li>
+        </ul>
+        <h4>고르지 않은 방법</h4>
+        <dl class="rejected">
+          <div><dt>화면에서 흐리게 가리기</dt><dd>응답을 열어 보면 본문이 그대로 있어요.</dd></div>
+          <div><dt>실시간 알림에 본문 싣기</dt><dd>가드를 거치지 않는 길이 하나 더 생겨요.</dd></div>
+        </dl>
+        <p class="better"><b>다음에는</b> 쪽마다 도는 쿼리 세 번(같은 방 사람, 감상, 내 진도)을 하나로 줄이고 싶어요.</p>
+      </article>
+      <article aria-labelledby="d-live">
+        <h3 id="d-live">실시간은 폴링으로</h3>
+        <h4>고른 방법</h4>
+        <ul class="chose">
+          <li>배포에서는 리더가 3초마다 친구 위치를 물어봐요. 서버가 여러 대여도 빠지는 소식이 없어요.</li>
+          <li>탭이 가려지면 멈춰요. 안 보는 화면은 요청하지 않아요.</li>
+        </ul>
+        <h4>고르지 않은 방법</h4>
+        <dl class="rejected">
+          <div><dt>WebSocket + 서버 메모리</dt><dd>서버가 여러 대면 다른 서버에 붙은 친구에게 소식이 안 가요. 실제로 겪은 문제예요.</dd></div>
+          <div><dt>Redis 같은 공유 브로커</dt><dd>방 하나에 많아야 {{ facts.max_members }}명인 지금 크기에는 비용과 운영이 과해요.</dd></div>
+        </dl>
+      </article>
+      <article aria-labelledby="d-signup">
+        <h3 id="d-signup">가입 코드는 지문으로만</h3>
+        <h4>고른 방법</h4>
+        <ul class="chose">
+          <li>{{ facts.code_digits }}자리 코드는 서버 비밀키를 섞은 HMAC 지문으로만 저장해요. DB가 새도 코드를 알 수 없어요.</li>
+          <li>만료({{ facts.code_min }}분)와 횟수({{ facts.code_attempts }}번)를 비교보다 먼저 확인하고, 비교는 <code>compare_digest</code>로 해서 걸린 시간으로 정답이 새지 않아요.</li>
+        </ul>
+        <h4>고르지 않은 방법</h4>
+        <dl class="rejected">
+          <div><dt>bcrypt 같은 느린 해시</dt><dd>{{ facts.code_digits }}자리는 경우의 수가 적어 느려도 금방 다 해 봐요. 비밀키를 섞는 HMAC이 맞아요.</dd></div>
+          <div><dt>메일 속 링크로 인증</dt><dd>메일 앱이 다른 브라우저로 열면 가입하던 화면과 이어지지 않아요.</dd></div>
+        </dl>
+        <p class="better"><b>다음에는</b> 틀린 횟수를 ‘읽고 더해서 쓰기’ 대신 UPDATE 한 문장으로 올리고 싶어요. 동시에 두 번 틀려도 정확히 세요.</p>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-run">
+    <h2 id="h-run">내 컴퓨터에서 돌려 보기</h2>
+    <p class="lede">Python 3.12 이상과 <a href="https://docs.astral.sh/uv/" rel="noopener">uv</a>가 있으면 돼요. SQLite로 돌리면 표를 알아서 만들어요.</p>
+    <pre class="code" translate="no" tabindex="0" aria-label="설치하고 실행하는 명령"><code>git clone {{ facts.repo }}.git && cd haedok
+uv venv .venv && uv pip install -e ".[dev]" --python .venv/bin/python
+export DATABASE_URL="sqlite+aiosqlite:///$PWD/scratch-dev.db" DWELL_SCALE=0.06
+.venv/bin/uvicorn app.main:app --port 8011</code></pre>
+    <p><code>http://localhost:8011</code>을 열어요. <code>DWELL_SCALE=0.06</code>은 쪽마다 {{ facts.base_page_s }}초를 {{ "%g"|format(facts.base_page_s * 0.06) }}초로 줄여서 시연하기 편해요. API 문서(Swagger)는 <code>/api/docs</code>에 있어요.</p>
+
+    <h3>테스트</h3>
+    <pre class="code" translate="no" tabindex="0" aria-label="테스트 명령"><code>.venv/bin/pytest -q && .venv/bin/ruff check .</code></pre>
+    <p>{% if facts.tests %}테스트 함수 {{ facts.tests }}개가 {% else %}테스트는 {% endif %}네트워크 없이 돌아요. 외부 API는 <code>httpx.MockTransport</code>로 흉내 내고, DB는 메모리 속 SQLite예요.</p>
+  </section>
+
+  <section aria-labelledby="h-read">
+    <h2 id="h-read">어디부터 읽을까요</h2>
+    <ul class="reading" role="list">
+      <li>{{ src('app/services/pace.py') }}<span>{{ facts.page_s }}초 규칙. 짧아서 첫 파일로 좋아요.</span></li>
+      <li>{{ src('app/services/books.py') }}<span><code>record_progress()</code> — ‘다 읽음’ 판정의 전부예요.</span></li>
+      <li>{{ src('app/services/social.py') }}<span><code>reactions_for()</code> — 스포일러 가드.</span></li>
+      <li>{{ src('app/services/points.py') }}<span><code>RULES</code> — 마일리지 표. Docs 페이지가 이 값을 그대로 보여 줘요.</span></li>
+      <li>{{ src('app/public_facts.py') }}<span>이 페이지들의 숫자를 코드에서 읽어 오는 곳이에요.</span></li>
+    </ul>
+  </section>
+</main>
+{{ public_footer() }}
+{% endblock %}

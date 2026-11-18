@@ -83,7 +83,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
 
 
-app = FastAPI(title="해독(偕讀) API", version=VERSION, lifespan=lifespan)
+# Swagger UI는 /api/docs로 — /docs는 사람이 읽는 규칙 문서(app/intro.py)가 쓴다
+app = FastAPI(title="해독(偕讀) API", version=VERSION, lifespan=lifespan, docs_url="/api/docs")
 if os.environ.get("VERCEL") and _settings.secret_key == Settings.model_fields["secret_key"].default:
     # 기본 키는 공개 저장소에 있어 누구나 세션 쿠키를 위조할 수 있다
     raise RuntimeError("SECRET_KEY 환경 변수를 설정해야 배포할 수 있어요")

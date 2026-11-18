@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% from "_public.html" import public_head, public_nav, public_footer, clip %}
+{% block title %}사용법 — 偕讀 해독{% endblock %}
+{% block description %}가입부터 홈 화면에 추가하기까지, 해독(偕讀)을 처음 쓰는 친구가 휴대폰으로 따라 하는 8단계 사용법이에요.{% endblock %}
+{% block body_class %}landing pub{% endblock %}
+{% block head_extra %}{{ public_head() }}{% endblock %}
+
+{% macro shot(file, alt, cap) -%}
+<figure class="shot"><img src="/static/intro/{{ file }}.jpg" alt="{{ alt }}" width="520" height="1125" loading="lazy" decoding="async"><figcaption>{{ cap }}</figcaption></figure>
+{%- endmacro %}
+
+{% block body %}
+{{ public_nav('guide', signed_in) }}
+<main id="main" class="pub-wrap guide">
+  <header class="page-head">
+    <h1>해독, 이렇게 써요</h1>
+    <p>처음 쓰는 친구도 휴대폰 하나로 따라 할 수 있게 순서대로 적었어요. 가입부터 홈 화면에 추가하기까지 8단계예요.</p>
+    <nav class="step-index" aria-label="단계 바로 가기">
+      <ol>
+        <li><a href="#s1">가입</a></li>
+        <li><a href="#s2">책 고르기</a></li>
+        <li><a href="#s3">읽고 ‘다 읽음’</a></li>
+        <li><a href="#s4">친구 초대</a></li>
+        <li><a href="#s5">감상 남기기</a></li>
+        <li><a href="#s6">마일리지·순위</a></li>
+        <li><a href="#s7">화면 꾸미기</a></li>
+        <li><a href="#s8">홈 화면에 추가</a></li>
+      </ol>
+    </nav>
+  </header>
+
+  <ol class="steps-list" role="list">
+    <li class="step" id="s1">
+      <div class="step-text">
+        <span class="step-n" aria-hidden="true">1</span>
+        <h2><span class="sr-only">1단계. </span>가입해요</h2>
+        <p>첫 화면에서 <b>무료로 시작하기</b>를 눌러 이름·이메일·비밀번호를 넣어요. 메일로 온 {{ facts.code_digits }}자리 코드를 넣으면 가입이 끝나요.</p>
+        <ul class="step-tips">
+          <li>코드는 {{ facts.code_min }}분 동안 쓸 수 있고, {{ facts.code_attempts }}번까지 넣어 볼 수 있어요.</li>
+          <li>메일이 안 오면 {{ facts.resend_s }}초 뒤에 다시 보낼 수 있어요. 스팸함도 한번 봐 주세요.</li>
+          <li>비밀번호는 {{ facts.min_password }}자 이상이에요.</li>
+        </ul>
+      </div>
+      <div class="step-shots">
+        {{ shot('1-login', '서재 사진 위에 이메일 입력칸 하나가 있는 로그인 화면', '로그인 — 이메일부터 넣어요') }}
+        {{ shot('2-home', '책 표지가 나선처럼 쌓인 홈 화면, 위에 오늘은 뭘 읽을까요라고 적혀 있음', '가입하면 보이는 홈') }}
+      </div>
+    </li>
+
+    <li class="step" id="s2">
+      <div class="step-text">
+        <span class="step-n" aria-hidden="true">2</span>
+        <h2><span class="sr-only">2단계. </span>읽을 책을 골라요</h2>
+        <p><b>탐색</b>에서 서가와 인기 순위를 둘러봐요. 저작권이 끝난 고전 {{ total }}권은 바로 무료로 읽어요.</p>
+        <ul class="step-tips">
+          <li>검색에 제목이나 작가를 넣으면 고전과 서점 책이 함께 나와요.</li>
+          <li>신간은 서점 화면에서 책 정보와 구매 링크를 보여 줘요. 산 책이 DRM 없는 {{ facts.formats|join('·') }} 파일이면 <b>산 파일 올리기</b>로 올려 같은 리더로 읽어요.</li>
+        </ul>
+      </div>
+      <div class="step-shots">
+        {{ shot('3-explore', '서점·전체·단편 같은 서가 칩과 이어 읽기 카드, 인기 순위가 있는 탐색 화면', '탐색 — 서가와 인기 순위') }}
+        {{ shot('4-store', '데미안 서점 화면. 알라딘에서 전자책 사기, 산 파일 올리기 버튼이 보임', '서점 책 — 구매 링크와 파일 올리기') }}
+      </div>
+    </li>
+
+    <li class="step" id="s3">
+      <div class="step-text">
+        <span class="step-n" aria-hidden="true">3</span>
+        <h2><span class="sr-only">3단계. </span>읽고 ‘다 읽음’을 받아요</h2>
+        <p>한 쪽을 펼쳐 두고 {{ facts.page_s }}초가 지나면 그 쪽이 <b>다 읽음</b>으로 인정돼요. 아래쪽 고리가 다 차면 인정된 거예요.</p>
+        <ul class="step-tips">
+          <li>앞 쪽부터 차례대로만 인정돼요. 뒤쪽을 미리 펼쳐 볼 수는 있지만 진도는 오르지 않아요.</li>
+          <li>다른 앱이나 탭으로 가 있는 동안은 시간을 세지 않아요.</li>
+          <li>넘기기는 화면 가장자리를 누르거나 밀면 돼요. PC에서는 ← → 키도 돼요.</li>
+          <li>하루 목표(3·5·10·20쪽)를 정하면 읽은 날이 잔디로 쌓여요. 하루는 새벽 4시에 바뀌어요.</li>
+        </ul>
+        {{ clip('verify', "‘다 읽음’ 인정", facts.page_s ~ '초 고리가 다 차면 그 쪽이 인정돼요.') }}
+      </div>
+      <div class="step-shots">
+        {{ shot('5-reader', '김유정의 동백꽃 본문이 펼쳐진 리더, 아래에 1/7쪽과 진행 막대가 있음', '리더 — 아래에서 진도를 봐요') }}
+      </div>
+    </li>
+
+    <li class="step" id="s4">
+      <div class="step-text">
+        <span class="step-n" aria-hidden="true">4</span>
+        <h2><span class="sr-only">4단계. </span>친구를 초대해요</h2>
+        <p><b>대결</b> 탭에서 책과 기간을 고르면 {{ facts.code_len }}자리 초대 코드가 생겨요. <b>초대 보내기</b>로 링크를 보내거나 코드를 알려 주세요.</p>
+        <ul class="step-tips">
+          <li>친구는 받은 링크를 열거나, 대결 탭의 <b>초대 코드가 있나요?</b>에 코드를 넣어 들어와요.</li>
+          <li>한 방에 {{ facts.max_members }}명까지, 기간은 {{ facts.durations|join('·') }}일 중에 골라요.</li>
+          <li>순위는 서버가 인정한 쪽 수로 매겨요.</li>
+          <li>친구를 맺으면 개인 채팅을, 같은 방에서는 방 채팅을 할 수 있어요. 같이 읽을 사람은 모집 게시판에서도 찾아요.</li>
+        </ul>
+      </div>
+      <div class="step-shots">
+        {{ shot('7-race', '동백꽃 대결방. 2명이 달리는 중, 순위, YRXSG4 초대 코드와 초대 보내기 버튼', '대결방 — 순위와 초대 코드') }}
+      </div>
+    </li>
+
+    <li class="step" id="s5">
+      <div class="step-text">
+        <span class="step-n" aria-hidden="true">5</span>
+        <h2><span class="sr-only">5단계. </span>감상을 남겨요</h2>
+        <p>마음에 남은 문단을 눌러 이모지나 한 줄 글을 남겨요. 한 줄은 {{ facts.max_comment }}자까지예요.</p>
+        <ul class="step-tips">
+          <li>감상은 같은 대결방 친구끼리만 보여요.</li>
+          <li>친구 감상은 내가 그 쪽을 다 읽은 뒤에 열려요. 그 전에는 몇 개인지만 보여요.</li>
+        </ul>
+        {{ clip('unseal', '감상 열림', '4쪽을 다 읽자 친구 세 명의 감상이 열려요.') }}
+      </div>
+      <div class="step-shots">
+        {{ shot('6-react', '이 문단에 반응 창. 이모지 다섯 개와 한 줄 입력칸, 아래에 친구 반응 목록', '문단에 반응 남기기') }}
+      </div>
+    </li>
+
+    <li class="step" id="s6">
+      <div class="step-text">
+        <span class="step-n" aria-hidden="true">6</span>
+        <h2><span class="sr-only">6단계. </span>마일리지와 순위를 봐요</h2>
+        <p>읽고 감상을 남길수록 마일리지가 쌓여요. <b>순위</b>에서 이번 주(월요일 0시부터)와 전체 순위를 볼 수 있고, 같은 방 친구는 따로 표시돼요.</p>
+        <p class="step-more">모은 마일리지는 마일리지 상점에서 보상으로 바꿔요. 언제 얼마를 받는지는 <a href="/docs#points">Docs의 마일리지 표</a>에 자세히 있어요.</p>
+      </div>
+      <div class="step-aside">
+        <dl class="pts">
+          {% for p in facts.points %}<div><dt>{{ p.label }}</dt><dd class="mono">+{{ p.amount }}</dd></div>{% endfor %}
+        </dl>
+      </div>
+    </li>
+
+    <li class="step" id="s7">
+      <div class="step-text">
+        <span class="step-n" aria-hidden="true">7</span>
+        <h2><span class="sr-only">7단계. </span>화면을 꾸며요</h2>
+        <p><b>내 정보 → 화면 꾸미기</b>에서 테마(자동·밝게·어둡게), 배경화면, 강조 색을 골라요. 고른 모습은 내 계정에 저장돼요.</p>
+      </div>
+      <div class="step-shots">
+        {{ shot('8-look', '화면 꾸미기 창. 테마 자동·밝게·어둡게와 배경화면 썸네일들', '화면 꾸미기') }}
+      </div>
+    </li>
+
+    <li class="step" id="s8">
+      <div class="step-text">
+        <span class="step-n" aria-hidden="true">8</span>
+        <h2><span class="sr-only">8단계. </span>홈 화면에 추가해요</h2>
+        <p>앱처럼 아이콘을 눌러 바로 열 수 있어요.</p>
+      </div>
+      <div class="step-aside">
+        <div class="install">
+          <section aria-labelledby="ins-ios">
+            <h3 id="ins-ios">아이폰·아이패드</h3>
+            <ol>
+              <li><b>Safari</b>로 해독을 열어요.</li>
+              <li>아래쪽 <b>공유 버튼</b>을 눌러요.</li>
+              <li>목록을 내려 <b>홈 화면에 추가</b>를 고르고, <b>추가</b>를 눌러요.</li>
+            </ol>
+          </section>
+          <section aria-labelledby="ins-and">
+            <h3 id="ins-and">안드로이드</h3>
+            <p>앱 파일(APK)을 받아 설치해요. 처음이면 휴대폰이 ‘출처를 알 수 없는 앱’ 설치를 물어볼 수 있어요.</p>
+            <a class="btn ghost" href="/static/haedok.apk" download="haedok.apk" type="application/vnd.android.package-archive">Android 앱 받기</a>
+          </section>
+        </div>
+      </div>
+    </li>
+  </ol>
+
+  <section class="close" aria-labelledby="h-close">
+    <h2 id="h-close">이제 첫 쪽을 펼쳐 볼까요?</h2>
+    <p>규칙이 궁금하면 <a href="/docs">Docs</a>를, 어떻게 만들었는지 궁금하면 <a href="/developers">Developer</a>를 봐요.</p>
+    <div class="close-cta">
+      {% if signed_in %}<a class="btn primary" href="/">앱 열기</a>{% else %}<a class="btn primary" href="/signup">무료로 시작하기</a>{% endif %}
+    </div>
+  </section>
+</main>
+{{ public_footer() }}
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% from "_public.html" import public_head, public_nav, public_footer %}
+{% block title %}Docs — 偕讀 해독{% endblock %}
+{% block description %}해독(偕讀)의 규칙을 정확히 적었어요: 진도 인정, 마일리지, 스포일러 가드, 같이 읽기 방, 파일 올리기, 메일 인증.{% endblock %}
+{% block body_class %}landing pub{% endblock %}
+{% block head_extra %}{{ public_head() }}{% endblock %}
+
+{% block body %}
+{{ public_nav('docs', signed_in) }}
+
+<main id="main" class="pub-wrap docs">
+    <header class="page-head">
+      <h1>해독의 규칙</h1>
+      <p>여기 적힌 숫자는 서버 코드에서 바로 읽어 와요. 규칙이 바뀌면 이 문서도 같이 바뀌어요.</p>
+    </header>
+    <nav class="toc" aria-labelledby="toc-h">
+      <h2 id="toc-h" class="toc-h">이 문서에서</h2>
+      <ol>
+        <li><a href="#pace">진도 인정 규칙</a></li>
+        <li><a href="#points">마일리지</a></li>
+        <li><a href="#spoiler">스포일러 가드</a></li>
+        <li><a href="#rooms">같이 읽기 방과 초대 코드</a></li>
+        <li><a href="#upload">내 파일 올리기</a></li>
+        <li><a href="#account">계정과 메일 인증</a></li>
+        <li><a href="#faq">자주 묻는 질문</a></li>
+      </ol>
+    </nav>
+
+    <section id="pace" aria-labelledby="h-pace">
+      <h2 id="h-pace">진도 인정 규칙</h2>
+      <p>한 쪽을 ‘다 읽음’으로 인정하는 건 서버예요. 휴대폰이 보낸 시간은 쓰지 않아요.</p>
+      <ul class="rules">
+        <li><b>쪽마다 {{ facts.page_s }}초.</b> 쪽을 펼친 시각과 ‘다 읽음’ 요청이 온 시각을 서버가 적고, 그 사이가 {{ facts.page_s }}초를 넘어야 인정해요. 글자 수나 화면 크기와 상관없이 모든 쪽이 같아요.</li>
+        <li><b>순서대로만.</b> 지금까지 인정된 쪽의 바로 다음 쪽만 인정받을 수 있어요. 앞 쪽을 다 읽은 뒤에 펼친 기록만 세서, 여러 쪽을 미리 펼쳐 두고 한꺼번에 인정받을 수 없어요.</li>
+        <li><b>기록되는 시간은 {{ facts.cap_x }}배까지.</b> 한 쪽에 남는 읽은 시간은 {{ facts.cap_s }}초({{ facts.page_s }}초의 {{ facts.cap_x }}배)까지만 쳐요. 창을 켜 둔 채 자리를 비워도 시간이 부풀지 않아요.</li>
+        <li><b>가려진 화면은 세지 않아요.</b> 리더는 다른 앱이나 탭으로 가 있는 동안 고리를 멈춰요.</li>
+        <li><b>다시 보내도 처음부터 안 세요.</b> 같은 쪽을 여러 번 펼쳤다면 가장 이른 펼침부터 재요.</li>
+        {# 통합 뒤 보강: 하루 목표·잔디 #}<li><b>하루 목표와 잔디.</b> 목표는 3·5·10·20쪽 중에 고르고, 하루는 한국 시간 새벽 4시에 바뀌어요.</li>
+      </ul>
+    </section>
+
+    <section id="points" aria-labelledby="h-points">
+      <h2 id="h-points">마일리지</h2>
+      <p>같은 일로 두 번 받지 않아요. 날짜는 모두 한국 시간 기준이고, 주간 순위는 월요일 0시에 새로 시작해요. 모은 마일리지는 마일리지 상점에서 보상으로 바꿔요.{# 통합 뒤 보강: 마일리지 상점 #}</p>
+      <div class="tbl">
+        <table>
+          <thead><tr><th scope="col">무엇을 하면</th><th scope="col" class="num">마일리지</th><th scope="col">조건</th></tr></thead>
+          <tbody>
+            {% for p in facts.points %}
+            <tr><th scope="row">{{ p.label }}</th><td class="num mono">+{{ p.amount }}</td><td>{{ p.when }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="spoiler" aria-labelledby="h-spoiler">
+      <h2 id="h-spoiler">스포일러 가드</h2>
+      <p>친구 감상 때문에 이야기를 미리 알게 되는 일이 없게 서버가 막아요.</p>
+      <ul class="rules">
+        <li><b>같은 방 사람끼리만.</b> 감상은 그 책으로 같은 대결방에 있는 사람끼리 보여요.</li>
+        <li><b>읽은 쪽까지만 열려요.</b> 내가 인정받은 마지막 쪽보다 뒤에 있는 감상은 내용 없이 개수만 받아요. 지금 읽고 있는 쪽도 ‘다 읽음’ 전까지는 닫혀 있어요.</li>
+        <li><b>내 감상은 늘 보여요.</b> 내가 남긴 것은 어느 쪽에 있든 보여요.</li>
+        <li><b>지금 읽는 쪽까지만 남겨요.</b> 아직 펼치지 않은 뒤쪽에는 감상을 달 수 없어요.</li>
+        {# 통합 뒤 보강: 방 채팅 #}<li><b>방 채팅도 같아요.</b> 방 채팅 메시지도 감상처럼 내가 읽은 쪽까지만 열려요.</li>
+        <li><b>감상의 모양.</b> 이모지({{ facts.emojis|join(' ') }}) 하나나 {{ facts.max_comment }}자까지의 한 줄 글이에요.</li>
+      </ul>
+    </section>
+
+    <section id="rooms" aria-labelledby="h-rooms">
+      <h2 id="h-rooms">같이 읽기 방과 초대 코드</h2>
+      <ul class="rules">
+        <li><b>방 열기.</b> 대결 탭에서 서가의 책과 기간({{ facts.durations|join('·') }}일)을 고르면 방이 열려요. 내가 올린 파일로는 방을 열 수 없어요.</li>
+        <li><b>초대 코드 {{ facts.code_len }}자리.</b> 헷갈리는 글자(0·O·1·I·L)는 빼고 만들어요. 대소문자와 띄어쓰기는 가리지 않아요.</li>
+        <li><b>들어오는 길 두 가지.</b> 초대 링크(<code>/join/코드</code>)를 열거나, 대결 탭에 코드를 넣어요. 링크 미리보기는 로그인 없이도 보여요.</li>
+        <li><b>정원 {{ facts.max_members }}명.</b> 다 찼거나 기간이 끝난 방에는 들어갈 수 없어요.</li>
+        <li><b>순위.</b> 서버가 인정한 쪽 수로 매겨요.</li>
+        {# 통합 뒤 보강: 친구·채팅·모집 게시판 #}<li><b>친구와 모집.</b> 친구를 맺으면 개인 채팅을 할 수 있고, 같이 읽을 사람은 모집 게시판에서 찾아요.</li>
+        <li><b>같이 읽는 중.</b> 리더를 펼친 친구의 지금 쪽이 보여요. 소식이 1분 넘게 없으면 목록에서 빠져요.</li>
+      </ul>
+    </section>
+
+    <section id="upload" aria-labelledby="h-upload">
+      <h2 id="h-upload">내 파일 올리기</h2>
+      <ul class="rules">
+        <li><b>형식.</b> DRM 없는 {{ facts.formats|join(' · ') }} 파일이에요. DRM은 풀어 주지 않아요.</li>
+        <li><b>크기.</b> 파일 하나에 {{ facts.max_upload_mb }}MB까지예요. EPUB은 압축을 풀었을 때 {{ facts.max_unzipped_mb }}MB, PDF는 {{ "{:,}".format(facts.max_pdf_pages) }}쪽까지 읽어요.</li>
+        <li><b>올린 사람만 읽어요.</b> 본문은 나에게만 열리고, 친구와 나누는 건 위치·진도·감상뿐이에요.</li>
+      </ul>
+    </section>
+
+    <section id="account" aria-labelledby="h-account">
+      <h2 id="h-account">계정과 메일 인증</h2>
+      <ul class="rules">
+        <li><b>{{ facts.code_digits }}자리 코드.</b> 가입하면 메일로 코드를 보내요. 코드는 {{ facts.code_min }}분 동안 쓸 수 있어요.</li>
+        <li><b>{{ facts.code_attempts }}번까지.</b> 틀린 코드를 {{ facts.code_attempts }}번 넣으면 그 코드는 더 못 써요. 새 코드를 받아 주세요.</li>
+        <li><b>다시 보내기는 {{ facts.resend_s }}초 뒤.</b> 메일을 너무 자주 보내지 않게 기다려요.</li>
+        <li><b>비밀번호는 {{ facts.min_password }}자 이상.</b> 잊어버리면 같은 방식의 메일 코드로 다시 정해요.</li>
+        <li><b>로그인 유지.</b> ‘로그인 상태 유지’를 고르면 {{ facts.remember_days }}일 동안 다시 로그인하지 않아도 돼요.</li>
+        <li><b>코드는 원문으로 저장하지 않아요.</b> 서버 비밀키를 섞은 지문(HMAC)만 남겨요.</li>
+      </ul>
+    </section>
+
+    <section id="faq" aria-labelledby="h-faq">
+      <h2 id="h-faq">자주 묻는 질문</h2>
+      <div class="faq-list">
+        <details><summary>쪽을 빨리 넘기면 진도가 올라가요?</summary><p>넘어가긴 하지만 진도는 안 올라가요. 쪽마다 {{ facts.page_s }}초가 지나야 ‘다 읽음’이 되고, 순서대로만 인정돼요.</p></details>
+        <details><summary>친구 감상이 ‘🔒’로만 보여요.</summary><p>아직 그 쪽을 다 읽지 않아서예요. 그 쪽에서 ‘다 읽음’을 받으면 바로 열려요.</p></details>
+        <details><summary>올린 파일이 친구에게도 보여요?</summary><p>아니요. 본문은 올린 사람만 열 수 있어요. 친구에게는 내가 어디쯤 읽는지와 남긴 감상만 보여요.</p></details>
+        <details><summary>인증 메일이 안 와요.</summary><p>스팸함을 먼저 봐 주세요. 없으면 {{ facts.resend_s }}초 뒤에 다시 보내기를 눌러요. 코드는 {{ facts.code_min }}분 뒤에 만료돼요.</p></details>
+        <details><summary>대결이 끝나면 어떻게 돼요?</summary><p>새 사람은 들어올 수 없어요. 다 읽은 기록과 받은 마일리지는 그대로 남아요.</p></details>
+      </div>
+    </section>
+</main>
+{{ public_footer() }}
+{% endblock %}
