@@ -58,6 +58,8 @@ class RewardItem(Base):
     # 기본은 예시 — 관리자가 진짜 제휴를 확인하고 끈다
     is_sample: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"))
     sort: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # 그림: 함께 담긴 그림의 키(app/static/rewards/, mileage.BUNDLED_IMAGES) 또는 허용한 https 주소
+    image: Mapped[str | None] = mapped_column(String(300))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
