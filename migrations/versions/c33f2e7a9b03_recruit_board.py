@@ -3,7 +3,7 @@
 같이 읽을 사람 모집 게시판(/together). 글 하나가 대결방(rooms) 하나에 붙는다. 테이블 추가만 한다.
 
 Revision ID: c33f2e7a9b03
-Revises: c2d4e6f8a013
+Revises: a11d0c5e7f01
 Create Date: 2026-11-18 12:00:00
 """
 from collections.abc import Sequence
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = 'c33f2e7a9b03'
-down_revision: str | None = 'c2d4e6f8a013'
+down_revision: str | None = 'a11d0c5e7f01'
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -4,7 +4,7 @@
 교환해도 마일리지가 빠지지 않는다(app/services/mileage.py SAMPLE_ITEMS 와 같은 목록).
 
 Revision ID: d44a3f8b0c04
-Revises: c2d4e6f8a013
+Revises: c33f2e7a9b03
 Create Date: 2026-11-18 12:00:00
 """
 from collections.abc import Sequence
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = 'd44a3f8b0c04'
-down_revision: str | None = 'c2d4e6f8a013'
+down_revision: str | None = 'c33f2e7a9b03'
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
