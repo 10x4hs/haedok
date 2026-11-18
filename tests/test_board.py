@@ -318,7 +318,8 @@ async def test_board_lists_only_open_posts_newest_first(api, board_on):
     assert "마감한 글" not in page
     assert page.index("두 번째 글") < page.index("첫 번째 글")
     assert f'href="/together/{first}"' in page and f'href="/together/{second}"' in page
-    assert "하루 5쪽 · 약 5분" in page and "1/4명" in page and "남은 자리 3" in page and "호스트" in page
+    assert "하루 5쪽 · 약 5분" in page and "1/4명" in page and "호스트" in page
+    assert page.count('class="rl-join"') == 2  # 같은 줄 모양, 오른쪽 끝에 참가 표시
 
 
 async def test_empty_board_invites_first_post(api, board_on):
@@ -378,14 +379,14 @@ async def test_races_page_shows_section_and_action(api, board_on):
         await signup(host, email="host@example.com", nickname="호스트")
         await signup(viewer, email="v@example.com")
         empty = (await viewer.get("/races")).text
-        assert "모집 중인 같이 읽기" in empty and 'href="/together/new"' in empty
+        assert 'id="recruitH"' in empty and 'href="/together/new"' in empty
         for i in range(3):
             await make_post(host, pitch=f"글 {i}")
         # 네 번째 글은 다른 사람이 올린다
         await make_post(viewer, pitch="내 글")
         page = (await viewer.get("/races")).text
-    assert page.index("모집 중인 같이 읽기") < page.index("초대 코드가 있나요?")  # 맨 위
-    assert page.count('class="tg-card') == 3  # 많아야 3개
+    assert page.index('id="mineH"') < page.index('id="recruitH"')  # 내 방이 먼저, 모집 중은 그 아래
+    assert page.count('class="rl-row rl-post"') == 3  # 많아야 3개
     assert "내 글" not in page  # 이미 들어가 있는 내 글은 빼고 보여 준다
     assert 'href="/together"' in page
 
@@ -401,7 +402,7 @@ async def test_flag_off_404_and_no_section(api, monkeypatch):
         assert (await c.post(f"/together/{pid}/join", data={"csrf": t})).status_code == 404
         assert (await c.post("/together", data={"csrf": t})).status_code == 404
         races = (await c.get("/races")).text
-    assert "모집 중인 같이 읽기" not in races and "/together" not in races
+    assert 'id="recruitH"' not in races and "/together" not in races
 
 
 async def test_flag_off_404_for_anonymous_too(api, monkeypatch):

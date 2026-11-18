@@ -1,0 +1,62 @@
+/* 대결(/races)과 같이 읽기(/together) 목록 — 한 줄짜리 행 하나로 통일한다.
+   상자 대신 얇은 구분선, 색은 작은 표시에만: 복숭아(모집 · appearance.ACCENTS peach), 하늘(안 읽은 채팅) */
+.rl{--peach:#ffc2a8;--peach-ink:#ffc2a8;--peach-fill:rgba(255,194,168,.12);--peach-line:rgba(255,194,168,.45);--sky:#8fd3ff;max-width:680px}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]):not([data-bg-tone="dark"]) .rl{--peach-ink:#9a4a26;--peach-fill:rgba(214,110,66,.10);--peach-line:rgba(154,74,38,.40);--sky:#2e96ce}}
+:root[data-theme="light"]:not([data-bg-tone="dark"]) .rl{--peach-ink:#9a4a26;--peach-fill:rgba(214,110,66,.10);--peach-line:rgba(154,74,38,.40);--sky:#2e96ce}
+
+.rl-lede{margin:0 0 18px;color:var(--dim);font-size:14px}
+.rl-rank{display:inline-flex;align-items:center;min-height:44px;padding:0 6px;font-size:14px;font-weight:500;color:var(--dim)}
+.rl-rank:hover{color:var(--text)}
+
+/* 맨 위 할 일 두 개 */
+.rl-actions{display:flex;gap:8px}
+.rl-actions .btn{flex:1;height:44px;padding:0 18px;font-size:15px}
+@media (min-width:560px){.rl-actions .btn{flex:none;min-width:132px}}
+.rl-panel{margin-top:14px}
+.rl-code{display:grid;gap:8px}
+.rl-code label{font-size:13px;color:var(--dim)}
+.rl-code .code-row input,.rl-code .code-row .btn{height:48px}
+.rl-panel .seg.full{margin-top:10px}
+@media (min-width:768px){.rl-panel .pick-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
+
+/* 구역 */
+.rl-sec{margin-top:32px}
+.rl-sec .row-h{margin-bottom:4px}
+
+/* 행: 표지 · 두세 줄 · 오른쪽 끝 표시. 구역마다 높이가 같다 */
+.rl-list{list-style:none;margin:0 -8px;padding:0}
+.rl-list li+li{border-top:1px solid var(--line)}
+.rl-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:14px;min-height:76px;padding:10px 8px;border-radius:12px;transition:background .3s var(--ease)}
+.rl-row:hover{background:var(--sunken)}
+.rl-row:focus-visible{outline-offset:-2px}
+.rl-main{display:grid;gap:2px;min-width:0}
+.rl-main>*{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rl-main b{font-size:15px;font-weight:600;letter-spacing:-.02em}
+.rl-main b span{font-weight:400;color:var(--dim)}
+.rl-main>span{font-size:13px;color:var(--dim)}
+.rl-main .rl-pitch{color:var(--body)}
+.rl-post{min-height:88px}
+.rl-meta em{font-style:normal}
+.rl-pace{color:var(--peach-ink);font-weight:600}
+.rl-known{color:var(--peach-ink)}
+.rl-meta .mono{font-size:12px}
+.rl-end{display:flex;align-items:center;gap:10px;color:var(--dim)}
+.rl-end .ic{width:18px;height:18px}
+.rl-dot{width:8px;height:8px;border-radius:50%;background:var(--sky)}
+.rl-join{display:inline-flex;align-items:center;height:32px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;color:var(--peach-ink);background:var(--peach-fill);border:1px solid var(--peach-line)}
+
+/* 끝난 방은 접어 둔다 */
+.rl-done{margin-top:6px}
+.rl-done summary{display:flex;align-items:center;gap:6px;min-height:44px;font-size:14px;color:var(--dim);cursor:pointer;list-style:none}
+.rl-done summary::-webkit-details-marker{display:none}
+.rl-done summary::after{content:"";width:7px;height:7px;margin-left:2px;border:solid currentColor;border-width:0 1.5px 1.5px 0;transform:rotate(45deg) translateY(-2px);transition:transform .3s var(--ease)}
+.rl-done[open] summary::after{transform:rotate(-135deg) translateY(-1px)}
+
+/* 빈 상태: 처음에 무엇을 할지 한 문장 */
+.rl-empty{padding:14px 0 6px;border-top:1px solid var(--line)}
+.rl-empty b{display:block;font-size:15px;font-weight:600}
+.rl-empty p{margin:4px 0 0;font-size:14px;line-height:1.55;color:var(--dim)}
+
+.rl-write{display:inline-flex;align-items:center;min-height:44px;margin-top:6px;font-size:14px;font-weight:600;color:var(--peach-ink)}
+
+@media (prefers-reduced-motion:reduce){.rl-row,.rl-done summary::after{transition:none}}
