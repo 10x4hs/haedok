@@ -4,6 +4,7 @@ import re
 
 import pytest
 
+from app.public_facts import CLIP_V
 from app.services import pace, points, races
 from tests.conftest import signup
 from tests.test_api import upstream
@@ -43,8 +44,8 @@ async def test_landing_clips_play_inline_with_posters_and_captions(api):
     async with api(upstream) as c:
         html = (await c.get("/")).text
         for name in ("search", "verify", "unseal", "together"):
-            assert f'poster="/static/clips/{name}.jpg"' in html
-            assert f'src="/static/clips/{name}.mp4"' in html
+            assert f'poster="/static/clips/{name}.jpg?v={CLIP_V[name + ".jpg"]}"' in html
+            assert f'src="/static/clips/{name}.mp4?v={CLIP_V[name + ".mp4"]}"' in html
             assert f'aria-describedby="clip-{name}-d"' in html
             assert (await c.get(f"/static/clips/{name}.mp4")).status_code == 200
     # 소리 없이, 보일 때만 — 저절로 재생(autoplay) 속성은 쓰지 않는다

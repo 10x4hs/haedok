@@ -68,7 +68,9 @@
 .feat-notes li{padding:14px 0;border-bottom:1px solid var(--line);font-size:15px;line-height:1.6;color:var(--dim)}
 .feat-notes b{display:block;margin-bottom:2px;font-size:16px;font-weight:600;color:var(--text)}
 @media (min-width:900px){
+  /* 글 5 : 화면 7. 화면이 왼쪽인 섹션은 칸을 거울처럼 뒤집어, 어느 쪽이든 화면·글 폭이 같다 */
   .feat{grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(40px,6vw,88px);align-items:center}
+  .feat:nth-of-type(even){grid-template-columns:minmax(0,7fr) minmax(0,5fr)}
   .feat:nth-of-type(even) .feat-text{order:2}
 }
 

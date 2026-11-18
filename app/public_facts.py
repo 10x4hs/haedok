@@ -4,6 +4,7 @@
 migrations/가 없으면 None — 화면은 그 줄을 뺀다).
 """
 
+import hashlib
 import re
 from pathlib import Path
 
@@ -46,6 +47,15 @@ def _count_migrations() -> int | None:
 def _count_js() -> tuple[int, int]:
     files = sorted((ROOT / "app" / "static").glob("*.js"))
     return len(files), sum(len(p.read_text(encoding="utf-8").splitlines()) for p in files)
+
+
+def clip_versions() -> dict[str, str]:
+    """짧은 영상 파일마다 내용 지문(8자리). 파일 이름이 같아도 바뀌면 주소가 바뀌어 캐시를 새로 받는다."""
+    folder = ROOT / "app" / "static" / "clips"
+    return {p.name: hashlib.sha1(p.read_bytes()).hexdigest()[:8] for p in sorted(folder.glob("*.*"))}
+
+
+CLIP_V = clip_versions()
 
 
 def _facts() -> dict:

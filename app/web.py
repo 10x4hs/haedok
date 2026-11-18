@@ -26,7 +26,7 @@ from app.core import appearance, ratelimit
 from app.core.config import Settings, get_settings
 from app.db.session import get_session
 from app.models import Book, LibraryEntry, Room, Shelf, User
-from app.public_facts import FACTS
+from app.public_facts import CLIP_V, FACTS
 from app.services import bestsellers, bookstore, mail, social
 from app.services import books as book_service
 from app.services import points as points_service
@@ -119,6 +119,7 @@ def small_cover(url: str | None) -> str | None:
 templates.env.filters["small_cover"] = small_cover
 templates.env.globals["cover"] = cover
 templates.env.globals["cover_of"] = cover_of
+templates.env.globals["clip_v"] = CLIP_V  # 공개 페이지 영상 주소의 ?v= (app/templates/_public.html)
 templates.env.globals["APPEARANCE"] = appearance
 seo.install(templates.env)  # canonical·OG 주소
 

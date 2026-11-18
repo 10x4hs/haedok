@@ -42,8 +42,8 @@
 {% macro clip(name, title, text) -%}
 <figure class="clip">
   <div class="clip-frame">
-    <video data-clip muted loop playsinline preload="none" poster="/static/clips/{{ name }}.jpg" width="1200" height="900" aria-labelledby="clip-{{ name }}-t" aria-describedby="clip-{{ name }}-d">
-      <source src="/static/clips/{{ name }}.mp4" type="video/mp4">
+    <video data-clip muted loop playsinline preload="none" poster="/static/clips/{{ name }}.jpg?v={{ clip_v[name ~ '.jpg'] }}" width="1200" height="900" aria-labelledby="clip-{{ name }}-t" aria-describedby="clip-{{ name }}-d">
+      <source src="/static/clips/{{ name }}.mp4?v={{ clip_v[name ~ '.mp4'] }}" type="video/mp4">
     </video>
     <button class="clip-toggle" type="button" data-clip-toggle aria-label="영상 멈추기" hidden>
       <svg class="i-pause" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>
