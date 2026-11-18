@@ -32,7 +32,7 @@
   <div class="points-main"><span class="mono muted">마일리지</span><b>{{ '{:,}'.format(mileage.balance if mileage else points.total) }}<small>P</small></b></div>
   <div class="points-sub">
     <span><b>{{ '{:,}'.format(points.week) }}</b>이번 주</span>
-    <span><b>{{ points.streak }}</b>일 연속</span>
+    {% if not feature_goals() %}<span><b>{{ points.streak }}</b>일 연속</span>{% endif %}
   </div>
   <em class="mono">{{ '보기 ›' if mileage else '순위 ›' }}</em>
 </a>

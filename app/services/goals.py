@@ -168,6 +168,11 @@ async def set_goal(session: AsyncSession, user_id: int, pages: int) -> ReadingGo
     return goal
 
 
+async def freeze_count(session: AsyncSession, user_id: int) -> int:
+    """지금 가진 보호권 수 — 마일리지 상점이 살 수 있는지 볼 때 읽는다."""
+    return (await get_goal(session, user_id)).freezes
+
+
 async def grant_freezes(session: AsyncSession, user_id: int, n: int) -> int:
     """보호권을 n개 더한다(최대 2개까지). 새 개수를 돌려주고 커밋한다.
 
