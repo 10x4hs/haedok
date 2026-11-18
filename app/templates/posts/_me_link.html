@@ -1,0 +1,5 @@
+{# /me 설정 목록의 '내 프로필' 한 줄 (feature posts) — 꺼져 있으면 아무것도 그리지 않는다 #}
+{% if feature_posts is defined and feature_posts() %}
+{% from "_ui.html" import icon %}
+<a class="set-row" href="/u/{{ user.id }}">{{ icon('me') }}<span>내 프로필 · 게시물</span><em>›</em></a>
+{% endif %}
