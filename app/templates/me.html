@@ -28,13 +28,13 @@
   <div><b>{{ stats.reading }}</b><span>읽는 중</span></div>
   <div><b>{{ stats.done }}</b><span>다 읽음</span></div>
 </section>
-<a class="points-card glass-card" href="/leaderboard" aria-label="포인트와 순위 보기">
-  <div class="points-main"><span class="mono muted">포인트</span><b>{{ '{:,}'.format(points.total) }}<small>P</small></b></div>
+<a class="points-card glass-card" href="{{ '/mileage' if mileage else '/leaderboard' }}" aria-label="{{ '마일리지 보기' if mileage else '마일리지와 순위 보기' }}">
+  <div class="points-main"><span class="mono muted">마일리지</span><b>{{ '{:,}'.format(mileage.balance if mileage else points.total) }}<small>P</small></b></div>
   <div class="points-sub">
     <span><b>{{ '{:,}'.format(points.week) }}</b>이번 주</span>
     <span><b>{{ points.streak }}</b>일 연속</span>
   </div>
-  <em class="mono">순위 ›</em>
+  <em class="mono">{{ '보기 ›' if mileage else '순위 ›' }}</em>
 </a>
 <style>
 .points-card{display:flex;align-items:center;gap:14px;margin-top:10px;padding:14px 18px;background:var(--surface)}
@@ -83,7 +83,7 @@
       <summary class="set-row acct-danger"><span>계정 삭제</span><em aria-hidden="true">›</em></summary>
       <form class="acct-form" method="post" action="/me/delete" data-acct="delete" data-email="{{ user.email }}">
         <input type="hidden" name="csrf" value="{{ csrf }}">
-        <p class="acct-note">서재·읽은 기록·포인트·대결방이 모두 지워지고 되돌릴 수 없어요.</p>
+        <p class="acct-note">서재·읽은 기록·마일리지·대결방이 모두 지워지고 되돌릴 수 없어요.</p>
         <label for="acct-confirm">확인을 위해 <b>{{ user.email }}</b>을(를) 입력해 주세요</label>
         <input id="acct-confirm" name="confirm_email" type="email" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" required>
         <button class="btn wide acct-delete">계정 영구 삭제</button>

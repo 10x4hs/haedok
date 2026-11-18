@@ -24,6 +24,7 @@ from app.core import csp
 from app.core.config import Settings, get_settings
 from app.core.logging import request_id_var, setup_logging
 from app.db.session import get_session
+from app.mileage import router as mileage_router
 
 USER_AGENT = "haedok/0.1 (+https://github.com/10x4hs/haedok)"  # Wikimedia는 UA 명시 요구
 VERSION = "0.1.0"
@@ -214,6 +215,7 @@ app.include_router(goals_api.router)
 app.include_router(web.router)
 app.include_router(admin.router)
 app.include_router(board_pages.router)
+app.include_router(mileage_router)
 app.include_router(intro.router)
 app.include_router(pwa.router)
 app.include_router(seo.router)

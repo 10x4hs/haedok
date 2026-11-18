@@ -30,6 +30,7 @@ from app.public_facts import CLIP_V, FACTS
 from app.services import bestsellers, bookstore, mail, social
 from app.services import board as board_service
 from app.services import books as book_service
+from app.services import mileage as mileage_service
 from app.services import points as points_service
 from app.services import races as race_service
 from app.services.search import FULLTEXT_SOURCES, search_all
@@ -878,6 +879,7 @@ async def me(
         user,
         stats=stats,
         points=await points_service.summary(session, user.id),
+        mileage=await mileage_service.card(session, user.id),
         error=request.query_params.get("error"),
         saved=bool(request.query_params.get("saved")),
         account_notice=ACCOUNT_NOTICES.get(request.query_params.get("account", "")),

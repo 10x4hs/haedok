@@ -1,0 +1,36 @@
+/* 마일리지(/mileage) — app.css 토큰과 /me 마일리지 카드·순위 규칙 목록의 모양을 그대로 따른다 */
+.ml-hero{display:grid;gap:4px;padding:18px 18px 8px;background:var(--surface)}
+.ml-hero .form-ok,.ml-hero .form-err{margin:0 0 10px}
+.ml-num{font:500 34px var(--f-mono);letter-spacing:-.04em;line-height:1.15}
+.ml-num small{font-size:14px;margin-left:3px;color:var(--dim)}
+.ml-sub{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--dim)}
+.ml-sub b{font:500 14px var(--f-mono);color:var(--text);margin-right:5px}
+.ml-link{display:inline-flex;align-items:center;gap:4px;justify-self:start;min-height:44px;margin-top:4px;color:var(--accent-strong);font-size:14px}
+
+.ml-lead{margin:0 0 12px}
+.ml-h3{font-size:15px;font-weight:600;margin:20px 0 4px}
+.ml-shelf{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ml-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.ml-item>div{flex:1;display:grid;gap:2px;min-width:0}
+.ml-item b{font-weight:600}
+.ml-item>div>span{font-size:13px;color:var(--dim);overflow-wrap:anywhere}
+.ml-item .tag{justify-self:start;margin-bottom:2px}
+.ml-item form{display:grid;justify-items:end;gap:4px;flex:none;max-width:46%}
+.ml-item .pill{min-height:44px;font-size:14px;white-space:nowrap}
+.ml-item .pill.ml-buy{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.ml-item .pill:disabled{color:var(--dim);cursor:not-allowed}
+.ml-why{font-size:12px;color:var(--dim);text-align:right}
+
+.ml-pending{display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:10px;background:var(--surface)}
+.ml-pending>div{flex:1;display:grid;min-width:0}
+.ml-pending span{font-size:13px;color:var(--dim)}
+.ml-pending .pill{min-height:44px;flex:none}
+
+.ml-log{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px;font-size:13px;color:var(--dim)}
+.ml-log li{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.ml-log li span{min-width:0;overflow-wrap:anywhere;color:var(--body)}
+.ml-log li span small{display:block;font-size:12px;color:var(--dim)}
+.ml-log li b{font:500 13px var(--f-mono);color:var(--text);flex:none}
+.ml-log li b.ml-minus{color:var(--dim)}
+
+.ml-notice ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13px;color:var(--dim)}

@@ -73,6 +73,8 @@ class Settings(BaseSettings):
     vercel_env: str | None = None
     # 관리자 화면(/admin)을 열 수 있는 이메일 — 쉼표로 여러 개, 대소문자 무시. 비어 있으면 아무도 못 연다
     admin_emails: str = ""
+    # 마일리지 화면(/mileage)과 리워드 관리(/admin/rewards). 끄면 입구가 숨고 주소는 404 (FEATURE_MILEAGE)
+    feature_mileage: bool = True
 
     def admin_email_set(self) -> frozenset[str]:
         return frozenset(e.strip().lower() for e in self.admin_emails.split(",") if e.strip())
