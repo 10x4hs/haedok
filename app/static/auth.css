@@ -1,0 +1,48 @@
+/* 로그인·가입·인증·비밀번호 화면 배경 — _auth.html만 읽는다.
+   서재 사진 대신, 첫 화면 책 띠와 같은 실제 표지들이 비스듬한 벽이 되어 아주 천천히 흐른다.
+   그 위에 어둡게 깔리는 막(위·아래는 짙게, 가운데는 카드 글자가 읽히게)과 분홍·살구빛을 얹는다.
+   유리 카드와 입력칸(app.css .auth-card …)은 그대로 둔다. */
+
+.auth-bg{background:#0e0a0d}
+.auth-bg::before{content:none;animation:none}   /* 예전 사진 층은 끈다 */
+
+/* ---------- 표지 벽 ---------- */
+.aw{position:absolute;inset:-14% -30%;display:grid;grid-template-rows:repeat(4,1fr);gap:clamp(12px,1.6vw,22px);align-content:center;
+  transform:rotate(-9deg);pointer-events:none}
+.aw-row{min-width:0;overflow:visible}
+.aw-track{display:flex;gap:clamp(12px,1.6vw,22px);width:max-content;will-change:transform}
+.aw-row:nth-child(even) .aw-track{margin-left:calc(-1 * clamp(60px,8vw,120px))}
+.aw img{display:block;flex:none;height:clamp(150px,25vh,250px);width:auto;aspect-ratio:2/3;object-fit:cover;border-radius:4px;
+  background:#1d1418;box-shadow:0 18px 40px -18px rgba(0,0,0,.9);
+  filter:blur(1.4px) brightness(.5) saturate(1)}
+
+/* 움직임: 줄마다 반대 방향으로 아주 느리게. 손가락 기기(유리 블러를 매 프레임 다시 그려야 함)와 움직임 줄이기에서는 멈춘다 */
+@keyframes aw-drift{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:no-preference) and (pointer:fine){
+  .aw-track{animation:aw-drift 160s linear infinite}
+  .aw-row:nth-child(even) .aw-track{animation-direction:reverse;animation-duration:190s}
+}
+
+/* ---------- 막: 어둡게 + 분홍(왼쪽 위)·살구(오른쪽 아래) 빛, 카드 뒤는 한 번 더 어둡게 ---------- */
+.auth-bg::after{background:
+  radial-gradient(46% 38% at 50% 48%,rgba(12,8,11,.62),transparent 78%),
+  radial-gradient(60% 45% at 14% 10%,rgba(255,150,185,.30),transparent 70%),
+  radial-gradient(55% 42% at 90% 94%,rgba(255,190,150,.22),transparent 70%),
+  linear-gradient(180deg,rgba(14,9,13,.80) 0%,rgba(14,9,13,.50) 34%,rgba(24,11,19,.56) 66%,rgba(10,6,8,.92) 100%)}
+
+/* 아래쪽 젖빛 유리는 조금 옅게(표지가 덜 뭉개지게) */
+.auth-glass{background:linear-gradient(180deg,transparent 40%,rgba(36,16,26,.30))}
+
+@media (min-width:1100px){
+  .aw{inset:-18% -12%}
+  .aw img{height:clamp(180px,24vh,260px)}
+}
+
+/* 휴대폰: 카드가 화면 폭을 거의 다 차지하므로 카드 뒤를 한 번 더 어둡게(흰 글자 대비 4.5:1 이상) */
+@media (max-width:700px){
+  .auth-bg::after{background:
+    radial-gradient(90% 46% at 50% 46%,rgba(12,8,11,.74),transparent 82%),
+    radial-gradient(70% 40% at 12% 8%,rgba(255,150,185,.30),transparent 70%),
+    radial-gradient(70% 40% at 92% 96%,rgba(255,190,150,.22),transparent 70%),
+    linear-gradient(180deg,rgba(14,9,13,.78) 0%,rgba(14,9,13,.55) 34%,rgba(24,11,19,.6) 66%,rgba(10,6,8,.92) 100%)}
+}

@@ -93,6 +93,8 @@ def _load_showcase() -> list[dict]:
 
 
 SHOWCASE: list[dict] = _load_showcase()
+# 로그인·가입 화면 배경의 표지 벽 — 저장소에 있는 작은 표지 파일만 (외부 주소는 쓰지 않는다)
+templates.env.globals["auth_covers"] = [b["cover"] for b in SHOWCASE if b["cover"].startswith("/static/")]
 
 COVER_PALETTES = 8
 
