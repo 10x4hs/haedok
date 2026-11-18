@@ -8,7 +8,8 @@
 # 1) 이야기 세계: 빈 SQLite → 계정 셋 → 지우가 위키문헌에서 「운수 좋은 날」을 열고 대결을 연다(네트워크 필요)
 #    → 하린·민준이 참가해 읽고 반응 → 랜딩·로그인·가입·인증·리더·반응 시트·서점·관리자·PC 리더
 # 2) 시드 세계: 빈 SQLite → 계정 셋 → seed_board → seed_races → seed_chat → seed_goals → seed_mileage
-#    → seed_posts (네트워크 없이 심는다) → 하린 시점의 홈·내 정보·대결·모집·친구·채팅·마일리지·순위·공개 페이지
+#    → seed_posts → seed_posts_ig(readme_photos.py가 그린 사진 여섯 장) (네트워크 없이 심는다)
+#    → 하린 시점의 홈·내 정보·대결·모집·친구·채팅·마일리지·순위·게시물(소식·댓글·프로필·올리기)·공개 페이지
 # 3) PNG → JPEG(250 KB 이하) → docs/images/app · docs/images/admin
 #
 # 필요한 것: .venv(앱), uv(playwright·pillow를 임시로 받아 쓴다), playwright 크로미움(`playwright install chromium`)
@@ -49,11 +50,14 @@ shots "$OUT/png"
 stop
 
 echo "== 2) 시드 세계"
+uv run -q --no-project --with playwright python scripts/readme_photos.py "$OUT/photos"
+export PHOTOS="$OUT/photos"
 start "$OUT/world.db"
 "$PY" scripts/readme_shots.py --seed "$DATABASE_URL"
 for s in board races chat goals mileage posts; do
   "$PY" "scripts/seed_$s.py" "$DATABASE_URL"
 done
+"$PY" scripts/seed_posts_ig.py "$DATABASE_URL" "$PHOTOS"
 shots --world "$OUT/png"
 stop
 

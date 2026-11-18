@@ -25,7 +25,8 @@ app/
   models_board.py      recruit_posts · recruit_reports
   models_mileage.py    mileage_spends · reward_items · reward_redemptions
   models_chat.py       friendships · chat_threads · chat_messages · chat_reactions · chat_reads · chat_reports
-  models_posts.py      reading_posts · post_likes · post_comments · post_reports
+  models_posts.py      reading_posts · post_likes · post_comments(답글 parent_id) · post_reports · post_photos
+                       · post_saves · post_comment_likes · post_comment_reports · profile_bios
   web.py               화면: 랜딩 · 로그인/가입/인증/비밀번호 · 홈 · 탐색/서가/검색 · 서점 · 리더 · 서재 · 올리기
                        · 대결 목록/방/초대 · 순위 · 내 정보
   auth.py              세션 · BCrypt · CSRF · 6자리 코드(HMAC 지문) · 비밀번호 재설정
@@ -35,13 +36,14 @@ app/
   chat.py              /friends · /chat · /chat/dm/{id} · /chat/room/{id} · /admin/chat-reports
                        · 메뉴의 안 읽음 점(ChatMenuDot 미들웨어)
   mileage.py           /mileage (보호권·리워드 교환·요청 거두기) · /admin/rewards
-  posts.py             /feed · /posts/new · /p/{id} · /u/{id} · /profile · /admin/posts
+  posts.py             /feed(친구 · 모두) · /posts/new · /p/{id} · /u/{id} · /profile(+ /profile/edit) · /media/p/{id}/{n}.jpg
+                       · /admin/posts
   admin.py             /admin (현황·사용자·대결방·메일) — 기능별 관리 화면은 각 라우터에
   seo.py · pwa.py      robots·sitemap·OG / manifest·service worker·assetlinks
   realtime.py          책 단위 인메모리 브로커(로컬 WebSocket 전용)
   api/                 books · me · goals · points · social(반응·친구 위치·presence·대결 순위·WS) · chat
   services/            pace · books · social · races · race_list · points · goals · board · mileage · chat · posts
-                       · mail · uploads · search · chunker · bookstore · bestsellers · palette
+                       · post_photos · mail · uploads · search · chunker · bookstore · bestsellers · palette
   sources/             외부 도서 소스 어댑터 (어댑터 패턴)
     base.py            BookSource(ABC) · BookMeta · SourceError
     kakao/naver/google_books.py   메타데이터 전용
@@ -49,7 +51,7 @@ app/
     registry.py        키가 있는 소스만 우선순위 순서로 활성화
   data/                catalog.json(고전) · store.json(서점) · bestsellers.json(매일 갱신) · popular·home_picks …
 api/index.py           Vercel 진입점
-migrations/            Alembic (async, 17개 — README의 표 참고)
+migrations/            Alembic (async, 18개 — README의 표 참고)
 ```
 
 ### 기능 스위치
@@ -230,7 +232,12 @@ app/templates/_welcome.html      첫 가입 뒤 홈의 3단계 안내 카드 (�
 | **책은 스냅샷으로 저장, 개인이 올린 파일은 게시물의 책이 될 수 없다** | 비공개 파일 제목이 새지 않게 |
 | **같은 사람이 같은 책을 하루(KST)에 한 번** | 같은 글이 피드에 줄줄이 쌓이지 않게 |
 | **친구 관계는 채팅 기능의 friendships를 읽는다** | 채팅이 꺼져 있어도 표는 있다 |
-| **하단 '나' 탭은 `/profile`(내 게시물 격자)로** | 인스타그램 프로필의 생김새를 따른다. 계정 설정은 `/me` |
+| **하단 '나' 탭은 `/profile`(내 게시물 격자)로** | 인스타그램 프로필의 생김새를 따른다. 계정 설정은 `/me`, 게시물이 꺼지면 나 탭도 `/me` |
+| **사진 1~5장은 DB에 JPEG 바이트로**(`post_photos`, `/media/p/{id}/{n}.jpg`로 내보낸다) | 서버리스라 파일 저장소가 없다. 프로필 사진과 같은 방식 |
+| **자르기는 브라우저가 한다** — 게시물 전체를 1:1 또는 4:5로, 캔버스에 1080px로 다시 그려 보낸다(`posts-compose.js`) | 런타임에 Pillow를 넣지 않는다. 다시 그린 JPEG에는 EXIF가 남지 않는다 |
+| **서버는 JPEG를 그리지 않고 마커만 걷는다**(`services/post_photos.py`) — APP1~15(EXIF · GPS · XMP · ICC)와 COM, EOI 뒤 꼬리를 버리고 SOF에서 크기를 읽는다. 한 장 400 KB, 하루 30장 | 캔버스를 건너뛴 요청이 와도 위치가 새지 않게 |
+| **저장 · 댓글 좋아요 · 답글 · 댓글 신고 · 소개 한 줄은 각자 작은 표**(마이그레이션 `f66c5b0d2e06`) | 더하기만 하는 마이그레이션. 저장됨은 나만 본다 |
+| **친구에게 보내기는 개인 채팅에 `/p/{id}` 한 줄** | 채팅이 볼 수 있는 사람에게만 첫 사진이 담긴 카드로 보여 준다. 채팅의 속도 제한을 그대로 쓴다 |
 
 ### 공개 페이지 (`intro.py`, `public_facts.py`)
 

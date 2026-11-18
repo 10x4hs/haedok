@@ -76,15 +76,14 @@ Friends get Instagram-style <b>direct messages</b>; race rooms get Discord-style
 Earn mileage for verified pages (+1), first reaction on a paragraph (+1, 20 a day), sharing a quote (+3), overtaking a friend (+5), finishing a race book (+20) and 7-day streaks (+30). Spend it on streak freezes (50) or partner rewards, which an admin checks and sends to your sign-up email. Weekly and all-time rankings too.
 </td>
 </tr>
-<!-- SLOT:posts-feature — replace the image below with the posts screenshot after the posts work is merged (e.g. docs/images/app/24-feed.jpg). -->
 <tr>
-<td align="center"><img src="docs/images/app/8-me.jpg" alt="(posts screenshot slot — replaced after merge)" width="180"></td>
+<td align="center"><img src="docs/images/app/24-feed.jpg" alt="Friends feed — a three-photo post swiped to the second photo" width="180"></td>
 <td>
 <h3>📷 Reading posts · profile</h3>
-Share a book you read with a photo, a short review, a star rating and a favourite line. Friends and members see it in the feed and can like and comment. The <b>나</b> (me) tab opens your profile (<code>/profile</code>) with all your posts. Posts can be public or friends-only, and can be deleted or reported.
+Share a book you read with <b>1–5 photos</b> (the book cover if none). The whole post is cropped to <b>1:1 or 4:5</b> and you drag each photo into place; the browser redraws it at 1080 px and the server strips <b>EXIF/GPS location and device data</b> once more. Add a star rating, up to 2,200 characters of thoughts and a favourite line, and choose public or friends-only.<br>
+In the friends feed you swipe through photos, <b>like, comment, reply, like comments and save</b>, and the paper plane <b>sends a post to a friend</b> as a card with its first photo in your direct messages. The <b>나</b> (me) tab opens your profile (<code>/profile</code>) with a one-line bio and <b>posts grid</b> · feed · saved tabs, and the <b>모두</b> (all) tab is an explore grid of everyone's public posts. Deleting, reporting and blocking are all checked on the server.
 </td>
 </tr>
-<!-- /SLOT:posts-feature -->
 <tr>
 <td align="center"><img src="docs/images/app/3-explore.jpg" alt="Discover: continue reading, famous covers, rankings" width="180"></td>
 <td>
@@ -108,16 +107,20 @@ Continue-reading card, a cover strip and daily picks drawn only from famous book
 | <img src="docs/images/app/0-landing.jpg" alt="Landing" width="150"> | <img src="docs/images/app/1-login.jpg" alt="Sign in" width="150"> | <img src="docs/images/app/1-signup.jpg" alt="Sign up" width="150"> | <img src="docs/images/app/1b-verify.jpg" alt="Verify" width="150"> | <img src="docs/images/app/2-home.jpg" alt="Home" width="150"> |
 | **Bookstore** | **Races** | **Friends** | **Messages** | **Direct message** |
 | <img src="docs/images/app/4-store.jpg" alt="Bookstore" width="150"> | <img src="docs/images/app/12-races.jpg" alt="Races" width="150"> | <img src="docs/images/app/14-friends.jpg" alt="Friends" width="150"> | <img src="docs/images/app/15-chat.jpg" alt="Messages" width="150"> | <img src="docs/images/app/17-chat-dm.jpg" alt="Direct message" width="150"> |
-| **Mileage ranking** | **Docs** | **Developer** | **Feed** | **Profile** |
-| <img src="docs/images/app/19-leaderboard.jpg" alt="Ranking" width="150"> | <img src="docs/images/app/21-docs.jpg" alt="Docs" width="150"> | <img src="docs/images/app/22-developers.jpg" alt="Developer" width="150"> | <!-- SLOT:posts-feed docs/images/app/24-feed.jpg -->_(after merge)_ | <!-- SLOT:posts-profile docs/images/app/25-profile.jpg -->_(after merge)_ |
+| **Mileage ranking** | **Docs** | **Developer** | **Profile (me tab)** | **Post** |
+| <img src="docs/images/app/19-leaderboard.jpg" alt="Ranking" width="150"> | <img src="docs/images/app/21-docs.jpg" alt="Docs" width="150"> | <img src="docs/images/app/22-developers.jpg" alt="Developer" width="150"> | <img src="docs/images/app/25-profile.jpg" alt="Profile with bio and posts grid" width="150"> | <img src="docs/images/app/26-post.jpg" alt="A post" width="150"> |
+| **Comments · replies** | **All (explore)** | **New post — pick photos** | | |
+| <img src="docs/images/app/27-comments.jpg" alt="Comment sheet with replies open" width="150"> | <img src="docs/images/app/29-explore-posts.jpg" alt="Grid of everyone's posts" width="150"> | <img src="docs/images/app/28-create.jpg" alt="New post step 1 — three photos picked, cropped to 4:5" width="150"> | | |
 
-On a desktop the bottom tab bar becomes a sidebar, the reader opens two pages, and chat shows the list and the conversation side by side.
+On a desktop the bottom tab bar becomes a sidebar, the reader opens two pages, chat shows the list and the conversation side by side, and a post shows the photo beside its comments.
 
 | Desktop home | Desktop reader |
 |:---:|:---:|
 | <img src="docs/images/app/9-pc-home.jpg" alt="Desktop home"> | <img src="docs/images/app/10-pc-reader.jpg" alt="Desktop reader"> |
 | **Desktop room chat** | **Desktop race room** |
 | <img src="docs/images/app/11-pc-chat.jpg" alt="Desktop chat"> | <img src="docs/images/app/23-pc-race.jpg" alt="Desktop race"> |
+| **Desktop post · comments** | |
+| <img src="docs/images/app/30-pc-post.jpg" alt="Desktop post — photo left, thoughts and comments right"> | |
 
 <details>
 <summary><b>Admin</b> — <code>/admin</code> opens only for <code>ADMIN_EMAILS</code> (404 for everyone else)</summary>
@@ -159,6 +162,8 @@ With SQLite the app creates its tables on start-up. To fill it with example data
 ```bash
 .venv/bin/python scripts/readme_shots.py --seed "$DATABASE_URL"    # 3 accounts, password password123
 for s in board races chat goals mileage posts; do .venv/bin/python scripts/seed_$s.py "$DATABASE_URL"; done
+uv run --no-project --with playwright python scripts/readme_photos.py /tmp/haedok-photos  # six synthetic post photos
+.venv/bin/python scripts/seed_posts_ig.py "$DATABASE_URL" /tmp/haedok-photos  # photos, saves, replies, bios
 ```
 
 Then sign in as `harin@example.com` / `password123` (email, Enter, password, Enter).
@@ -171,7 +176,7 @@ Every setting lives in [`app/core/config.py`](app/core/config.py); [`.env.exampl
 
 ## Database migrations
 
-17 Alembic revisions in [`migrations/versions/`](migrations/versions), from `4b551282b547` (initial schema) to `e55b4a9c1d05` (reading posts); the ordered list is in the [Korean README](README.md#db-마이그레이션). CI runs `upgrade → downgrade base → upgrade` and `alembic check` on Postgres 16. To migrate production (Neon) over the direct connection:
+18 Alembic revisions in [`migrations/versions/`](migrations/versions), from `4b551282b547` (initial schema) to `f66c5b0d2e06` (post photos, saves, comment likes/replies/reports, profile bios); the ordered list is in the [Korean README](README.md#db-마이그레이션). CI runs `upgrade → downgrade base → upgrade` and `alembic check` on Postgres 16. To migrate production (Neon) over the direct connection:
 
 ```bash
 vercel env pull --environment=production .env.production.local && \
@@ -187,7 +192,7 @@ rm -f .env.production.local
 .venv/bin/pytest -q && .venv/bin/ruff check .
 ```
 
-509 tests pass (measured 2026-11-18, about 95 s). External APIs are mocked with `httpx.MockTransport`/respx and the database is in-memory SQLite, so no network is needed.
+547 tests pass (measured 2026-11-18, about 110 s). External APIs are mocked with `httpx.MockTransport`/respx and the database is in-memory SQLite, so no network is needed.
 
 ## Deployment
 
