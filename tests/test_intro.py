@@ -114,3 +114,14 @@ async def test_swagger_moved_off_docs(api):
     async with api(upstream) as c:
         assert (await c.get("/api/docs")).status_code == 200
         assert "swagger" not in (await c.get("/docs")).text.lower()
+
+
+@pytest.mark.parametrize("path", ["/login", "/signup", "/password/forgot"])
+async def test_auth_pages_draw_the_cover_wall_from_local_covers(api, path):
+    async with api(upstream) as c:
+        html = (await c.get(path)).text
+    assert '<link rel="stylesheet" href="/static/auth.css">' in html
+    wall = html[html.index('<div class="aw">') : html.index('<i class="auth-glass">')]
+    covers = re.findall(r'<img src="([^"]+)"', wall)
+    assert covers and all(src.startswith("/static/covers/showcase/") for src in covers)
+    assert 'class="auth-card"' in html  # 유리 카드는 그대로

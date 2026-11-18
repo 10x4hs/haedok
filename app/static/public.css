@@ -280,3 +280,73 @@
 
 /* PC 두 단 히어로: 위 메뉴가 빠진 첫 줄에 책 띠 넘기기 버튼이 끼어들지 않게 자리를 정해 준다 */
 @media (min-width:1100px) and (min-height:600px){.pub-landing .sc-nav{grid-column:1 / -1;grid-row:5}}
+
+/* =====================================================================
+   색 (2차): 공개 페이지는 사용자 '화면 꾸미기'가 없으니 배경 자체가 색을 갖는다.
+   색은 모두 appearance.ACCENTS에서 — 분홍(브랜드) · 하늘 · 민트 · 금빛 · 복숭아.
+   채움은 14% 이하, 선은 35~60%. 글자는 늘 밝은 회색·흰색이라 대비 4.5:1 이상을 지킨다.
+   ===================================================================== */
+.pub{--sky:#8fd3ff;--mint:#9be7c4;--gold:#e6c36a;--peach:#ffc2a8;--violet:#c39bff}
+body.pub{background:transparent}  /* 고정 배경층(.fx)이 보이게 — 바탕색은 html이 깐다 */
+
+/* 고정 배경층: 왼쪽 위 분홍(책 뒤 빛과 같은 색) · 오른쪽 하늘 · 아래 금빛, 고운 입자로 색 띠를 지운다 */
+.pub .fx{--b1:rgba(255,150,185,.17);--b2:rgba(143,211,255,.10);--b3:rgba(230,195,106,.08);--base:#0a0a0a}
+.pub .fx::before{opacity:.05;mix-blend-mode:overlay;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* 기능마다 한 가지 색: 검색=하늘, 진도 인정=민트, 감상 열림=분홍, 같이 읽기=금빛 */
+#search{--hue:var(--sky)} #verify{--hue:var(--mint)} #unseal{--hue:var(--accent)} #together{--hue:var(--gold)}
+.feat{position:relative;isolation:isolate}
+/* 섹션 뒤 은은한 색: 영상 쪽에 큰 빛 한 덩어리 (화면 폭 전체로 번지되 글 쪽은 거의 비운다) */
+.feat::before{content:"";position:absolute;z-index:-1;inset:0 calc(50% - 50vw);pointer-events:none;
+  background:radial-gradient(42% 60% at 72% 50%,color-mix(in srgb,var(--hue) 9%,transparent),transparent 72%)}
+.feat:nth-of-type(even)::before{background:radial-gradient(42% 60% at 28% 50%,color-mix(in srgb,var(--hue) 9%,transparent),transparent 72%)}
+@media (max-width:899px){.feat::before,.feat:nth-of-type(even)::before{background:radial-gradient(80% 40% at 50% 78%,color-mix(in srgb,var(--hue) 10%,transparent),transparent 72%)}}
+/* 제목 앞 작은 색 점 = 이 기능의 색 */
+.feat h2::before{content:"";display:inline-block;width:.36em;height:.36em;margin:0 .32em .16em 0;border-radius:50%;vertical-align:middle;
+  background:var(--hue);box-shadow:0 0 0 4px color-mix(in srgb,var(--hue) 16%,transparent)}
+.feat .feat-notes{border-top-color:color-mix(in srgb,var(--hue) 40%,transparent)}
+/* 영상 액자: 색 선 + 부드러운 같은 색 빛. 안쪽은 영상 바탕(#0a0a0a)과 같은 어두운 면이라 영상 가장자리가 드러나지 않는다 */
+.feat .clip-frame{background:#0a0a0a;border-color:color-mix(in srgb,var(--hue) 45%,transparent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 0 6px color-mix(in srgb,var(--hue) 5%,transparent),0 40px 90px -36px color-mix(in srgb,var(--hue) 34%,transparent)}
+.feat .clip-cap b{color:var(--hue)}
+.feat .clip-toggle{border-color:color-mix(in srgb,var(--hue) 50%,transparent)}
+/* 사용법 안의 영상도 같은 규칙: 진도=민트, 감상=분홍 */
+.step .clip-frame{background:#0a0a0a}
+.step:has(#clip-verify-t){--hue:var(--mint)} .step:has(#clip-unseal-t){--hue:var(--accent)}
+.step .clip-frame{border-color:color-mix(in srgb,var(--hue,#fff) 45%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 40px 90px -36px color-mix(in srgb,var(--hue,#000) 30%,transparent)}
+.step .clip-cap b{color:var(--hue,var(--text))}
+
+/* 번갈아 깔리는 옅은 띠: '이것도 할 수 있어요'·자주 묻는 질문 */
+.also,.faq{position:relative;isolation:isolate}
+.also::before,.faq::before{content:"";position:absolute;z-index:-1;inset:0 calc(50% - 50vw);pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(255,255,255,.025) 18%,rgba(255,255,255,.025) 82%,transparent)}
+.also-list li:nth-child(1) b{color:var(--mint)} .also-list li:nth-child(2) b{color:var(--sky)}
+.also-list li:nth-child(3) b{color:var(--peach)} .also-list li:nth-child(4) b{color:var(--gold)}
+.close::before{content:"";position:absolute;z-index:-1;inset:0 calc(50% - 50vw);pointer-events:none;
+  background:radial-gradient(40% 70% at 50% 60%,color-mix(in srgb,var(--accent) 12%,transparent),transparent 72%)}
+.close{position:relative;isolation:isolate}
+
+/* 표 머리: 분홍을 아주 옅게 */
+.tbl thead th{background:color-mix(in srgb,var(--accent) 7%,transparent);color:#c9c2c6}
+
+/* Docs: 절마다 색 표시(제목 앞 점 + 목차 점) */
+#pace{--hue:var(--mint)} #points{--hue:var(--gold)} #spoiler{--hue:var(--accent)} #rooms{--hue:var(--sky)}
+#upload{--hue:var(--peach)} #account{--hue:var(--violet)} #faq{--hue:#b7bcc6}
+.docs section h2::before,.dev section>h2::before{content:"";display:inline-block;width:10px;height:10px;margin:0 12px .16em 0;border-radius:3px;vertical-align:middle;
+  background:var(--hue,var(--accent));box-shadow:0 0 0 4px color-mix(in srgb,var(--hue,var(--accent)) 16%,transparent)}
+.docs .rules{border-top-color:color-mix(in srgb,var(--hue,#fff) 35%,transparent)}
+.docs #points .tbl thead th{background:color-mix(in srgb,var(--gold) 10%,transparent)}
+.toc li a::before{content:"";flex:none;width:6px;height:6px;margin-right:10px;border-radius:2px;background:var(--dim)}
+.toc li:nth-child(1) a::before{background:var(--mint)} .toc li:nth-child(2) a::before{background:var(--gold)}
+.toc li:nth-child(3) a::before{background:var(--accent)} .toc li:nth-child(4) a::before{background:var(--sky)}
+.toc li:nth-child(5) a::before{background:var(--peach)} .toc li:nth-child(6) a::before{background:var(--violet)}
+
+/* Developer: 절마다 색, 네 층 번호도 층마다 다른 색 */
+.dev section[aria-labelledby="h-layers"]{--hue:var(--sky)} .dev section[aria-labelledby="h-stack"]{--hue:var(--mint)}
+.dev section[aria-labelledby="h-design"]{--hue:var(--accent)} .dev section[aria-labelledby="h-run"]{--hue:var(--gold)}
+.dev section[aria-labelledby="h-read"]{--hue:var(--peach)}
+.layers li:nth-child(1) .layer-n{--hue:var(--sky)} .layers li:nth-child(2) .layer-n{--hue:var(--mint)}
+.layers li:nth-child(3) .layer-n{--hue:var(--accent)} .layers li:nth-child(4) .layer-n{--hue:var(--gold)}
+.layer-n{color:var(--hue);border-color:color-mix(in srgb,var(--hue) 50%,transparent);background:color-mix(in srgb,var(--hue) 10%,transparent)}
+.dev .stackable thead th{background:color-mix(in srgb,var(--mint) 8%,transparent)}

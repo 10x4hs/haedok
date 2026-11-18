@@ -1,8 +1,20 @@
 {% extends "base.html" %}
 {% from "_ui.html" import brand %}
 {% block body_class %}auth{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/auth.css">{% endblock %}
 {% block body %}
-<div class="auth-bg" aria-hidden="true"><i class="auth-glass"></i><i class="auth-glow"></i></div>
+<div class="auth-bg" aria-hidden="true">
+  {#- 표지 벽: 실제 책 표지가 네 줄로 천천히 흐른다(auth.css). 줄마다 시작 표지를 밀어 겹치지 않게 #}
+  {%- set covers = auth_covers[:12] %}
+  <div class="aw">
+    {%- for row in range(4) %}{% set k = (row * 3) % (covers|length or 1) %}
+    <div class="aw-row"><div class="aw-track">
+      {%- for c in (covers[k:] + covers[:k]) * 2 %}<img src="{{ c }}" alt="" width="300" height="450" loading="lazy" decoding="async" fetchpriority="low">{% endfor -%}
+    </div></div>
+    {%- endfor %}
+  </div>
+  <i class="auth-glass"></i><i class="auth-glow"></i>
+</div>
 <a class="auth-brand" href="/">{{ brand() }}</a>
 <main class="auth-main">
   <div class="auth-card">
