@@ -1,5 +1,16 @@
 {% extends "admin/_layout.html" %}
 {% block admin_title %}리워드{% endblock %}
+{% macro image_fields(current, label) -%}
+{% set is_url = current and current not in images %}
+<span class="ml-img-pick">
+  <img class="ml-thumb" data-preview src="{{ reward_image(current) }}" alt="" width="64" height="48">
+  <select name="image" aria-label="{{ label }}그림">
+    <option value="">기본 그림</option>
+    {% for key, (file, name) in images.items() %}<option value="{{ key }}" data-src="/static/rewards/{{ file }}"{% if current == key %} selected{% endif %}>{{ name }}</option>{% endfor %}
+  </select>
+  <input name="image_url" type="url" inputmode="url" value="{{ current if is_url else '' }}" placeholder="또는 https://{{ hosts|first }}/… 주소" aria-label="{{ label }}그림 주소">
+</span>
+{%- endmacro %}
 {% block admin %}
 <section class="row">
   <div class="row-h"><h2>교환 요청</h2><span class="mono muted">{{ queue|selectattr('req.status', 'equalto', requested)|list|length }} 기다림</span></div>
@@ -42,6 +53,11 @@
           <input name="stock" inputmode="numeric" value="{{ '' if it.stock is none else it.stock }}" placeholder="수량 (비우면 제한 없음)" aria-label="{{ it.title }} 수량">
           <button class="pill">수량 저장</button>
         </form>
+        <form class="admin-search" method="post" action="/admin/rewards/items/{{ it.id }}/image">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          {{ image_fields(it.image, it.title ~ ' ') }}
+          <button class="pill">그림 저장</button>
+        </form>
       </div>
       <div class="admin-actions">
         <form method="post" action="/admin/rewards/items/{{ it.id }}/toggle"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="field" value="active"><button class="pill">{{ '숨기기' if it.active else '보이기' }}</button></form>
@@ -60,10 +76,12 @@
     <input name="title" maxlength="100" required placeholder="상품" aria-label="상품 이름">
     <input name="cost" inputmode="numeric" required placeholder="가격(P)" aria-label="가격(마일리지)">
     <input name="stock" inputmode="numeric" placeholder="수량(비우면 제한 없음)" aria-label="수량">
+    {{ image_fields(None, '새 상품 ') }}
     <label class="muted small"><input type="checkbox" name="is_sample" value="1" checked> 예시(제휴 준비 중)로 올리기</label>
     <button class="btn ghost">올리기</button>
   </form>
   <p class="muted small">진짜 제휴가 확인되기 전에는 '예시'로 올려 주세요. 예시 상품은 눌러도 마일리지가 빠지지 않아요.</p>
+  <p class="muted small">그림은 목록에서 고르거나 {{ hosts|join(', ') }} 의 https 주소만 넣을 수 있어요. 새 사진은 라이선스를 확인하고 app/static/rewards/CREDITS.md 에 적어 주세요.</p>
 </section>
 <style>
 .ml-add{flex-wrap:wrap}
@@ -71,12 +89,28 @@
 .ml-add label{display:flex;align-items:center;gap:6px;min-height:44px}
 .admin-list .admin-search{margin:8px 0 0;flex-wrap:wrap}
 .admin-list .admin-search input{height:36px;flex:1 1 160px}
+.ml-thumb{flex:none;width:64px;height:48px;border-radius:8px;object-fit:cover;background:var(--sunken)}
+.ml-img-pick{display:flex;flex-wrap:wrap;align-items:center;gap:8px;flex:1 1 100%}
+.ml-img-pick select{flex:1 1 120px;min-width:0;max-width:100%;height:36px;padding:0 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--text);font:inherit;font-size:13px}
+.ml-img-pick input{flex:1 1 180px;min-width:0}
 </style>
 <script nonce="{{ csp_nonce }}">
   // 되돌리기 어려운 동작은 한 번 더 묻는다(CSP가 인라인 이벤트 속성을 막아 여기서 붙인다)
   document.querySelectorAll('form[data-confirm]').forEach(f => f.addEventListener('submit', e => {
     if (!confirm(f.dataset.confirm)) e.preventDefault();
   }));
+  // 그림 미리보기: 목록에서 고르면 함께 담긴 그림, 주소를 넣으면 허용한 호스트일 때만 그 주소(최종 검사는 서버)
+  const HOSTS = {{ hosts|list|tojson }};
+  document.querySelectorAll('.ml-img-pick').forEach(box => {
+    const img = box.querySelector('[data-preview]'), sel = box.querySelector('select'), url = box.querySelector('input');
+    const fallback = img.getAttribute('src');
+    const show = () => {
+      let src = sel.selectedOptions[0]?.dataset.src || '/static/rewards/gift.svg';
+      try { const u = new URL(url.value.trim()); if (u.protocol === 'https:' && HOSTS.includes(u.hostname)) src = u.href; } catch (_) {}
+      img.src = src || fallback;
+    };
+    sel.addEventListener('change', show); url.addEventListener('input', show);
+  });
   document.querySelectorAll('button[data-confirm]').forEach(b => b.addEventListener('click', e => {
     if (!confirm(b.dataset.confirm)) e.preventDefault();
   }));

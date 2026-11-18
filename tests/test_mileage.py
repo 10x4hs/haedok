@@ -530,3 +530,127 @@ async def test_flag_off_404_and_card_links_to_leaderboard(api, session_factory, 
         card = re.search(r'<a class="points-card[^>]*>.*?</a>', me, re.S).group(0)
         assert 'href="/leaderboard"' in card and "/mileage" not in me
         assert "순위 ›" in card and "500<small>P</small>" in card
+
+
+# --- 상품 그림 ---
+
+
+@pytest.mark.parametrize("value", ["warm-drink", "bookshop", "pencils", "gift"])
+def test_image_accepts_bundled_keys(value):
+    assert mileage.clean_image(value) == value
+    assert mileage.image_src(value).startswith("/static/rewards/")
+
+
+def test_image_accepts_allowed_https_host():
+    url = "https://upload.wikimedia.org/wikipedia/commons/2/20/Cup.jpg"
+    assert mileage.clean_image(f"  {url} ") == url
+    assert mileage.image_src(url) == url
+    assert mileage.clean_image("") is None and mileage.clean_image(None) is None
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "http://upload.wikimedia.org/x.jpg",  # https 만
+        "https://example.com/x.jpg",  # 허용 밖 호스트
+        "https://upload.wikimedia.org.evil.com/x.jpg",
+        "https://user:pw@upload.wikimedia.org/x.jpg",
+        "https://upload.wikimedia.org:8443/x.jpg",
+        "//upload.wikimedia.org/x.jpg",
+        "javascript:alert(1)",
+        "data:image/png;base64,AAAA",
+        "/static/rewards/../../app.py",
+        "unknown-key",
+        'https://upload.wikimedia.org/x.jpg" onerror="x',
+        "https://upload.wikimedia.org/" + "a" * 400,
+    ],
+)
+def test_image_rejects_everything_else(value):
+    with pytest.raises(ValueError):
+        mileage.clean_image(value)
+    assert mileage.image_src(value) == "/static/rewards/gift.svg"  # 저장된 값이 이상해도 기본 그림
+
+
+def test_bundled_images_exist_and_are_credited():
+    from pathlib import Path
+
+    root = Path(mileage.__file__).parents[1] / "static" / "rewards"
+    credits = (root / "CREDITS.md").read_text()
+    for file, _ in mileage.BUNDLED_IMAGES.values():
+        path = root / file
+        assert path.exists(), file
+        if not file.endswith(".svg"):
+            assert path.stat().st_size < 60_000, file
+            assert f"`{file}`" in credits and "CC0" in credits
+    for item in mileage.SAMPLE_ITEMS:
+        assert item["image"] in mileage.BUNDLED_IMAGES
+
+
+async def test_admin_image_field_allows_only_keys_and_allowed_hosts(api, session_factory, monkeypatch):
+    monkeypatch.setattr(get_settings(), "admin_emails", "boss@example.com")
+    async with api(upstream) as c:
+        await signup(c, email="boss@example.com")
+        page = await c.get("/admin/rewards")
+        assert 'name="image"' in page.text and "data-preview" in page.text
+        csrf = re.search(r'name="csrf" value="([^"]+)"', page.text).group(1)
+        base = {"csrf": csrf, "partner_name": "새 제휴처", "cost": "100", "is_sample": "1"}
+        r = await c.post(
+            "/admin/rewards/items",
+            data={**base, "title": "나쁜 그림", "image_url": "https://evil.example/x.png"},
+        )
+        assert "err=" in r.headers["location"]
+        r = await c.post("/admin/rewards/items", data={**base, "title": "열쇠 그림", "image": "pencils"})
+        assert "msg=" in r.headers["location"]
+        url = "https://upload.wikimedia.org/wikipedia/commons/2/20/Cup.jpg"
+        r = await c.post(
+            "/admin/rewards/items", data={**base, "title": "주소 그림", "image": "gift", "image_url": url}
+        )
+        assert "msg=" in r.headers["location"]
+        async with session_factory() as s:
+            rows = {i.title: i for i in await s.scalars(select(RewardItem))}
+        assert "나쁜 그림" not in rows
+        assert rows["열쇠 그림"].image == "pencils" and rows["주소 그림"].image == url
+        iid = rows["열쇠 그림"].id
+        r = await c.post(
+            f"/admin/rewards/items/{iid}/image", data={"csrf": csrf, "image": "javascript:alert(1)"}
+        )
+        assert "err=" in r.headers["location"]
+        r = await c.post(f"/admin/rewards/items/{iid}/image", data={"csrf": csrf, "image": "bookshop"})
+        assert "msg=" in r.headers["location"]
+        async with session_factory() as s:
+            assert (await s.get(RewardItem, iid)).image == "bookshop"
+
+
+async def test_non_admin_cannot_change_image(api, session_factory, monkeypatch):
+    monkeypatch.setattr(get_settings(), "admin_emails", "boss@example.com")
+    async with api(upstream) as c:
+        await _signup_with_mileage(c, session_factory)
+        csrf = re.search(r'name="csrf" value="([^"]+)"', (await c.get("/me")).text).group(1)
+        async with session_factory() as s:
+            iid = (await _item(s)).id
+        r = await c.post(f"/admin/rewards/items/{iid}/image", data={"csrf": csrf, "image": "pencils"})
+        assert r.status_code == 404
+
+
+async def test_sample_cards_with_pictures_stay_labelled_and_never_deduct(api, session_factory, goals):
+    async with api(upstream) as c:
+        uid = await _signup_with_mileage(c, session_factory, amount=1000)
+        async with session_factory() as s:
+            await mileage.seed_samples(s)
+            samples = [i for i in await mileage.catalogue(s) if i.is_sample]
+        page = (await c.get("/mileage")).text
+        cards = re.findall(r'<li class="ml-item ml-reward sample">.*?</li>', page, re.S)
+        assert len(cards) == len(samples) == 3
+        for card in cards:
+            assert re.search(r'<figure class="ml-pic">\s*<img src="/static/rewards/[\w-]+\.webp"', card)
+            # 그림 위 라벨과 글 위 라벨 둘 다
+            assert card.count("예시 · 제휴 준비 중") == 2 and "ml-sample-badge" in card
+            assert "바꾸기</button>" not in card
+        csrf = re.search(r'name="csrf" value="([^"]+)"', page).group(1)
+        for it in samples:
+            r = await c.post(f"/mileage/rewards/{it.id}", data={"csrf": csrf, "key": f"pic-sample-{it.id}"})
+            assert "err=sample" in r.headers["location"]
+        async with session_factory() as s:
+            assert await _count(s, MileageSpend, MileageSpend.user_id == uid) == 0
+            assert await _count(s, RewardRedemption) == 0
+            assert (await mileage.balance(s, uid)).balance == 1000

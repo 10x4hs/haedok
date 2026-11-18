@@ -16,6 +16,7 @@ import datetime as dt
 import importlib
 import re
 from dataclasses import dataclass
+from urllib.parse import urlsplit
 
 from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError, OperationalError
@@ -50,10 +51,75 @@ HISTORY_SIZE = 30
 # 처음 보여 줄 예시 상품 — 모두 지어낸 이름이고 is_sample 이다(진짜 제휴처가 아니다).
 # 같은 목록이 migrations/versions/d44a3f8b0c04_mileage.py 에도 들어 있다.
 SAMPLE_ITEMS = [
-    {"partner_name": "동네 카페(예시)", "title": "따뜻한 음료 한 잔", "cost": 300, "sort": 10},
-    {"partner_name": "골목 책방(예시)", "title": "책 5,000원 할인권", "cost": 500, "sort": 20},
-    {"partner_name": "모퉁이 문구점(예시)", "title": "연필과 책갈피 세트", "cost": 200, "sort": 30},
+    {
+        "partner_name": "동네 카페(예시)",
+        "title": "따뜻한 음료 한 잔",
+        "cost": 300,
+        "sort": 10,
+        "image": "warm-drink",
+    },
+    {
+        "partner_name": "골목 책방(예시)",
+        "title": "책 5,000원 할인권",
+        "cost": 500,
+        "sort": 20,
+        "image": "bookshop",
+    },
+    {
+        "partner_name": "모퉁이 문구점(예시)",
+        "title": "연필과 책갈피 세트",
+        "cost": 200,
+        "sort": 30,
+        "image": "pencils",
+    },
 ]
+
+# --- 상품 그림 ---
+# 함께 담긴 그림(app/static/rewards/, 출처는 CREDITS.md): 키 → (파일, 관리자 화면 이름)
+BUNDLED_IMAGES = {
+    "warm-drink": ("warm-drink.webp", "따뜻한 음료"),
+    "bookshop": ("bookshop.webp", "책방 서가"),
+    "pencils": ("pencils.webp", "색연필"),
+    "gift": ("gift.svg", "선물 상자(그림)"),
+}
+# 바깥 그림은 https 이고 이 호스트일 때만 — 아무 주소나 받으면 보는 사람의 접속이 남의 서버에 기록된다
+ALLOWED_IMAGE_HOSTS = frozenset({"upload.wikimedia.org"})
+IMAGE_MAX = 300
+
+
+def clean_image(value: str | None) -> str | None:
+    """관리자가 고른 그림 값을 검사한다. 비면 None, 허용하지 않는 값은 ValueError."""
+    value = (value or "").strip()
+    if not value:
+        return None
+    if value in BUNDLED_IMAGES:
+        return value
+    if len(value) > IMAGE_MAX or any(c.isspace() or c in "\"'<>" for c in value):
+        raise ValueError(value)
+    parts = urlsplit(value)
+    if (
+        parts.scheme != "https"
+        or parts.hostname not in ALLOWED_IMAGE_HOSTS
+        or parts.username
+        or parts.password
+        or parts.port not in (None, 443)
+    ):
+        raise ValueError(value)
+    return value
+
+
+def image_src(value: str | None) -> str:
+    """화면에 쓸 주소. 저장된 값이 (나중에 규칙이 바뀌어) 허용 밖이면 기본 그림으로."""
+    try:
+        value = clean_image(value)
+    except ValueError:
+        value = None
+    if value is None:
+        value = "gift"
+    if value in BUNDLED_IMAGES:
+        return f"/static/rewards/{BUNDLED_IMAGES[value][0]}"
+    return value
+
 
 ERRORS = {
     "balance": "마일리지가 모자라요",

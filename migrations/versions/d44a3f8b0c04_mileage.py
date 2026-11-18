@@ -1,6 +1,6 @@
 """mileage: spend ledger, reward items, reward redemptions (+ sample catalogue)
 
-추가만 한다: 새 표 셋과 예시 상품 세 줄. 예시 상품은 모두 지어낸 이름이고 is_sample=true 라
+추가만 한다: 새 표 셋과 예시 상품 세 줄(그림은 app/static/rewards/ 의 CC0 사진, CREDITS.md). 예시 상품은 모두 지어낸 이름이고 is_sample=true 라
 교환해도 마일리지가 빠지지 않는다(app/services/mileage.py SAMPLE_ITEMS 와 같은 목록).
 
 Revision ID: d44a3f8b0c04
@@ -49,6 +49,7 @@ def upgrade() -> None:
         sa.Column('is_sample', sa.Boolean(), server_default=sa.text('true'), nullable=False),
         sa.Column('sort', sa.Integer(), server_default='0', nullable=False),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+        sa.Column('image', sa.String(length=300), nullable=True),
         sa.PrimaryKeyConstraint('id', name=op.f('pk_reward_items')),
     )
 
@@ -77,11 +78,11 @@ def upgrade() -> None:
         items,
         [
             {'partner_name': '동네 카페(예시)', 'title': '따뜻한 음료 한 잔', 'cost': 300, 'stock': None,
-             'active': True, 'is_sample': True, 'sort': 10},
+             'active': True, 'is_sample': True, 'sort': 10, 'image': 'warm-drink'},
             {'partner_name': '골목 책방(예시)', 'title': '책 5,000원 할인권', 'cost': 500, 'stock': None,
-             'active': True, 'is_sample': True, 'sort': 20},
+             'active': True, 'is_sample': True, 'sort': 20, 'image': 'bookshop'},
             {'partner_name': '모퉁이 문구점(예시)', 'title': '연필과 책갈피 세트', 'cost': 200, 'stock': None,
-             'active': True, 'is_sample': True, 'sort': 30},
+             'active': True, 'is_sample': True, 'sort': 30, 'image': 'pencils'},
         ],
     )
 

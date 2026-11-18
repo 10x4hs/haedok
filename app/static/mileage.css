@@ -1,36 +1,84 @@
-/* 마일리지(/mileage) — app.css 토큰과 /me 마일리지 카드·순위 규칙 목록의 모양을 그대로 따른다 */
-.ml-hero{display:grid;gap:4px;padding:18px 18px 8px;background:var(--surface)}
+/* 마일리지(/mileage) — 기능 색은 금빛 하나(appearance.ACCENTS의 노랑 계열 #e6c36a).
+   배경은 사용자가 고른 화면을 그대로 두고, 카드의 옅은 금빛 유리·아이콘·숫자로만 색을 낸다.
+   밝은 화면에서는 금빛 글자가 묻히므로 글자·아이콘용 진한 금빛(--ml-gold-ink)을 따로 둔다 */
+:root{--ml-gold:#e6c36a;--ml-gold-ink:#e6c36a;--ml-plus:var(--ok)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--ml-gold-ink:#7f5c0c}}
+:root[data-theme="light"]{--ml-gold-ink:#7f5c0c}
+
+/* 잔액 카드: 금빛이 옅게 도는 유리 */
+.ml-hero{display:grid;gap:6px;padding:18px 18px 8px;background:color-mix(in srgb,var(--ml-gold) 10%,var(--surface));border-color:color-mix(in srgb,var(--ml-gold) 45%,transparent)}
 .ml-hero .form-ok,.ml-hero .form-err{margin:0 0 10px}
-.ml-num{font:500 34px var(--f-mono);letter-spacing:-.04em;line-height:1.15}
-.ml-num small{font-size:14px;margin-left:3px;color:var(--dim)}
-.ml-sub{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--dim)}
-.ml-sub b{font:500 14px var(--f-mono);color:var(--text);margin-right:5px}
-.ml-link{display:inline-flex;align-items:center;gap:4px;justify-self:start;min-height:44px;margin-top:4px;color:var(--accent-strong);font-size:14px}
+.ml-eyebrow{font-size:13px;font-weight:600;color:var(--ml-gold-ink)}
+.ml-num{font:500 40px var(--f-mono);letter-spacing:-.04em;line-height:1.1;color:var(--text)}
+.ml-num small{font-size:16px;margin-left:4px;color:var(--ml-gold-ink)}
+.ml-bars{display:grid;gap:8px;margin:6px 0 0}
+.ml-bars>div{display:grid;grid-template-columns:88px 1fr;align-items:center;gap:10px}
+.ml-bars dt{font-size:12px;color:var(--dim)}
+.ml-bars dd{display:flex;align-items:center;gap:10px;margin:0;min-width:0}
+.ml-bars b{font:500 14px var(--f-mono);min-width:44px;text-align:right}
+.ml-bar{flex:1;height:6px;border-radius:999px;background:var(--sunken);overflow:hidden}
+.ml-bar i{display:block;height:100%;border-radius:inherit;transition:width .9s var(--ease)}
+.ml-bar .earned{background:var(--ml-gold)}
+.ml-bar .spent{background:color-mix(in srgb,var(--dim) 70%,transparent)}
+.ml-link{display:inline-flex;align-items:center;gap:4px;justify-self:start;min-height:44px;color:var(--ml-gold-ink);font-size:14px;font-weight:500}
 
 .ml-lead{margin:0 0 12px}
 .ml-h3{font-size:15px;font-weight:600;margin:20px 0 4px}
-.ml-shelf{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.ml-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
-.ml-item>div{flex:1;display:grid;gap:2px;min-width:0}
+
+/* 상품 칸 */
+.ml-shelf{list-style:none;margin:0;padding:0;display:grid;gap:10px;container-type:inline-size}
+.ml-item{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.ml-body{flex:1;display:grid;gap:2px;min-width:0}
 .ml-item b{font-weight:600}
-.ml-item>div>span{font-size:13px;color:var(--dim);overflow-wrap:anywhere}
-.ml-item .tag{justify-self:start;margin-bottom:2px}
-.ml-item form{display:grid;justify-items:end;gap:4px;flex:none;max-width:46%}
+.ml-body>span{font-size:13px;color:var(--dim);overflow-wrap:anywhere}
+.ml-item form{display:grid;justify-items:end;gap:4px;flex:none}
 .ml-item .pill{min-height:44px;font-size:14px;white-space:nowrap}
 .ml-item .pill.ml-buy{background:var(--accent);color:var(--accent-ink);border-color:transparent}
 .ml-item .pill:disabled{color:var(--dim);cursor:not-allowed}
-.ml-why{font-size:12px;color:var(--dim);text-align:right}
+.ml-why{font-size:12px;color:var(--dim)}
+.ml-illo{flex:none;width:56px;height:56px}
+.ml-freeze{border-color:color-mix(in srgb,var(--ml-gold) 35%,transparent)}
+.ml-count{display:flex;align-items:center;gap:4px;margin-top:4px}
+.ml-count i{width:14px;height:6px;border-radius:999px;background:var(--sunken)}
+.ml-count i.on{background:var(--ml-gold)}
+.ml-count small{margin-left:4px;font-size:12px;color:var(--dim)}
 
-.ml-pending{display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:10px;background:var(--surface)}
+/* 리워드 카드: 좁으면 그림이 위, 넓으면 왼쪽 */
+.ml-reward{flex-direction:column;align-items:stretch;padding:0;overflow:hidden}
+.ml-reward .ml-body{padding:12px 16px 14px}
+.ml-pic{position:relative;margin:0;aspect-ratio:4/3;max-height:170px;width:100%;background:color-mix(in srgb,var(--ml-gold) 14%,var(--sunken));overflow:hidden}
+.ml-pic img{display:block;width:100%;height:100%;object-fit:cover}
+.ml-act{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px}
+.ml-cost{font:500 20px var(--f-mono);letter-spacing:-.03em;color:var(--ml-gold-ink)}
+.ml-cost small{font-size:12px;margin-left:2px}
+@container (min-width:440px){
+  .ml-reward{flex-direction:row}
+  .ml-pic{flex:none;width:168px;max-height:none;aspect-ratio:4/3;align-self:stretch}
+}
+/* 예시 상품은 진짜 혜택처럼 보이지 않게: 사진은 한 톤 죽이고, 그림 위와 글 위 두 곳에 라벨 */
+.ml-reward.sample .ml-pic img{filter:saturate(.55) brightness(.82)}
+.ml-sample-badge{position:absolute;left:8px;top:8px;padding:4px 10px;border-radius:999px;background:rgba(10,10,10,.78);color:#fafafa;font-size:12px;font-weight:600;letter-spacing:-.01em;border:1px solid rgba(255,255,255,.28)}
+.ml-sample-tag{justify-self:start;margin-bottom:2px;color:var(--ml-gold-ink);background:color-mix(in srgb,var(--ml-gold) 14%,transparent);border:1px solid color-mix(in srgb,var(--ml-gold) 45%,transparent)}
+.ml-reward.sample .ml-cost{color:var(--dim)}
+
+.ml-pending{display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:10px;background:color-mix(in srgb,var(--ml-gold) 8%,var(--surface));border-color:color-mix(in srgb,var(--ml-gold) 40%,transparent)}
 .ml-pending>div{flex:1;display:grid;min-width:0}
 .ml-pending span{font-size:13px;color:var(--dim)}
 .ml-pending .pill{min-height:44px;flex:none}
 
-.ml-log{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px;font-size:13px;color:var(--dim)}
-.ml-log li{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
-.ml-log li span{min-width:0;overflow-wrap:anywhere;color:var(--body)}
+/* 목록(규칙 · 내역 · 지난 요청) */
+.ml-log{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:10px;font-size:13px;color:var(--dim)}
+.ml-log li{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.ml-log li span{flex:1;min-width:0;overflow-wrap:anywhere;color:var(--body)}
 .ml-log li span small{display:block;font-size:12px;color:var(--dim)}
 .ml-log li b{font:500 13px var(--f-mono);color:var(--text);flex:none}
-.ml-log li b.ml-minus{color:var(--dim)}
+.ml-ic{flex:none;width:30px;height:30px;padding:6px;border-radius:10px;color:var(--ml-gold-ink);background:color-mix(in srgb,var(--ml-gold) 14%,transparent)}
+.ml-rules li b{color:var(--ml-gold-ink)}
+.ml-history b.ml-plus{color:var(--ml-plus)}
+.ml-history b.ml-minus{color:var(--dim)}
 
-.ml-notice ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13px;color:var(--dim)}
+/* 안내: 조용하게 */
+.ml-notice h2{margin:0 0 8px;font-size:14px;font-weight:600;color:var(--dim)}
+.ml-notice ul{margin:0;padding:12px 14px 12px 30px;display:grid;gap:4px;font-size:13px;color:var(--dim);border-radius:var(--r);background:var(--sunken)}
+
+@media (prefers-reduced-motion:reduce){.ml-bar i{transition:none}}

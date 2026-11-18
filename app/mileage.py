@@ -35,6 +35,7 @@ OK = {
 
 templates.env.globals["mileage_on"] = mileage.enabled
 templates.env.globals["mileage_status"] = mileage.STATUS_LABELS
+templates.env.globals["reward_image"] = mileage.image_src
 if ("/admin/rewards", "리워드") not in admin.NAV:  # 기능이 꺼지면 admin/_layout.html 이 숨긴다
     admin.NAV.append(("/admin/rewards", "리워드"))
 
@@ -167,6 +168,8 @@ async def admin_page(
         queue=await mileage.queue(session),
         requested=REQUESTED,
         min_days=mileage.MIN_ACCOUNT_DAYS,
+        images=mileage.BUNDLED_IMAGES,
+        hosts=sorted(mileage.ALLOWED_IMAGE_HOSTS),
     )
 
 
@@ -188,10 +191,16 @@ async def add_item(
     stock: str = Form(""),
     is_sample: str = Form(""),
     sort: str = Form("0"),
+    image: str = Form(""),
+    image_url: str = Form(""),
     session: AsyncSession = Depends(get_session),
     user: User = Depends(admin.require_admin),
 ) -> RedirectResponse:
     auth.check_csrf(request, csrf)
+    try:
+        n_image = _image(image, image_url)
+    except ValueError:
+        return admin._back(ADMIN, err=IMAGE_ERR)
     partner_name, title = partner_name.strip(), title.strip()
     n_cost = _int(cost, 1, 1_000_000)
     n_stock = None if not stock.strip() else _int(stock, 0, 1_000_000)
@@ -208,10 +217,43 @@ async def add_item(
             is_sample=is_sample == "1",
             active=True,
             sort=_int(sort, -10_000, 10_000) or 0,
+            image=n_image,
         )
     )
     await session.commit()
     return admin._back(ADMIN, msg=f"{title}을(를) 올렸어요")
+
+
+IMAGE_ERR = (
+    "그림은 목록에서 고르거나 "
+    + ", ".join(sorted(mileage.ALLOWED_IMAGE_HOSTS))
+    + " 의 https 주소만 쓸 수 있어요"
+)
+
+
+def _image(choice: str, url: str) -> str | None:
+    """목록에서 고른 키, 또는 주소 칸(있으면 이쪽이 앞선다). 허용 밖이면 ValueError."""
+    return mileage.clean_image(url if url.strip() else choice)
+
+
+@router.post(f"{ADMIN}/items/{{item_id}}/image", dependencies=[Depends(require_feature)])
+async def set_image(
+    request: Request,
+    item_id: int,
+    csrf: str = Form(""),
+    image: str = Form(""),
+    image_url: str = Form(""),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(admin.require_admin),
+) -> RedirectResponse:
+    auth.check_csrf(request, csrf)
+    item = await _item(session, item_id)
+    try:
+        item.image = _image(image, image_url)
+    except ValueError:
+        return admin._back(ADMIN, err=IMAGE_ERR)
+    await session.commit()
+    return admin._back(ADMIN, msg=f"{item.title} 그림을 바꿨어요")
 
 
 @router.post(f"{ADMIN}/items/samples", dependencies=[Depends(require_feature)])
