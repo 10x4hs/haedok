@@ -1,6 +1,7 @@
 """검색엔진·공유용 공개 파일 — robots.txt, sitemap.xml, 기본 OG 이미지.
 
-- 공개 페이지(랜딩, /intro, 초대 미리보기 /join/*)만 허용하고 앱 화면은 막는다. 네이버 Yeti도 똑같이 들어온다
+- 공개 페이지(랜딩, /guide·/docs·/developers, 초대 미리보기 /join/*)만 허용하고 앱 화면은 막는다.
+  네이버 Yeti도 똑같이 들어온다
 - OG 이미지는 scripts/build_og.py 로 미리 그려 둔 PNG 한 장(Pillow는 런타임 의존성이 아니다).
   카카오·슬랙 등 미리보기 봇은 OG 태그만 읽으므로 /join/{code} 는 로그인 없이 열려야 한다
 """
@@ -16,8 +17,11 @@ router = APIRouter(include_in_schema=False)
 STATIC = Path(__file__).parent / "static"
 OG_DEFAULT = STATIC / "og" / "default.png"
 
-PUBLIC_PATHS = ("/", "/intro", "/signup", "/login")
-ALLOW = ("/", "/intro", "/join/", "/signup", "/login", "/static/", "/og/", "/manifest.webmanifest")
+PUBLIC_PATHS = ("/", "/guide", "/docs", "/developers", "/signup", "/login")
+ALLOW = (
+    "/", "/guide", "/docs", "/developers", "/intro", "/join/", "/signup", "/login",
+    "/static/", "/og/", "/manifest.webmanifest",
+)  # fmt: skip
 DISALLOW = (
     "/admin", "/api/", "/books/", "/races", "/library", "/me", "/discover", "/search",
     "/upload", "/store/", "/open/", "/shelf/", "/avatars/", "/signup/verify", "/logout", "/welcome/",

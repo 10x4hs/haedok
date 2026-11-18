@@ -114,7 +114,7 @@ async def test_every_page_has_nonced_scripts_unique_title_and_one_h1(api, admin_
 
     async with api(upstream) as host, api(upstream) as friend, api(upstream) as anon:
         # 로그인 전
-        for path in ("/", "/login", "/signup", "/intro", "/no-such-page"):
+        for path in ("/", "/login", "/signup", "/guide", "/docs", "/developers", "/no-such-page"):
             record(f"anon {path}", await anon.get(path, headers={"accept": "text/html"}))
 
         book_id = await _race_pair(host, friend)  # host 는 관리자
