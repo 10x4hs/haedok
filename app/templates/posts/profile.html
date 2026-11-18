@@ -3,7 +3,7 @@
 {% from "_ui.html" import empty_state %}
 {% block title %}{{ prof.user.nickname }} — 偕讀 해독{% endblock %}
 {% block head_extra %}<link rel="stylesheet" href="/static/posts.css">{% endblock %}
-{% block heading %}{% if not me %}<small><a href="/feed">‹ 소식</a></small>{% endif %}{{ prof.user.nickname if not me else '나' }}{% endblock %}
+{% block heading %}{% if not me %}<small><a href="/feed">‹ 피드</a></small>{% endif %}{{ prof.user.nickname if not me else '나' }}{% endblock %}
 {% block main %}
 <div class="ps ps-profile">
   {% if msg %}<p class="form-ok" role="status">{{ msg }}</p>{% endif %}
@@ -73,7 +73,7 @@
   {# 아이콘 탭: 게시물 격자 · 소식(내 프로필) · 저장됨(나만 보인다) #}
   <nav class="ps-ig-tabs ps-prof-tabs" aria-label="보기">
     <a href="{{ base }}" aria-current="{{ 'page' if tab == 'posts' else 'false' }}" aria-label="게시물">{{ grid_icon() }}<span>게시물</span></a>
-    {% if me %}<a href="/profile?tab=feed" aria-current="{{ 'page' if tab == 'feed' else 'false' }}" aria-label="소식">{{ feed_icon() }}<span>소식</span></a>
+    {% if me %}<a href="/profile?tab=feed" aria-current="{{ 'page' if tab == 'feed' else 'false' }}" aria-label="피드">{{ feed_icon() }}<span>소식</span></a>
     <a href="/profile?tab=saved" aria-current="{{ 'page' if tab == 'saved' else 'false' }}" aria-label="저장됨">{{ bookmark_icon() }}<span>저장됨</span></a>{% endif %}
   </nav>
 
