@@ -30,7 +30,7 @@ async def test_intro_moved_to_guide(api):
 async def test_landing_drops_the_demo_pill_and_keeps_every_cta(api):
     async with api(upstream) as c:
         html = (await c.get("/")).text
-    for gone in ("demoOpen", "demoModal", "haedok-demo.mp4", "41초 영상으로 보기"):
+    for gone in ("demoOpen", "demoModal", "41초 영상으로 보기"):
         assert gone not in html
     assert "같은 책을<br>각자의 속도로<br><em>함께</em> 읽어요" in html
     assert 'href="/signup"' in html and "무료로 시작하기" in html
@@ -49,7 +49,7 @@ async def test_landing_clips_play_inline_with_posters_and_captions(api):
             assert f'aria-describedby="clip-{name}-d"' in html
             assert (await c.get(f"/static/clips/{name}.mp4")).status_code == 200
     # 소리 없이, 보일 때만 — 저절로 재생(autoplay) 속성은 쓰지 않는다
-    videos = re.findall(r"<video[^>]*>", html)
+    videos = re.findall(r"<video data-clip[^>]*>", html)  # 41초 소개 영상(소리 있음, 직접 재생)은 따로 검사한다
     assert len(videos) == 4
     assert all(
         "muted" in v and "playsinline" in v and 'preload="none"' in v and "autoplay" not in v for v in videos
@@ -125,3 +125,11 @@ async def test_auth_pages_draw_the_cover_wall_from_local_covers(api, path):
     covers = re.findall(r'<img src="([^"]+)"', wall)
     assert covers and all(src.startswith("/static/covers/showcase/") for src in covers)
     assert 'class="auth-card"' in html  # 유리 카드는 그대로
+
+
+async def test_landing_plays_the_41s_demo_inline(api):
+    """41초 소개 영상은 버튼·팝업 없이 첫 화면에 바로 있고, 파일도 실제로 있다."""
+    async with api(upstream) as c:
+        html = (await c.get("/")).text
+        assert 'id="demo"' in html and "/static/demo/haedok-demo.mp4?v=" in html and "<video controls" in html
+        assert (await c.get("/static/demo/haedok-demo.mp4")).status_code == 200

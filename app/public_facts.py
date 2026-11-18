@@ -49,13 +49,14 @@ def _count_js() -> tuple[int, int]:
     return len(files), sum(len(p.read_text(encoding="utf-8").splitlines()) for p in files)
 
 
-def clip_versions() -> dict[str, str]:
-    """짧은 영상 파일마다 내용 지문(8자리). 파일 이름이 같아도 바뀌면 주소가 바뀌어 캐시를 새로 받는다."""
-    folder = ROOT / "app" / "static" / "clips"
+def clip_versions(sub: str = "clips") -> dict[str, str]:
+    """영상 파일마다 내용 지문(8자리). 파일 이름이 같아도 바뀌면 주소가 바뀌어 캐시를 새로 받는다."""
+    folder = ROOT / "app" / "static" / sub
     return {p.name: hashlib.sha1(p.read_bytes()).hexdigest()[:8] for p in sorted(folder.glob("*.*"))}
 
 
 CLIP_V = clip_versions()
+DEMO_V = clip_versions("demo")  # 41초 소개 영상
 
 
 def _facts() -> dict:
