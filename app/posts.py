@@ -23,6 +23,7 @@ from app.db.session import get_session
 from app.models import User
 from app.models_posts import ReadingPost
 from app.services import bookstore
+from app.services import feed as feed_svc
 from app.services import post_photos as photo_rules
 from app.services import posts as svc
 from app.services.search import search_all
@@ -42,6 +43,7 @@ def require_feature() -> None:
 templates.env.globals["feature_posts"] = feature_posts
 templates.env.globals["post_segments"] = svc.segments
 templates.env.filters["post_when"] = svc.when
+templates.env.filters["josa"] = feed_svc.josa
 
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_feature)])
 
@@ -720,33 +722,133 @@ async def profile_page(
     return await _profile(request, session, user, user_id, tab, before)
 
 
+FEED_TABS = ("friends", "rec", "all")
+
+
+async def _stream(session: AsyncSession, user: User, tab: str, before: int | None, page: int) -> dict:
+    """피드 한 쪽의 내용 — 처음 그릴 때와 이어 읽기 조각(/feed/more)이 같이 쓴다."""
+    out: dict = {"tab": tab, "items": [], "tiles": [], "cursor": None, "next_page": None, "count": 0}
+    if tab == "all":
+        out["tiles"], out["cursor"] = await svc.explore(session, user.id, before)
+    elif tab == "rec":
+        cards, more = await feed_svc.recommended(session, user.id, page)
+        out["items"] = [feed_svc.Item("post", card=c) for c in cards]
+        out["next_page"] = page + 1 if more else None
+        out["count"] = len(cards)
+    else:
+        out["items"], out["cursor"], out["count"] = await feed_svc.friends_page(session, user.id, before)
+    if any(i.kind == "caught" for i in out["items"]):
+        out["caught_tiles"] = await feed_svc.popular_tiles(session, user.id, 3)
+    return out
+
+
+def _more_href(st: dict) -> str | None:
+    if st["tab"] == "rec":
+        return f"/feed?tab=rec&page={st['next_page']}" if st["next_page"] is not None else None
+    if st["cursor"] is None:
+        return None
+    return ("/feed?tab=all&" if st["tab"] == "all" else "/feed?") + f"before={st['cursor']}"
+
+
 @router.get("/feed", response_class=HTMLResponse)
 async def feed_page(
     request: Request,
     tab: str = "friends",
     before: int | None = Query(None, ge=1),
+    page: int = Query(0, ge=0, le=1000),
     session: AsyncSession = Depends(get_session),
     user: User = Depends(auth.require_user),
 ) -> HTMLResponse:
-    """친구: 나와 친구의 게시물 피드 · 모두: 인스타의 탐색처럼 '가입한 모두' 게시물 격자."""
-    tab = "all" if tab == "all" else "friends"
-    cards, tiles, cursor = [], [], None
-    if tab == "all":
-        tiles, cursor = await svc.explore(session, user.id, before)
-    else:
-        cards, cursor = await svc.feed(session, user.id, tab, before)
+    """피드 — 앱의 소셜 홈. 친구(최신순 + 활동 소식) · 추천(최근 + 좋아요) · 탐색(격자)."""
+    tab = tab if tab in FEED_TABS else "friends"
+    st = await _stream(session, user, tab, before, page)
+    paged = bool(before) or page > 0
+    first_friends = tab == "friends" and not paged
+    friend_n = await svc.friend_count(session, user.id)
+    thin = first_friends and st["count"] < feed_svc.THIN
     return _render(
         request,
         "posts/feed.html",
         user,
-        tab=tab,
-        cards=cards,
-        tiles=tiles,
-        cursor=cursor,
-        paged=bool(before),
+        **st,
+        more_href=_more_href(st),
+        paged=paged,
         faces=await svc.face_ids(session, user.id),
-        friends=await svc.share_targets(session, user.id) if tab == "friends" else [],
+        friends=await svc.share_targets(session, user.id) if tab != "all" else [],
+        stories=await feed_svc.stories(session, user) if first_friends else [],
+        chips=await feed_svc.reading_now(session, user.id) if first_friends else [],
+        newest=max((i.card.post.id for i in st["items"] if i.kind == "post"), default=0),
+        thin=thin,
+        lonely=first_friends and friend_n == 0 and st["count"] == 0,
+        people=await feed_svc.people(session, user.id) if thin else [],
+        popular=await feed_svc.popular_tiles(session, user.id, 6) if thin else [],
+        side=await feed_svc.side(session, user),
+        chat_on=get_settings().feature_chat,
         **_notes(request),
+    )
+
+
+@router.get("/feed/more", response_class=HTMLResponse)
+async def feed_more(
+    request: Request,
+    tab: str = "friends",
+    before: int | None = Query(None, ge=1),
+    page: int = Query(0, ge=0, le=1000),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(auth.require_user),
+) -> HTMLResponse:
+    """이어 읽기 조각(바닥에 가까워지면 자동으로) — 다음 쪽 칸들과 그다음 '더 보기' 링크."""
+    tab = tab if tab in ("friends", "rec") else "friends"
+    st = await _stream(session, user, tab, before, page)
+    return templates.TemplateResponse(
+        request,
+        "posts/_stream.html",
+        {
+            "request": request,
+            "user": user,
+            "csrf": auth.csrf_token(request),
+            **st,
+            "more_href": _more_href(st),
+            "paged": True,
+            "faces": await svc.face_ids(session, user.id),
+        },
+    )
+
+
+@router.get("/feed/new")
+async def feed_new(
+    after: int = Query(0, ge=0),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(auth.require_user),
+) -> JSONResponse:
+    """새 게시물 알약 — 친구 탭에서 after 뒤로 올라온 친구 게시물 수만(가볍게, 60초마다)."""
+    n = await feed_svc.new_count(session, user.id, after) if after else 0
+    return JSONResponse({"count": n}, headers={"Cache-Control": "no-store"})
+
+
+@router.get("/feed/fresh", response_class=HTMLResponse)
+async def feed_fresh(
+    request: Request,
+    after: int = Query(0, ge=1),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(auth.require_user),
+) -> HTMLResponse:
+    """알약을 누르면 맨 위에 끼워 넣을 새 게시물들(조각)."""
+    cards = await feed_svc.fresh(session, user.id, after)
+    return templates.TemplateResponse(
+        request,
+        "posts/_stream.html",
+        {
+            "request": request,
+            "user": user,
+            "csrf": auth.csrf_token(request),
+            "tab": "friends",
+            "items": [feed_svc.Item("post", card=c) for c in cards],
+            "more_href": None,
+            "paged": True,
+            "faces": await svc.face_ids(session, user.id),
+            "fresh": True,
+        },
     )
 
 

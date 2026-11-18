@@ -1,0 +1,394 @@
+"""라운드 6 — 피드(/feed)가 앱의 소셜 홈: 동그라미 줄 · 작성 칸 · 친구/추천/탐색 탭 · 활동 소식 ·
+새 게시물 알약(/feed/new) · 이어 읽기(/feed/more) · 모두 확인했어요 · 빈 화면."""
+
+import datetime as dt
+import re
+
+import pytest
+from sqlalchemy import select
+
+from app.core.config import get_settings
+from app.models import Book, LibraryEntry, PointsLog, Room, RoomMember, Shelf
+from app.models_posts import ReadingPost
+from app.services import feed as feed_svc
+from app.services import posts as psvc
+from tests.conftest import signup
+from tests.test_api import upstream
+from tests.test_posts import done, relate, three
+
+
+@pytest.fixture(autouse=True)
+def flags(monkeypatch):
+    s = get_settings()
+    for name in ("feature_posts", "feature_chat", "feature_goals", "feature_board"):
+        monkeypatch.setattr(s, name, True)
+
+
+NOW = dt.datetime.now(dt.UTC)
+
+
+async def posts_at(session_factory, author: int, hours: list[float], visibility="all", tag="p") -> list[int]:
+    """hours 시간 전에 올린 게시물들(순서대로 id 가 커지게 오래된 것부터 넣는다)."""
+    ids = []
+    async with session_factory() as s:
+        for i, h in enumerate(sorted(hours, reverse=True)):
+            at = NOW - dt.timedelta(hours=h)
+            p = ReadingPost(
+                author_id=author,
+                book_source="store",
+                external_id=f"{tag}{author}-{i}",
+                book_title=f"책 {tag}{i}",
+                status="done",
+                caption="",
+                visibility=visibility,
+                post_day=at.date().isoformat(),
+                created_at=at,
+            )
+            s.add(p)
+            await s.flush()
+            ids.append(p.id)
+        await s.commit()
+    return ids
+
+
+async def finished(session_factory, user: int, title: str, hours: float, *, upload=False, owner=None) -> int:
+    async with session_factory() as s:
+        b = Book(
+            source="upload" if upload else "store",
+            external_id=f"x-{title}",
+            title=title,
+            author="누군가",
+            owner_id=owner,
+        )
+        s.add(b)
+        await s.flush()
+        s.add(
+            LibraryEntry(
+                user_id=user, book_id=b.id, shelf=Shelf.DONE, updated_at=NOW - dt.timedelta(hours=hours)
+            )
+        )
+        await s.commit()
+        return b.id
+
+
+async def acts_html(c) -> list[str]:
+    return re.findall(r'data-act="(\w+)"', (await c.get("/feed")).text)
+
+
+# ---------------------------------------------------------------- 머리 · 동그라미 · 작성 칸
+
+
+async def test_header_stories_and_composer(api, session_factory):
+    (a, f, x), (ia, i_f, ix) = await three(api, session_factory)
+    async with done(a, f, x):
+        await posts_at(session_factory, i_f, [2])  # 친구 민준: 2시간 전 → 고리
+        async with session_factory() as s:
+            b = Book(source="store", external_id="r1", title="메밀꽃 필 무렵", author="이효석")
+            u = Book(source="upload", external_id="u1", title="비밀 일기", owner_id=ia)
+            s.add_all([b, u])
+            await s.flush()
+            s.add(LibraryEntry(user_id=ia, book_id=b.id, shelf=Shelf.READING))
+            s.add(LibraryEntry(user_id=ia, book_id=u.id, shelf=Shelf.READING))
+            await s.commit()
+            bid = b.id
+        html = (await a.get("/feed")).text
+        assert '<h1 class="top-title">피드</h1>' in html and "‹ 내 프로필" not in html
+        assert 'class="ps-top-plus" href="/posts/new"' in html
+        stories = html.split("data-stories", 1)[1].split("</ul>", 1)[0]
+        assert stories.index("내 기록") < stories.index("민준")
+        assert re.search(rf'data-story="{i_f}"[^>]*data-ring', stories)
+        assert f'data-story="{ix}"' not in stories  # 친구가 아니면 동그라미도 없다
+        assert "무엇을 읽고 있나요?" in html
+        assert f"/posts/new?book=b%3A{bid}&amp;status=reading" in html and "메밀꽃 필 무렵" in html
+        assert "비밀 일기" not in html  # 개인 파일은 칩이 될 수 없다
+        # 칩으로 열면 그 책을 고른 채로
+        page = (await a.get(f"/posts/new?book=b:{bid}&status=reading")).text
+        assert re.search(rf'value="b:{bid}"[^>]*checked', page)
+
+
+async def test_new_user_empty_state(api, session_factory):
+    async with api(upstream) as c:
+        await signup(c, "new@example.com", "새사람")
+        html = (await c.get("/feed")).text
+        assert "친구가 올린 읽은 책이 여기에 모여요" in html
+        for href, label in (
+            ("/friends", "친구 찾기"),
+            ("/posts/new", "첫 기록 올리기"),
+            ("/together", "모집 글 보기"),
+        ):
+            assert f'href="{href}">{label}<' in html
+
+
+# ---------------------------------------------------------------- 활동 소식
+
+
+async def test_activity_privacy_and_flags(api, session_factory, monkeypatch):
+    (a, f, x), (ia, i_f, ix) = await three(api, session_factory)
+    async with done(a, f, x):
+        await posts_at(session_factory, ia, [1, 2, 3, 4, 5, 6, 7, 8])
+        await finished(session_factory, i_f, "메밀꽃 필 무렵", 3.5)  # 친구 · 공개 책 → 보인다
+        await finished(
+            session_factory, i_f, "비밀 원고", 2.5, upload=True, owner=i_f
+        )  # 개인 파일 → 절대 아님
+        await finished(session_factory, ix, "모르는 사람 책", 1.5)  # 친구가 아님
+        async with session_factory() as s:
+            s.add(
+                PointsLog(
+                    user_id=i_f,
+                    source="streak",
+                    amount=30,
+                    ref_id=NOW.date().isoformat(),
+                    created_at=NOW - dt.timedelta(hours=6.5),
+                )
+            )
+            await s.commit()
+        async with session_factory() as s:
+            acts = await feed_svc.activities(
+                s, ia, NOW - dt.timedelta(days=1), NOW + dt.timedelta(minutes=1), 10
+            )
+        kinds = [(a_.kind, a_.book) for a_ in acts]
+        assert ("done", "메밀꽃 필 무렵") in kinds and ("streak", None) in kinds
+        assert all(b not in ("비밀 원고", "모르는 사람 책") for _, b in kinds)
+        html = (await a.get("/feed")).text
+        assert (
+            "「메밀꽃 필 무렵」을 다 읽었어요" in html
+            and "비밀 원고" not in html
+            and "모르는 사람 책" not in html
+        )
+        # 목표 기능이 꺼지면 연속 읽기 소식도 없다
+        monkeypatch.setattr(get_settings(), "feature_goals", False)
+        async with session_factory() as s:
+            acts = await feed_svc.activities(
+                s, ia, NOW - dt.timedelta(days=1), NOW + dt.timedelta(minutes=1), 10
+            )
+        assert "streak" not in [a_.kind for a_ in acts]
+        # 차단하면(누가 막았든) 그 친구의 소식은 사라진다
+        async with session_factory() as s:
+            from app.models_chat import Friendship
+
+            fr = await s.scalar(select(Friendship))
+            fr.status, fr.high_blocks = "blocked", True
+            await s.commit()
+        async with session_factory() as s:
+            assert await feed_svc.activities(s, ia, NOW - dt.timedelta(days=1), NOW, 10) == []
+
+
+async def test_race_first_finisher_and_recruit(api, session_factory, monkeypatch):
+    (a, f, x), (ia, i_f, ix) = await three(api, session_factory)
+    await relate(session_factory, ia, ix)  # 서연도 친구
+    async with done(a, f, x):
+        async with session_factory() as s:
+            book = Book(
+                source="store", external_id="rb", title="운수 좋은 날", author="현진건", total_chunks=3
+            )
+            s.add(book)
+            await s.flush()
+            room = Room(book_id=book.id, owner_id=i_f, name="함께 방", invite_code="FEED01")
+            s.add(room)
+            await s.flush()
+            s.add(RoomMember(room_id=room.id, user_id=i_f))
+            s.add(
+                PointsLog(
+                    user_id=ix,
+                    source="race_finish",
+                    amount=20,
+                    ref_id=str(room.id),
+                    created_at=NOW - dt.timedelta(hours=5),
+                )
+            )
+            s.add(
+                PointsLog(
+                    user_id=i_f,
+                    source="race_finish",
+                    amount=20,
+                    ref_id=str(room.id),
+                    created_at=NOW - dt.timedelta(hours=4),
+                )
+            )
+            from app.models_board import RecruitPost
+
+            room2 = Room(book_id=book.id, owner_id=ix, name="모집 방", invite_code="FEED02")
+            s.add(room2)
+            await s.flush()
+            s.add(
+                RecruitPost(
+                    room_id=room2.id,
+                    author_id=ix,
+                    book_id=book.id,
+                    pitch="같이 읽어요",
+                    created_at=NOW - dt.timedelta(hours=3),
+                )
+            )
+            await s.commit()
+        async with session_factory() as s:
+            acts = await feed_svc.activities(s, ia, NOW - dt.timedelta(days=1), NOW, 10)
+        race = [a_ for a_ in acts if a_.kind == "race"]
+        assert [a_.user.id for a_ in race] == [ix]  # 가장 먼저 완주한 사람만 1등
+        assert race[0].href == f"/u/{ix}"  # 나는 그 방 사람이 아니니 방으로 보내지 않는다
+        rec = [a_ for a_ in acts if a_.kind == "recruit"]
+        assert rec and rec[0].href.startswith("/together/") and rec[0].action == "참가"
+        monkeypatch.setattr(get_settings(), "feature_board", False)
+        async with session_factory() as s:
+            acts = await feed_svc.activities(s, ia, NOW - dt.timedelta(days=1), NOW, 10)
+        assert "recruit" not in [a_.kind for a_ in acts]
+
+
+async def test_at_most_one_activity_per_four_posts(api, session_factory):
+    (a, f, x), (ia, i_f, ix) = await three(api, session_factory)
+    async with done(a, f, x):
+        await posts_at(session_factory, i_f, [1 + i for i in range(6)])  # 6개
+        for i in range(5):
+            await finished(session_factory, i_f, f"다 읽은 {i}", 1.5 + i)
+        acts = await acts_html(a)
+        assert len(acts) == 1  # 6 // 4
+        html = (await a.get("/feed")).text
+        order = re.findall(r'id="post-\d+"|data-act="', html)
+        assert order.index('data-act="') == 4  # 네 번째 게시물 뒤
+        await posts_at(session_factory, i_f, [0.5, 0.6], tag="q")  # 8개 → 2개
+        assert len(await acts_html(a)) == 2
+
+
+async def test_activities_do_not_repeat_across_pages(api, session_factory):
+    (a, f, x), (ia, i_f, ix) = await three(api, session_factory)
+    async with done(a, f, x):
+        await posts_at(session_factory, i_f, [i * 2 + 1 for i in range(psvc.FEED_PAGE + 8)])
+        for i in range(8):
+            await finished(session_factory, i_f, f"책장 {i}", i * 4 + 2)
+        first = (await a.get("/feed")).text
+        nxt = re.search(r'data-next-page="([^"]+)"', first).group(1).replace("&amp;", "&")
+        assert nxt.startswith("/feed/more?before=")
+        more = (await a.get(nxt)).text
+        assert "<html" not in more and 'id="post-' in more
+        seen1 = re.findall(r"「(책장 \d)」", first)
+        seen2 = re.findall(r"「(책장 \d)」", more)
+        assert seen1 and not set(seen1) & set(seen2)
+        ids1 = re.findall(r'id="post-(\d+)"', first)
+        ids2 = re.findall(r'id="post-(\d+)"', more)
+        assert not set(ids1) & set(ids2) and len(ids1) == psvc.FEED_PAGE
+
+
+# ---------------------------------------------------------------- 새 게시물 알약
+
+
+async def test_new_count_and_fresh(api, session_factory):
+    (a, f, x), (ia, i_f, ix) = await three(api, session_factory)
+    async with done(a, f, x):
+        first = (await posts_at(session_factory, i_f, [5]))[0]
+        assert (await a.get(f"/feed/new?after={first}")).json() == {"count": 0}
+        await posts_at(session_factory, i_f, [0.2, 0.1], tag="n")  # 친구 둘
+        await posts_at(
+            session_factory, i_f, [0.15], visibility="friends", tag="nf"
+        )  # 친구만 — 친구니까 보인다
+        await posts_at(session_factory, ia, [0.05], tag="me")  # 내 글은 세지 않는다
+        await posts_at(session_factory, ix, [0.05], tag="xx")  # 친구가 아님
+        r = await a.get(f"/feed/new?after={first}")
+        assert r.json() == {"count": 3} and r.headers["cache-control"] == "no-store"
+        assert (await x.get(f"/feed/new?after={first}")).json() == {
+            "count": 0
+        }  # 서연은 하린의 친구가 아니다... 민준과도 아니다
+        assert (await a.get("/feed/new?after=0")).json() == {"count": 0}
+        frag = (await a.get(f"/feed/fresh?after={first}")).text
+        assert "<html" not in frag and len(re.findall(r'id="post-(\d+)"', frag)) == 4  # 친구 셋 + 내 글
+        page = (await a.get("/feed")).text
+        assert "data-new-pill" in page and re.search(r'data-newest="\d+"', page)
+
+
+# ---------------------------------------------------------------- 추천
+
+
+async def test_recommendations_exclude_friends_only_blocked_and_mine(api, session_factory):
+    (a, f, x), (ia, i_f, ix) = await three(api, session_factory)
+    async with done(a, f, x):
+        friend_open = await posts_at(session_factory, i_f, [3], tag="fo")
+        friend_closed = await posts_at(session_factory, i_f, [2], visibility="friends", tag="fc")
+        stranger = await posts_at(session_factory, ix, [1, 30], tag="st")
+        mine = await posts_at(session_factory, ia, [0.5], tag="mi")
+        html = (await a.get("/feed?tab=rec")).text
+        ids = [int(i) for i in re.findall(r'id="post-(\d+)"', html)]
+        assert set(ids) == set(friend_open + stranger)
+        assert not set(ids) & set(friend_closed + mine)
+        assert ids.index(stranger[1]) < ids.index(stranger[0])  # 같은 좋아요면 최근 것이 먼저
+        # 좋아요가 많으면 더 오래된 글도 앞으로 온다
+        async with session_factory() as s:
+            from app.models_posts import PostLike
+
+            for u in (ia, i_f):
+                s.add(PostLike(post_id=stranger[0], user_id=u))
+            await s.commit()
+        async with session_factory() as s:
+            ranked = await feed_svc._ranked_ids(s, ia)
+        assert (
+            ranked.index(stranger[0]) < ranked.index(friend_closed[0]) if friend_closed[0] in ranked else True
+        )
+        assert friend_closed[0] not in ranked
+        # 차단하면 추천에서도 빠진다
+        await relate(session_factory, ia, ix, status="blocked", blocker=ia)
+        ids = [int(i) for i in re.findall(r'id="post-(\d+)"', (await a.get("/feed?tab=rec")).text)]
+        assert not set(ids) & set(stranger)
+
+
+async def test_rec_paging(api, session_factory, monkeypatch):
+    monkeypatch.setattr(feed_svc, "REC_PAGE", 3)
+    (a, f, x), (ia, i_f, ix) = await three(api, session_factory)
+    async with done(a, f, x):
+        await posts_at(session_factory, ix, [1, 2, 3, 4, 5], tag="r")
+        p0 = (await a.get("/feed?tab=rec")).text
+        assert len(re.findall(r'id="post-\d+"', p0)) == 3
+        nxt = re.search(r'data-next-page="([^"]+)"', p0).group(1).replace("&amp;", "&")
+        assert nxt == "/feed/more?tab=rec&page=1"
+        p1 = (await a.get(nxt)).text
+        assert len(re.findall(r'id="post-\d+"', p1)) == 2 and "data-next-page" not in p1
+
+
+# ---------------------------------------------------------------- 모두 확인했어요 · 얇은 피드
+
+
+async def test_caught_up_divider_before_first_old_post(api, session_factory):
+    (a, f, x), (ia, i_f, ix) = await three(api, session_factory)
+    async with done(a, f, x):
+        await posts_at(session_factory, i_f, [5, 20, 100, 200])  # 둘은 3일 안, 둘은 그 전
+        html = (await a.get("/feed")).text
+        order = re.findall(r'id="post-\d+"|모두 확인했어요', html.split("data-stream", 1)[1])
+        assert order.index("모두 확인했어요") == 2 and order.count("모두 확인했어요") == 1
+        assert "최근 3일 게시물을 다 봤어요" in html and "지난 게시물" in html
+
+
+async def test_caught_up_at_end_when_all_recent(api, session_factory):
+    (a, f, x), (ia, i_f, ix) = await three(api, session_factory)
+    async with done(a, f, x):
+        await posts_at(session_factory, i_f, [1, 2])
+        html = (await a.get("/feed")).text.split("data-stream", 1)[1]
+        assert html.index("모두 확인했어요") > html.rindex('id="post-')
+
+
+async def test_thin_feed_suggests_roommates_and_popular(api, session_factory):
+    (a, f, x), (ia, i_f, ix) = await three(api, session_factory)
+    async with done(a, f, x):
+        async with session_factory() as s:
+            book = Book(source="store", external_id="tb", title="같이 읽는 책")
+            s.add(book)
+            await s.flush()
+            room = Room(book_id=book.id, owner_id=ia, name="토요일 방", invite_code="THIN01")
+            s.add(room)
+            await s.flush()
+            s.add_all([RoomMember(room_id=room.id, user_id=ia), RoomMember(room_id=room.id, user_id=ix)])
+            await s.commit()
+        await posts_at(session_factory, ix, [2], tag="pop")
+        html = (await a.get("/feed")).text
+        assert "함께 읽은 사람" in html and f'action="/friends/{ix}/request"' in html and "토요일 방" in html
+        assert "요즘 인기 있는 게시물" in html
+
+
+async def test_feed_requires_login_and_flag(api, session_factory, monkeypatch):
+    async with api(upstream) as c:
+        r = await c.get("/feed/new?after=1")
+        assert r.status_code in (303, 401)
+        await signup(c, "harin@example.com", "하린")
+        monkeypatch.setattr(get_settings(), "feature_posts", False)
+        for path in ("/feed", "/feed/new?after=1", "/feed/more", "/feed/fresh?after=1"):
+            assert (await c.get(path)).status_code == 404, path
+
+
+def test_josa():
+    assert feed_svc.josa("메밀꽃 필 무렵") == "을" and feed_svc.josa("데미안") == "을"
+    assert feed_svc.josa("어린 왕자") == "를" and feed_svc.josa("1984") == "을(를)"
