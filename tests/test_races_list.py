@@ -18,7 +18,8 @@ def rows(html: str) -> list[tuple[str, str]]:
 async def test_title_actions_and_code_field(api):
     c = await login_as(api, "a@example.com", "가")
     page = (await c.get("/races")).text
-    assert '<h1 class="top-title">대결</h1>' in page and 'class="rl-lede"' in page
+    assert '<h1 class="top-title">서재</h1>' in page and 'class="rl-lede"' in page  # 대결은 서재의 한 갈래
+    assert 'data-seg="races" aria-controls="shelf-races" aria-selected="true"' in page
     assert 'href="/leaderboard"' in page
     assert re.search(r'data-panel="newRace"[^>]*>방 만들기<', page)
     assert re.search(r'data-panel="joinCode"[^>]*>코드로 참가<', page)

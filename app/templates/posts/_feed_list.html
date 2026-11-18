@@ -1,7 +1,7 @@
-{# 게시물 목록 — /feed 와 내 프로필의 '소식' 탭이 같이 쓴다. more_href: 다음 쪽 주소의 앞부분 #}
+{# 게시물 목록 — /feed 의 '친구'와 내 프로필의 '소식' 탭이 같이 쓴다. more_base: 다음 쪽 주소의 앞부분 #}
 {% from "posts/_parts.html" import post_card %}
 {% from "_ui.html" import empty_state %}
-{% set more_base = more_base if more_base is defined else ('/feed?' ~ ('tab=all&' if tab == 'all' else '')) %}
+{% set more_base = more_base if more_base is defined else '/feed?' %}
 {% if cards %}
 <div class="ps-cards">
   {% for c in cards %}{{ post_card(c, csrf, request.url.path ~ ('?' ~ request.url.query if request.url.query else ''), faces, user.id, eager=loop.first and not paged) }}{% endfor %}
@@ -9,8 +9,6 @@
 {% if cursor %}<a class="btn ghost wide ps-more" href="{{ more_base }}before={{ cursor }}">더 보기</a>{% endif %}
 {% elif paged %}
 <p class="muted ps-end">여기까지예요. 더 지난 게시물은 없어요.</p>
-{% elif tab == 'all' %}
-{{ empty_state('book', '아직 아무도 올리지 않았어요', '가입한 모두에게 보이게 올리면 여기에 보여요.', '/posts/new', '게시물 올리기') }}
 {% else %}
-{{ empty_state('book', '아직 소식이 없어요', '읽은 책을 올리면 여기에 보여요. 친구가 올린 책도 여기에 모여요.', '/posts/new', '첫 게시물 올리기') }}
+{{ empty_state('book', '아직 소식이 없어요', '읽은 책을 올리면 여기에 보여요. 친구가 올린 책도 여기에 모여요.', '/posts/new', '첫 게시물 만들기') }}
 {% endif %}

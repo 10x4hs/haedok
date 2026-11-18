@@ -6,204 +6,201 @@
 
 # Same book, together.
 
-**偕** together + **讀** read — read the same book with friends at your own pace, react to paragraphs, and race page by page.
+**偕** together + **讀** read — read the same book with friends at your own pace, react to paragraphs, and race to see who reads more.<br>
+The server keeps the reading time, and the server hides what you haven't read yet.
 
 [![CI](https://github.com/10x4hs/haedok/actions/workflows/ci.yml/badge.svg)](https://github.com/10x4hs/haedok/actions/workflows/ci.yml)
 ![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-async-009688?logo=fastapi&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Vercel-deployed-000000?logo=vercel&logoColor=white)
 
-[**Open the app →**](https://haedok.vercel.app) · [Intro page](https://haedok.vercel.app/intro) · [PRD](docs/PRD.md) · [Definition of done](GOAL.md) · [Architecture](docs/architecture.md)
+[**Open the app → haedok.vercel.app**](https://haedok.vercel.app) · [How to use](https://haedok.vercel.app/guide) · [Docs (rules)](https://haedok.vercel.app/docs) · [Developer](https://haedok.vercel.app/developers) · [Architecture](docs/architecture.md)
 
 <br>
 
-<img src="docs/images/app/7-race.jpg" alt="Page race screen" width="300">
+<a href="app/static/demo/haedok-demo.mp4"><img src="app/static/demo/haedok-demo-poster.jpg" alt="Haedok in 41 seconds — click to watch" width="280"></a>
+
+<sub>▶ A 41-second video: sign-up, reading, reactions and a race (<a href="app/static/demo/haedok-demo.mp4">haedok-demo.mp4</a>). The app itself is in Korean.</sub>
 
 </div>
 
----
-
-## Why
-
-Even with a friend reading the same book, "where are you up to?" was always a text message away.
-Haedok removes that question. Inside the reader you see which page your friend has open and which paragraph they stopped at.
-Pages that were merely flipped don't count, and reactions ahead of where you are stay hidden, so you can race without fear of spoilers.
-
 ## Features
 
-- **Public-domain classics in a 3D reader** — more than 860 classics (Wikisource, Project Gutenberg) open right in the app. Page turns use StPageFlip, and there's a scroll mode too.
-- **Bring your own files** — upload EPUB, PDF or TXT and read it in the same reader. Only the uploader can open it, and DRM-protected files are rejected.
-- **A 130-title bookstore with BookTuber videos** — popular new releases link to Aladin e-books, alongside video introductions.
-- **One invite code, one race** — open a page race with a single code. Rankings count **only pages the server has verified**.
-- **Paragraph reactions with a spoiler guard** — leave an emoji or a one-liner on any paragraph. Reactions on pages you haven't read yet show up only as "🔒 N".
-- **Reading together, live** — a room-mate's current position and reactions arrive in real time (WebSocket locally, polling on serverless).
-- **Email signup with a 6-digit code** — Resend first, SMTP as fallback. Every attempt is written to `mail_logs` and visible in the admin screens.
-- **Installs nowhere, runs everywhere** — a PWA (offline shell, add to home screen) plus an Android TWA. The layout adapts to phone, tablet and desktop, with 30 backgrounds and 12 accent colours to choose from.
+<table>
+<tr>
+<td width="200" align="center"><img src="docs/images/app/5-reader.jpg" alt="Reader with the 15-second ring at the bottom" width="180"></td>
+<td>
+<h3>📖 Read together, verified</h3>
+Public-domain classics (Wikisource, Project Gutenberg) open in the in-app reader. Keep a page open for <b>15 seconds</b> and it counts as read — the same for every page, whatever its length or your screen size. The server measures the time, not the browser. DRM-free EPUB · PDF · TXT files you bought can be uploaded and read in the same reader; only the uploader can open them. On a desktop the reader opens two pages like a paper book.
+</td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/app/6-react.jpg" alt="Paragraph reaction sheet" width="180"></td>
+<td>
+<h3>💬 Paragraph reactions · spoiler guard</h3>
+Tap a paragraph to leave an emoji (❤️ 😂 😮 😢 👏) or a 140-character line. Only people in the same race room see them, and reactions on pages you haven't read show as <b>“🔒 N”</b> — a count only. The server leaves the text out of the response itself.
+</td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/app/7-race.jpg" alt="Race room with four readers on a track" width="180"></td>
+<td>
+<h3>🏁 Races</h3>
+Pick a book and a length (1 · 3 · 7 · 14 days) to get a 6-character invite code; up to 8 people per room. Ranking is by server-verified pages, and the track shows who is reading right now. The 대결 tab lists my rooms, finished rooms and rooms that are recruiting in one calm list.
+</td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/app/8-me.jpg" alt="Profile with today's goal ring and a 17-week heatmap" width="180"></td>
+<td>
+<h3>🌱 Daily goal · heatmap</h3>
+Choose 3 · 5 · 10 · 20 pages a day; every day with verified pages adds a square to the heatmap and extends your streak. The reading day changes at <b>4 a.m. KST</b>. A missed day is covered automatically by a streak freeze (hold up to 2), and once a month you can repair a single missed day by reading double the next day.
+</td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/app/13-together.jpg" alt="Board for finding people to read with" width="180"></td>
+<td>
+<h3>🙋 Find people to read with (<code>/together</code>)</h3>
+Post a book, pages per day, seats and a one-line pitch; each post is a race room and one tap joins it. When two people tap the last seat at once, only one gets in.
+</td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/app/16-chat-room.jpg" alt="Room chat with a locked message" width="180"></td>
+<td>
+<h3>👋 Friends · chat</h3>
+Friends get Instagram-style <b>direct messages</b>; race rooms get Discord-style <b>room chat</b> with two channels, <code># 책 이야기</code> (book talk) and <code># 수다</code> (chatter). Book-talk messages are stamped with the sender's verified page, so a message from someone further ahead stays locked until you reach that page. Replies, reactions, notices, reports and blocking are included.
+</td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/app/18-mileage.jpg" alt="Mileage balance, streak freeze and partner rewards" width="180"></td>
+<td>
+<h3>🪙 Mileage · partner rewards</h3>
+Earn mileage for verified pages (+1), first reaction on a paragraph (+1, 20 a day), sharing a quote (+3), overtaking a friend (+5), finishing a race book (+20) and 7-day streaks (+30). Spend it on streak freezes (50) or partner rewards, which an admin checks and sends to your sign-up email. Weekly and all-time rankings too.
+</td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/app/24-feed.jpg" alt="Friends feed — a three-photo post swiped to the second photo" width="180"></td>
+<td>
+<h3>📷 Reading posts · profile</h3>
+Share a book you read with <b>1–5 photos</b> (the book cover if none). The whole post is cropped to <b>1:1 or 4:5</b> and you drag each photo into place; the browser redraws it at 1080 px and the server strips <b>EXIF/GPS location and device data</b> once more. Add a star rating, up to 2,200 characters of thoughts and a favourite line, and choose public or friends-only.<br>
+In the friends feed you swipe through photos, <b>like, comment, reply, like comments and save</b>, and the paper plane <b>sends a post to a friend</b> as a card with its first photo in your direct messages. The <b>나</b> (me) tab opens your profile (<code>/profile</code>) with a one-line bio and <b>posts grid</b> · feed · saved tabs, and the <b>모두</b> (all) tab is an explore grid of everyone's public posts. Deleting, reporting and blocking are all checked on the server.
+</td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/app/3-explore.jpg" alt="Discover: continue reading, famous covers, rankings" width="180"></td>
+<td>
+<h3>🧭 Discover · bookstore</h3>
+Continue-reading card, a cover strip and daily picks drawn only from famous books, genre shelves and popularity rankings. About 1,300 classics open instantly; new books get an info page with purchase links. The home screen leads with the #1 bestseller of each category, refreshed every morning.
+</td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/app/20-guide.jpg" alt="Public how-to page" width="180"></td>
+<td>
+<h3>🌐 Public pages · sign-in</h3>
+<a href="https://haedok.vercel.app/guide">How to use</a> (8 steps), <a href="https://haedok.vercel.app/docs">Docs</a> (the 15-second rule, mileage table, upload limits) and <a href="https://haedok.vercel.app/developers">Developer</a> (four layers, choices and trade-offs) need no account. Their numbers are read from code constants (<code>app/public_facts.py</code>). Sign-in and sign-up float over a wall of book covers.
+</td>
+</tr>
+</table>
 
-| Home · 3D stack | Reader · friend reactions | Race · live standings | Explore · shelves |
-|:---:|:---:|:---:|:---:|
-| <img src="docs/images/app/2-home.jpg" alt="Home" width="200"> | <img src="docs/images/app/5-reader.jpg" alt="Reader" width="200"> | <img src="docs/images/app/7-race.jpg" alt="Race" width="200"> | <img src="docs/images/app/3-explore.jpg" alt="Explore" width="200"> |
+## Screens
 
-## How it flows
+| Landing | Sign in | Sign up | 6-digit code | Home |
+|:---:|:---:|:---:|:---:|:---:|
+| <img src="docs/images/app/0-landing.jpg" alt="Landing" width="150"> | <img src="docs/images/app/1-login.jpg" alt="Sign in" width="150"> | <img src="docs/images/app/1-signup.jpg" alt="Sign up" width="150"> | <img src="docs/images/app/1b-verify.jpg" alt="Verify" width="150"> | <img src="docs/images/app/2-home.jpg" alt="Home" width="150"> |
+| **Bookstore** | **Races** | **Friends** | **Messages** | **Direct message** |
+| <img src="docs/images/app/4-store.jpg" alt="Bookstore" width="150"> | <img src="docs/images/app/12-races.jpg" alt="Races" width="150"> | <img src="docs/images/app/14-friends.jpg" alt="Friends" width="150"> | <img src="docs/images/app/15-chat.jpg" alt="Messages" width="150"> | <img src="docs/images/app/17-chat-dm.jpg" alt="Direct message" width="150"> |
+| **Mileage ranking** | **Docs** | **Developer** | **Profile (me tab)** | **Post** |
+| <img src="docs/images/app/19-leaderboard.jpg" alt="Ranking" width="150"> | <img src="docs/images/app/21-docs.jpg" alt="Docs" width="150"> | <img src="docs/images/app/22-developers.jpg" alt="Developer" width="150"> | <img src="docs/images/app/25-profile.jpg" alt="Profile with bio and posts grid" width="150"> | <img src="docs/images/app/26-post.jpg" alt="A post" width="150"> |
+| **Comments · replies** | **All (explore)** | **New post — pick photos** | | |
+| <img src="docs/images/app/27-comments.jpg" alt="Comment sheet with replies open" width="150"> | <img src="docs/images/app/29-explore-posts.jpg" alt="Grid of everyone's posts" width="150"> | <img src="docs/images/app/28-create.jpg" alt="New post step 1 — three photos picked, cropped to 4:5" width="150"> | | |
 
-```mermaid
-flowchart LR
-    A[Sign up · 6-digit code] --> B[Pick a book]
-    B --> C[Open a race · invite code]
-    C --> D[Friend joins]
-    D --> E[Read · server times each page]
-    E --> F[React · spoiler guard]
-    F --> G[Live standings · race]
-```
+On a desktop the bottom tab bar becomes a sidebar, the reader opens two pages, chat shows the list and the conversation side by side, and a post shows the photo beside its comments.
 
-| 1. Landing | 2. Sign up | 3. 6-digit code | 4. Read | 5. React | 6. Race |
-|:---:|:---:|:---:|:---:|:---:|:---:|
-| <img src="docs/images/app/0-landing.jpg" alt="Landing" width="150"> | <img src="docs/images/app/1-signup.jpg" alt="Sign up" width="150"> | <img src="docs/images/app/1b-verify.jpg" alt="Verify" width="150"> | <img src="docs/images/app/5-reader.jpg" alt="Reader" width="150"> | <img src="docs/images/app/6-react.jpg" alt="React" width="150"> | <img src="docs/images/app/7-race.jpg" alt="Race" width="150"> |
-
-**On desktop and tablet** the bottom tab bar becomes a left sidebar and the reader opens two pages like a paper book. The right column always shows where your room-mates are and the reactions on the current page.
-
-| Desktop home | Desktop reader · friend updates fly in |
+| Desktop home | Desktop reader |
 |:---:|:---:|
 | <img src="docs/images/app/9-pc-home.jpg" alt="Desktop home"> | <img src="docs/images/app/10-pc-reader.jpg" alt="Desktop reader"> |
+| **Desktop room chat** | **Desktop race room** |
+| <img src="docs/images/app/11-pc-chat.jpg" alt="Desktop chat"> | <img src="docs/images/app/23-pc-race.jpg" alt="Desktop race"> |
+| **Desktop post · comments** | |
+| <img src="docs/images/app/30-pc-post.jpg" alt="Desktop post — photo left, thoughts and comments right"> | |
 
 <details>
-<summary><b>All screens</b></summary>
+<summary><b>Admin</b> — <code>/admin</code> opens only for <code>ADMIN_EMAILS</code> (404 for everyone else)</summary>
 <br>
 
-| Login | Store | Appearance | Desktop store |
-|:---:|:---:|:---:|:---:|
-| <img src="docs/images/app/1-login.jpg" width="180"> | <img src="docs/images/app/4-store.jpg" width="180"> | <img src="docs/images/app/8-look.jpg" width="180"> | <img src="docs/images/app/11-pc-store.jpg" width="360"> |
+| Overview | Users | Rooms | Mail | Rewards |
+|:---:|:---:|:---:|:---:|:---:|
+| <img src="docs/images/admin/1-dashboard.jpg" alt="Overview" width="150"> | <img src="docs/images/admin/2-users.jpg" alt="Users" width="150"> | <img src="docs/images/admin/3-rooms.jpg" alt="Rooms" width="150"> | <img src="docs/images/admin/4-mail.jpg" alt="Mail" width="150"> | <img src="docs/images/admin/5-rewards.jpg" alt="Rewards" width="150"> |
+
+Also: board, chat and post reports.
 
 </details>
 
-## Architecture
+<sub>All screenshots use example accounts created by scripts. See <a href="docs/README-assets.md">docs/README-assets.md</a> to regenerate them.</sub>
 
-```mermaid
-flowchart LR
-    U[Phone · desktop browser<br/>PWA · Android TWA] <-->|HTML · JSON API · WS/polling| S[FastAPI<br/>Vercel Python Function]
-    S <--> D[(Postgres · Neon)]
-    S -->|signup codes| M[Resend · SMTP]
-    S -->|public-domain full text| W[Wikisource · Gutenberg]
-    U -->|EPUB · PDF · TXT| S
-    S -.->|per-book events| B[WebSocket broker<br/>in-memory]
-    X[Build scripts] -->|shelves · store · videos JSON| S
-```
+## How it works
 
-- **Server-rendered, vanilla JS** — no build step. Jinja2 renders the pages; small JS files handle the 3D, the page flip and the live updates.
-- **The full-text whitelist is enforced in code** — only sources in `FULLTEXT_SOURCES` (gutendex, wikisource) may store text. Uploads open only for their owner.
-- **The server keeps time** — it measures from the moment a page is opened to the "finished" request and credits the page only if the minimum dwell time for its length has passed.
-- **Real time** — WebSocket locally (`/api/v1/ws/books/{id}`), 20-second polling on serverless. Socket events never carry reaction text.
+- **Four layers** — templates + vanilla JS (`app/templates`, `app/static`) → routes that check login and CSRF (`app/web.py`, `app/api/`, `app/chat.py`, `app/posts.py`, …) → services where every rule lives (`app/services/`) → SQLAlchemy models (`app/models*.py`, Postgres on Neon, SQLite locally and in tests).
+- **Reading verification** — the server records when a page was opened and when "done" arrives (`reading_events`); only the next page can be credited, only after 15 s (`PAGE_DWELL_MS`), and idle time is capped at 10× (`DWELL_CAP_MULTIPLIER`). `DWELL_SCALE` shrinks it for demos.
+- **Spoiler guard** — reactions are filtered by your progress in the database (`social.reactions_for`); book-talk chat messages carry the sender's verified page and reach readers behind them only as a placeholder. Live updates never carry reaction text.
+- **Polling, not WebSocket, on Vercel** — the in-memory broker (`app/realtime.py`) can't reach other function instances, so production polls: reader 3 s (backing off to 2 min), presence beat 5 s, chat 3 s (to 60 s). Hidden tabs stop polling. `REALTIME_WS` turns sockets on for a single server.
+- **Mail chain** — on Vercel: Apps Script → Brevo → Resend → SMTP; locally: SMTP → Apps Script → Brevo → Resend; if all fail the code is relayed to `ADMIN_EMAILS`. Every attempt goes to `mail_logs`. Codes are stored only as HMAC fingerprints.
+- **Bestsellers** — [bestsellers.yml](.github/workflows/bestsellers.yml) runs daily at 06:10 KST, rewrites `app/data/bestsellers.json` from Yes24 category lists, and commits only when the ranking changed; Vercel redeploys from that commit.
+- **Feature flags** — `FEATURE_GOALS`, `FEATURE_BOARD`, `FEATURE_CHAT`, `FEATURE_MILEAGE`, `FEATURE_POSTS` (all `true` by default). Off hides the entry points and returns 404.
 
-Decision records live in [docs/architecture.md](docs/architecture.md).
+Design decisions in detail: [docs/architecture.md](docs/architecture.md) (Korean).
 
-## Tech stack
-
-| Layer | What we use |
-|---|---|
-| Server | Python 3.12 · FastAPI · SQLAlchemy 2 (async) · Alembic · pydantic-settings |
-| UI | Jinja2 server rendering + vanilla CSS/JS · CSS transform 3D · StPageFlip · View Transitions |
-| Data | Postgres (Neon) · SQLite (aiosqlite) for local and tests |
-| Mail | Resend API (production) · SMTP 465/587 (local) · every attempt in `mail_logs` |
-| Real time | in-memory broker + WebSocket (local) · polling (serverless) |
-| Deploy | Vercel Python Function (`api/index.py`) · GitHub Actions CI (tests + migrations on real Postgres) |
-| Quality | pytest (zero network, `httpx.MockTransport`) · ruff |
-
-## Quick start
+## Run it locally
 
 ```bash
+git clone https://github.com/10x4hs/haedok.git && cd haedok
 uv venv .venv && uv pip install -e ".[dev]" --python .venv/bin/python
-export DATABASE_URL="sqlite+aiosqlite:///$PWD/scratch-dev.db" DWELL_SCALE=0.06   # demo: minimum dwell time at 6%
-.venv/bin/uvicorn app.main:app --port 8011     # http://localhost:8011 (tables are created automatically on SQLite)
-.venv/bin/pytest -q && .venv/bin/ruff check .  # tests need no network
+export DATABASE_URL="sqlite+aiosqlite:///$PWD/scratch-dev.db" DWELL_SCALE=0.06   # demo: 0.9 s per page
+.venv/bin/uvicorn app.main:app --port 8011     # http://localhost:8011 · API docs at /api/docs
 ```
 
-For Postgres, run `docker compose up -d` and then `alembic upgrade head` once.
+With SQLite the app creates its tables on start-up. To fill it with example data (after the first start):
 
-### Environment variables
-
-Set them in `.env` or as Vercel environment variables. [`app/core/config.py`](app/core/config.py) is the authoritative list with defaults.
-
-| Variable | Purpose |
-|---|---|
-| `SECRET_KEY` | Session cookie signing key. **Required in production** |
-| `DATABASE_URL` | `postgres://…?sslmode=require` (Neon) or `sqlite+aiosqlite:///…`. Converted to the asyncpg form automatically |
-| `COOKIE_SECURE` | `true` on HTTPS |
-| `BREVO_API_KEY` · `BREVO_FROM` | Signup code emails, first choice. Works without a domain: verify the sender address in Brevo (free, 300/day) |
-| `RESEND_API_KEY` · `RESEND_FROM` | Second choice. Needs a verified domain to reach anyone but yourself (SMTP drops inside Vercel functions) |
-| `SMTP_HOST` · `SMTP_PORT` · `SMTP_USER` · `SMTP_PASSWORD` | SMTP for local or conventional servers (Gmail needs an app password). With neither configured, local runs log the code instead |
-| `ADMIN_EMAILS` | Comma-separated emails allowed into `/admin`. Empty means nobody |
-| `DWELL_SCALE` | Multiplier on the minimum dwell time (for demos). **Keep 1.0 in production** |
-| `MAX_UPLOAD_MB` | Upload limit. 4 on Vercel |
-| `ANDROID_PACKAGE` · `ANDROID_CERT_SHA256` | Android TWA signing fingerprint (`/.well-known/assetlinks.json`) |
-| `KAKAO_REST_API_KEY` · `NAVER_CLIENT_*` · `GOOGLE_BOOKS_API_KEY` | Metadata search sources. A missing key simply disables that source |
-| `KAKAO_REST_API_KEY` (store search) | When set, the “서점” (store) section of search and `/store/{ISBN}` use the official Kakao Book Search API (free) to find books beyond the curated list. Without it only the curated list (`app/data/store.json`) is searched |
-| `BOOKSTORE_LIVE` | Default `false`. `true` reads Aladin's ebook search/product pages without a key — a path Aladin's `robots.txt` disallows, so it is not recommended (Aladin's official OpenAPI was shut down on 2026-10-30) |
-| `SENTRY_DSN` | Sentry error reporting (optional). Off when empty |
-| `SITE_URL` | Public base URL (https://…) for canonical, OG, sitemap and invite previews. Falls back to the Vercel URL, then the request host |
-
-## Admin screens
-
-Log in with an account listed in `ADMIN_EMAILS` and `/admin` opens. Everyone else gets a 404.
-
-| Dashboard | Users | Rooms | Mail |
-|:---:|:---:|:---:|:---:|
-| <img src="docs/images/admin/1-dashboard.jpg" alt="Admin dashboard" width="180"> | <img src="docs/images/admin/2-users.jpg" alt="Users" width="180"> | <img src="docs/images/admin/3-rooms.jpg" alt="Rooms" width="180"> | <img src="docs/images/admin/4-mail.jpg" alt="Mail" width="180"> |
-
-- **Dashboard** — users, pending verifications, rooms, books, uploads, and mail success/failure over the last 24 hours.
-- **Users** — approve or delete pending signups on the spot; search and delete registered users.
-- **Rooms** — open rooms, their books and member counts.
-- **Mail** — a configuration check (Resend, SMTP, SECRET_KEY, COOKIE_SECURE, DB driver) and recent deliveries.
-
-## Tests and CI
-
-- `pytest -q` — external APIs are stubbed with `httpx.MockTransport` and the DB is in-memory SQLite, so nothing touches the network.
-- `ruff check .` — lint.
-- GitHub Actions ([ci.yml](.github/workflows/ci.yml)) runs the tests and, on a real Postgres 16, `alembic upgrade → downgrade base → upgrade` to prove migrations work both ways. The CI badge above shows the current state.
-
-## Three rules we never break
-
-1. **Only lawful text** — the app itself only displays works whose copyright has expired (Wikisource, Project Gutenberg). New releases get metadata and a purchase link; files a user uploads open only for that user.
-2. **The server measures reading time** — it starts the clock when a page is opened, and the page counts as read only after the minimum time for its length. Flipping alone never raises a race score.
-3. **A spoiler is a bug** — a friend's reactions on pages you haven't read show only as "🔒 N". Real-time events never carry reaction text.
-
-## Roadmap
-
-Phases follow [GOAL.md](GOAL.md).
-
-| Phase | Scope | Status |
-|---|---|:---:|
-| 0 | FastAPI · SQLAlchemy · Alembic · Docker Compose · CI | ✅ |
-| 1 | Five book-source adapters · federated search (partial failure allowed) · full-text chunking | ✅ |
-| 2 | Email signup (6-digit code), sessions, CSRF · my library · server-side dwell verification · uploads | ✅ social login · tracker mode ⬜ |
-| 3 | Rooms · invite codes · WebSocket broker · paragraph reactions · spoiler guard | ✅ |
-| 4 | Page race (server verified) | ✅ one-line review battles · points ledger ⬜ |
-| 5 | Teams · weekly league · leaderboard | ⬜ |
-| 6 | FCM push · staging deploy | ⬜ |
-
-Also on the list: feeling out the 3D on real iPhones and Androids, and moving production real-time onto a shared broker (Postgres LISTEN/NOTIFY or similar).
-
-## Folder layout
-
-```
-app/
-  main.py          FastAPI app · lifespan (shared httpx client)
-  web.py           page routes (landing · signup/verify · home · explore · reader · races)
-  admin.py         /admin (dashboard · users · rooms · mail)
-  auth.py          sessions · BCrypt · CSRF · 6-digit signup verification
-  api/             JSON API · WebSocket
-  services/        dwell time · library · upload parsing · races · reactions (spoiler guard) · mail
-  sources/         book-source adapters (gutendex · wikisource · kakao · naver · google_books)
-  templates/ static/ data/   Jinja2 · CSS/JS · shelf/store/video JSON
-api/index.py       Vercel entry point
-migrations/        Alembic
-scripts/           build_catalog · build_store · build_videos · fetch_covers · readme_assets
-tests/             pytest
-docs/              PRD · architecture · images · earlier design drafts (archive)
+```bash
+.venv/bin/python scripts/readme_shots.py --seed "$DATABASE_URL"    # 3 accounts, password password123
+for s in board races chat goals mileage posts; do .venv/bin/python scripts/seed_$s.py "$DATABASE_URL"; done
+uv run --no-project --with playwright python scripts/readme_photos.py /tmp/haedok-photos  # six synthetic post photos
+.venv/bin/python scripts/seed_posts_ig.py "$DATABASE_URL" /tmp/haedok-photos  # photos, saves, replies, bios
 ```
 
-## License and credits
+Then sign in as `harin@example.com` / `password123` (email, Enter, password, Enter).
 
-- The source code has no license yet. Until one is added, all rights are reserved by the authors.
-- Book text comes from public-domain works on [Wikisource](https://ko.wikisource.org) and [Project Gutenberg](https://www.gutenberg.org) (via the Gutendex API). Page turning by [StPageFlip](https://github.com/Nodlik/StPageFlip), mail by [Resend](https://resend.com), database by [Neon](https://neon.tech).
-- Cover images are fetched for demos only and never committed. Aladin e-books can't be opened in the app because of DRM, and the app says so.
-- How to regenerate the README images and GIF: [docs/README-assets.md](docs/README-assets.md).
+For Postgres: `docker compose up -d db`, then `DATABASE_URL=postgresql+asyncpg://haedok:haedok@localhost:5432/haedok .venv/bin/alembic upgrade head`. Alembic migrations are for Postgres only.
+
+## Configuration
+
+Every setting lives in [`app/core/config.py`](app/core/config.py); [`.env.example`](.env.example) lists them all with safe placeholders. The full table with defaults is in the [Korean README](README.md#환경-변수). The ones that matter for a deployment: `DATABASE_URL`, `SECRET_KEY` (the app refuses to start on Vercel with the default), `COOKIE_SECURE=true`, `MAX_UPLOAD_MB=4` (Vercel cuts request bodies at 4.5 MB), at least one mail transport (`GAS_MAIL_URL`+`GAS_MAIL_SECRET`, `BREVO_API_KEY`, `RESEND_API_KEY` or `SMTP_*`), `ADMIN_EMAILS`, and optionally `KAKAO_REST_API_KEY`, `SITE_URL`, `SENTRY_DSN`.
+
+## Database migrations
+
+18 Alembic revisions in [`migrations/versions/`](migrations/versions), from `4b551282b547` (initial schema) to `f66c5b0d2e06` (post photos, saves, comment likes/replies/reports, profile bios); the ordered list is in the [Korean README](README.md#db-마이그레이션). CI runs `upgrade → downgrade base → upgrade` and `alembic check` on Postgres 16. To migrate production (Neon) over the direct connection:
+
+```bash
+vercel env pull --environment=production .env.production.local && \
+env -u COOKIE_SECURE -u MAX_UPLOAD_MB \
+  DATABASE_URL="$(grep '^DATABASE_URL_UNPOOLED=' .env.production.local | cut -d= -f2- | tr -d '"')" \
+  .venv/bin/alembic upgrade head; \
+rm -f .env.production.local
+```
+
+## Tests
+
+```bash
+.venv/bin/pytest -q && .venv/bin/ruff check .
+```
+
+547 tests pass (measured 2026-11-18, about 110 s). External APIs are mocked with `httpx.MockTransport`/respx and the database is in-memory SQLite, so no network is needed.
+
+## Deployment
+
+Vercel routes every request to `api/index.py` (the FastAPI app) per `vercel.json`, bundling only `app/templates`, `app/static` and `app/data`. The project is connected to GitHub, so merging to `main` deploys to production. CI: [ci.yml](.github/workflows/ci.yml). A `Dockerfile` (runs `alembic upgrade head`, then serves on port 8000) is there for other hosts.
+
+## Contributing · license
+
+- Issues and PRs are welcome. Please make `pytest` and `ruff` pass, and ship a migration (additive, with `downgrade()`) when the schema changes.
+- No license has been chosen yet; until one is, all rights are reserved by the author.
+- Book texts are public-domain works from [Wikisource](https://ko.wikisource.org) and [Project Gutenberg](https://www.gutenberg.org) (Gutendex). Page flipping by [StPageFlip](https://github.com/Nodlik/StPageFlip), database by [Neon](https://neon.tech). Cover images are shown from bookstore/API URLs and are not stored in the repo.
+- The original MVP plan is in [docs/PRD.md](docs/PRD.md) and [GOAL.md](GOAL.md).

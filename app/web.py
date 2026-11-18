@@ -826,9 +826,15 @@ async def shelf(genre: str) -> RedirectResponse:
 @router.get("/library", response_class=HTMLResponse)
 async def library(
     request: Request,
+    tab: str = Query("books", max_length=10),
     session: AsyncSession = Depends(get_session),
     user: User = Depends(auth.require_user),
 ) -> HTMLResponse:
+    """서재 = 내 책 + 대결(한 화면 두 갈래). ?tab=races 면 대결이 골라진 채로."""
+    return await _shelf(request, session, user, "races" if tab in ("races", "race") else "books")
+
+
+async def _shelf(request: Request, session: AsyncSession, user: User, seg: str) -> HTMLResponse:
     entries = await book_service.library_of(session, user.id)
     tabs = {
         "reading": [x for x in entries if x[0].shelf == Shelf.READING],
@@ -836,7 +842,20 @@ async def library(
         "mine": [x for x in entries if x[1].owner_id == user.id],
     }
     uploaded = await book_service.uploads_of(session, user.id)
-    return _render(request, "library.html", user, tabs=tabs, uploaded=uploaded)
+    return _render(
+        request,
+        "library.html",
+        user,
+        seg=seg,
+        tabs=tabs,
+        uploaded=uploaded,
+        rooms=await race_list.my_rooms(session, user.id),
+        reading=[b for e, b in entries if e.shelf == Shelf.READING],
+        popular=await popular(session, 12),
+        durations=race_service.DURATIONS,
+        error=request.query_params.get("error"),
+        together=await board_service.preview(session, user.id) if get_settings().feature_board else None,
+    )
 
 
 @router.get("/search", response_class=HTMLResponse)
@@ -1021,18 +1040,8 @@ async def races(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(auth.require_user),
 ) -> HTMLResponse:
-    reading = [b for e, b in await book_service.library_of(session, user.id) if e.shelf == Shelf.READING]
-    return _render(
-        request,
-        "races.html",
-        user,
-        rooms=await race_list.my_rooms(session, user.id),
-        reading=reading,
-        popular=await popular(session, 12),
-        durations=race_service.DURATIONS,
-        error=request.query_params.get("error"),
-        together=await board_service.preview(session, user.id) if get_settings().feature_board else None,
-    )
+    """예전 대결 탭 주소 — 이제 서재 화면의 '대결' 갈래로 연다(주소는 그대로 둔다)."""
+    return await _shelf(request, session, user, "races")
 
 
 @router.post("/races")

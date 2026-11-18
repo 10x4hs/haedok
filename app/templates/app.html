@@ -1,21 +1,24 @@
 {% extends "base.html" %}
-{% from "_ui.html" import icon, brand %}
+{% from "_ui.html" import icon, brand, avatar %}
+{% from "_nav.html" import nav_icon %}
 {% block body_class %}app{% endblock %}
 {% block body %}
+{# 아래 막대(휴대폰 5칸) · 왼쪽 레일(데스크톱, + 만들기 · 나 포함) — 칸은 app/nav.py 가 정한다 #}
+{% set items = nav_items(request, user if user is defined else None, path if path is defined else request.url.path) %}
+{% set me_item = items|selectattr('key', 'equalto', 'me')|first %}
+<link rel="stylesheet" href="/static/nav.css">
 <div class="phone">
   <header class="top">
     <h1 class="top-title">{% block heading %}{% endblock %}</h1>
     {% block top_extra %}{% endblock %}
+    {% if user is defined and user %}<a class="top-me{{ ' on' if me_item.on else '' }}" href="{{ me_item.href }}" aria-label="나"{% if me_item.on %} aria-current="page"{% endif %}>{{ avatar(user, 'nv-av') }}</a>{% endif %}
     <button class="menu-pill" id="menuBtn" aria-label="메뉴" aria-expanded="false" aria-controls="menu"><span></span><span></span></button>
   </header>
   <main class="content {% block content_class %}{% endblock %}">{% block main %}{% endblock %}</main>
-  {% set chat_on = chat_enabled is defined and chat_enabled() %}
-  {% set tabs = [('/', 'home', '홈'), ('/discover', 'discover', '탐색'), ('/races', 'race', '대결'), ('/library', 'library', '서재')] + ([('/chat', 'chat', '메시지')] if chat_on else []) + [('/profile' if (feature_posts is defined and feature_posts()) else '/me', 'me', '나')] %}
-  <nav class="tabbar" aria-label="주 메뉴"{% if chat_on %} style="--tabs:6"{% endif %}>
+  <nav class="tabbar" aria-label="주 메뉴" style="--tabs:{{ items|rejectattr('rail_only')|list|length }}">
     <a class="side-brand" href="/" aria-label="해독 홈">{{ brand() }}</a>
-    {% for href, name, label in tabs %}
-    {% set n = chat_unread(request, user) if href == '/chat' else 0 %}
-    <a href="{{ href }}" class="{{ 'on' if (path == href or (href != '/' and path.startswith(href)) or (href == '/chat' and path.startswith('/friends')) or (name == 'me' and (path == '/me' or path.startswith('/me/') or (user and path == '/u/' ~ user.id)))) else '' }}"{% if href == '/chat' %} style="position:relative"{% if n %} aria-label="메시지, 안 읽은 메시지 {{ n }}개"{% endif %}{% endif %}>{{ icon(name) }}<span>{{ label }}</span>{% if n %}<i data-chat-unread aria-hidden="true" style="position:absolute;top:7px;left:calc(50% + 5px);min-width:17px;height:17px;padding:0 5px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font:700 10px/17px var(--f-mono);font-style:normal;text-align:center">{{ n if n < 100 else '99+' }}</i>{% endif %}</a>
+    {% for it in items %}
+    <a href="{{ it.href }}" class="{{ 'on' if it.on else '' }}" data-nav="{{ it.key }}"{% if it.on %} aria-current="page"{% endif %}{% if it.badge %} aria-label="{{ it.label }}, 안 읽은 메시지 {{ it.badge }}개"{% elif it.dot %} aria-label="{{ it.label }}, 친구의 새 게시물이 있어요"{% endif %}>{% if it.key == 'me' and user is defined and user %}{{ avatar(user, 'nv-av') }}{% else %}{{ nav_icon(it.key) }}{% endif %}<span>{{ it.label }}</span>{% if it.badge %}<i class="nv-badge" data-chat-unread aria-hidden="true">{{ it.badge|badge_text }}</i>{% elif it.dot %}<i class="nv-dot" data-feed-dot aria-hidden="true"></i>{% endif %}</a>
     {% endfor %}
   </nav>
 </div>
@@ -24,11 +27,12 @@
   <nav class="menu-list">
     {% block menu_extra %}{% endblock %}
     <a href="/search">{{ icon('search') }}<span>검색</span></a>
-    <a href="/races">{{ icon('race') }}<span>친구와 대결</span></a>
+    <a href="/library?tab=races">{{ icon('race') }}<span>친구와 대결</span></a>
     <a href="/upload">{{ icon('upload') }}<span>내 파일 올리기</span></a>
     <button type="button" data-open-look>{{ icon('theme') }}<span>화면 꾸미기</span></button>
   </nav>
 </div>
 {% include "_customize.html" %}
 <script src="/static/app.js"></script>
+<script src="/static/nav.js" defer></script>
 {% endblock %}

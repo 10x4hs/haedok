@@ -1,0 +1,64 @@
+{# 댓글 목록 + 입력칸 — 게시물 화면(넓은 화면은 오른쪽 패널)과 휴대폰 피드의 댓글 시트가 같이 쓴다.
+   인스타의 한 줄: 사진 · '닉네임 글' / 시간 · 좋아요 n개 · 답글 달기 · ⋯ / 오른쪽 작은 하트.
+   답글은 한 단계만, '답글 n개 보기'로 접혀 있다. 필요한 값: p, comments, comment_total, faces, mine, csrf, reasons, max_comment #}
+{% from "posts/_parts.html" import face, rich, heart %}
+{% macro cm_row(t, reply=False) -%}
+{% set cm = t.c %}
+<li class="ps-cm{{ ' ps-cm-reply' if reply else '' }}" id="c{{ cm.id }}">
+  <a class="ps-cm-face" href="/u/{{ t.who.id }}" aria-label="{{ t.who.nickname }} 프로필" tabindex="-1">{{ face(t.who, faces, 'xs' if reply else 'sm') }}</a>
+  <div class="ps-cm-b">
+    <p><a class="ps-cm-who" href="/u/{{ t.who.id }}">{{ t.who.nickname }}</a> {{ rich(cm.body) }}</p>
+    <div class="ps-cm-meta">
+      <time datetime="{{ cm.created_at.isoformat() if cm.created_at else '' }}">{{ cm.created_at|post_when }}</time>
+      <span data-cm-likes{% if not t.likes %} hidden{% endif %}>좋아요 <b>{{ t.likes }}</b>개</span>
+      <button type="button" class="ps-cm-reply-btn" data-reply="{{ cm.parent_id or cm.id }}" data-nick="{{ t.who.nickname }}">답글 달기</button>
+      <details class="ps-menu ps-cm-menu">
+        <summary aria-label="댓글 메뉴"><span aria-hidden="true">⋯</span></summary>
+        <div class="ps-menu-list" role="menu">
+          {% if t.who.id == user.id or mine %}
+          <form method="post" action="/p/{{ p.id }}/comments/{{ cm.id }}/delete"><input type="hidden" name="csrf" value="{{ csrf }}"><button role="menuitem" class="ps-menu-bad">댓글 지우기</button></form>
+          {% endif %}
+          {% if t.who.id != user.id %}
+          <form method="post" action="/p/{{ p.id }}/comments/{{ cm.id }}/report" class="ps-cm-report"><input type="hidden" name="csrf" value="{{ csrf }}">
+            <span class="ps-menu-cap">신고 이유</span>
+            {% for key, label in reasons.items() %}<button role="menuitem" name="reason" value="{{ key }}">{{ label }}</button>{% endfor %}
+          </form>
+          {% endif %}
+        </div>
+      </details>
+    </div>
+    {% if t.replies %}
+    <details class="ps-replies"{% if open_replies %} open{% endif %}>
+      <summary><span class="ps-replies-line" aria-hidden="true"></span><span class="ps-replies-show">답글 {{ t.replies|length }}개 보기</span><span class="ps-replies-hide">답글 숨기기</span></summary>
+      <ul class="ps-cm-list">{% for r in t.replies %}{{ cm_row(r, True) }}{% endfor %}</ul>
+    </details>
+    {% endif %}
+  </div>
+  <form class="ps-cm-like" method="post" action="/p/{{ p.id }}/comments/{{ cm.id }}/like" data-cm-like>
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button aria-pressed="{{ 'true' if t.liked else 'false' }}" aria-label="댓글 좋아요{{ ' 취소' if t.liked else '' }}">{{ heart(t.liked) }}</button>
+  </form>
+</li>
+{%- endmacro %}
+
+<div class="ps-cm-wrap" data-cm-wrap data-post="{{ p.id }}">
+  <section class="ps-comments" id="comments" aria-labelledby="cmH{{ 's' if sheet else '' }}">
+    <h3 class="sr" id="cmH{{ 's' if sheet else '' }}">댓글 {{ comment_total }}개</h3>
+    {% if caption_row is defined and caption_row %}{{ caption_row }}{% endif %}
+    {% if comments %}
+    <ul class="ps-cm-list">{% for t in comments %}{{ cm_row(t) }}{% endfor %}</ul>
+    {% else %}
+    <p class="muted small ps-cm-none">아직 댓글이 없어요. 첫 마디를 남겨 보세요.</p>
+    {% endif %}
+  </section>
+  <form class="ps-cm-form" method="post" action="/p/{{ p.id }}/comments" data-cm-form>
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="parent_id" value="" data-parent disabled>
+    <p class="ps-replying" data-replying hidden><span data-replying-t></span><button type="button" class="ps-x sm" data-replying-x aria-label="답글 그만두기">✕</button></p>
+    <label class="sr" for="commentBody{{ 's' if sheet else '' }}">댓글</label>
+    <span class="ps-cm-me" aria-hidden="true">{{ face(user, faces, 'xs') }}</span>
+    <textarea id="commentBody{{ 's' if sheet else '' }}" name="body" rows="1" maxlength="{{ max_comment }}" required placeholder="댓글 달기…" aria-describedby="cmHint{{ 's' if sheet else '' }}" data-count="cmCount{{ 's' if sheet else '' }}"></textarea>
+    <button class="ps-cm-post">게시</button>
+    <p class="muted small ps-hint" id="cmHint{{ 's' if sheet else '' }}"><span id="cmCount{{ 's' if sheet else '' }}">0/{{ max_comment }}</span> · <code>||이렇게||</code> 감싸면 가려져요</p>
+  </form>
+</div>

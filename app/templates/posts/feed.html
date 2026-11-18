@@ -1,21 +1,137 @@
 {% extends "app.html" %}
-{% block title %}소식 — 偕讀 해독{% endblock %}
+{% from "posts/_parts.html" import grid_tile, face, plus_icon, send_sheet, comments_sheet %}
+{% from "_ui.html" import empty_state %}
+{% block title %}피드 — 偕讀 해독{% endblock %}
 {% block head_extra %}<link rel="stylesheet" href="/static/posts.css">{% endblock %}
-{% block heading %}소식{% endblock %}
+{% block content_class %}wide{% endblock %}
+{% block heading %}피드{% endblock %}
+{% block top_extra %}<a class="ps-top-plus" href="/posts/new" aria-label="새 게시물 만들기">{{ plus_icon() }}</a>{% endblock %}
 {% block main %}
-<div class="ps ps-feed">
-  <div class="ps-feed-top">
-    <nav class="ps-ig-tabs" aria-label="소식 범위">
+{# 앱의 소셜 홈(Instagram · X · Facebook · Threads 를 우리 규칙으로):
+   동그라미 줄 → 작성 칸 → 탭(친구 · 추천 · 탐색, 위에 붙어 따라온다) → 게시물 · 활동 소식 → 모두 확인했어요.
+   넓은 화면은 오른쪽에 내 작은 프로필 · 함께 읽은 사람 · 인기 게시물 · 바닥글 #}
+<div class="ps ps-feed ps-home">
+  <div class="ps-home-main">
+    {% if stories %}
+    {% set me_story = stories[0] %}
+    <ul class="ps-stories" aria-label="동그라미 — 24시간 안에 올렸거나 지금 읽는 친구에게 고리가 있어요" data-stories>
+      <li class="ps-story-me">
+        <a class="ps-story" href="{{ me_story.href }}" aria-label="내 기록{{ ' — 최근 게시물' if me_story.newest else ' — 첫 게시물 올리기' }}">
+          <span class="ps-story-c{{ ' ring' if me_story.ring else '' }}">{{ face(user, faces, 'story') }}</span>
+          <span class="ps-story-n">내 기록</span>
+        </a>
+        <a class="ps-story-plus" href="/posts/new" aria-label="새 게시물 만들기">＋</a>
+      </li>
+      {% for s in stories[1:] %}
+      <li data-story="{{ s.user.id }}" data-newest="{{ s.newest }}"{% if s.ring %} data-ring{% endif %}>
+        <a class="ps-story" href="{{ s.href }}" aria-label="{{ s.user.nickname }}{{ ' · 지금 읽는 중' if s.reading else '' }}{{ ' · 새 게시물' if s.ring and not s.reading else '' }}">
+          <span class="ps-story-c{{ ' ring' if s.ring else '' }}">{{ face(s.user, faces, 'story') }}{% if s.reading %}<span class="ps-story-live">읽는 중</span>{% endif %}</span>
+          <span class="ps-story-n">{{ s.user.nickname }}</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    <div class="ps-composer glass-card">
+      <a class="ps-composer-row" href="/posts/new">{{ face(user, faces, 'md') }}<span class="ps-composer-t">무엇을 읽고 있나요?</span>
+        <svg class="ic ps-composer-ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="15" rx="3"/><circle cx="9" cy="11" r="2"/><path d="m21 16-5-5-8 9"/></svg></a>
+      {% if chips %}
+      <div class="ps-chips" aria-label="지금 읽는 책으로 바로 올리기">
+        {% for value, title in chips %}<a class="ps-chip" href="/posts/new?book={{ value|urlencode }}&amp;status=reading"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 5.5C6 4.5 9 4.5 12 6c3-1.5 6-1.5 8-.5V19c-2-1-5-1-8 .5-3-1.5-6-1.5-8-.5z"/><path d="M12 6v13.5"/></svg><span>{{ title }}</span></a>{% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <nav class="ps-ig-tabs ps-feed-tabs" aria-label="피드 보기">
       <a href="/feed" aria-current="{{ 'page' if tab == 'friends' else 'false' }}">친구</a>
-      <a href="/feed?tab=all" aria-current="{{ 'page' if tab == 'all' else 'false' }}">모두</a>
+      <a href="/feed?tab=rec" aria-current="{{ 'page' if tab == 'rec' else 'false' }}">추천</a>
+      <a href="/feed?tab=all" aria-current="{{ 'page' if tab == 'all' else 'false' }}">탐색</a>
     </nav>
-    <a class="ps-new pill" href="/posts/new"><span aria-hidden="true">＋</span> 올리기</a>
+    {% if msg %}<p class="form-ok" role="status">{{ msg }}</p>{% endif %}
+    {% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
+
+    {% if tab == 'all' %}
+      <p class="muted small ps-lede">가입한 모두에게 보이게 올린 읽은 책이에요. 눌러서 열어 보세요.</p>
+      {% if tiles %}
+      <ul class="ps-explore" aria-label="모두의 게시물">{% for t in tiles %}{{ grid_tile(t, ('ps-big ' ~ ('l' if (loop.index0 // 5) % 2 == 0 else 'r')) if t.big else '') }}{% endfor %}</ul>
+      {% if more_href %}<a class="btn ghost wide ps-more" href="{{ more_href }}">더 보기</a>{% endif %}
+      {% elif paged %}
+      <p class="muted ps-end">여기까지예요. 더 지난 게시물은 없어요.</p>
+      {% else %}
+      {{ empty_state('book', '아직 아무도 올리지 않았어요', '가입한 모두에게 보이게 올리면 여기에 보여요.', '/posts/new', '게시물 만들기') }}
+      {% endif %}
+    {% elif lonely %}
+      <section class="ps-lonely glass-card" aria-labelledby="lonelyH">
+        <h2 id="lonelyH">친구가 올린 읽은 책이 여기에 모여요</h2>
+        <p class="muted">친구를 맺거나 첫 기록을 올리면 피드가 채워져요.</p>
+        <div class="ps-lonely-btns">
+          {% if chat_on %}<a class="btn primary" href="/friends">친구 찾기</a>{% endif %}
+          <a class="btn ghost" href="/posts/new">첫 기록 올리기</a>
+          <a class="btn ghost" href="/together">모집 글 보기</a>
+        </div>
+      </section>
+    {% else %}
+      {% if tab == 'rec' %}<p class="muted small ps-lede">가입한 모두에게 공개된 게시물을 최근 · 좋아요 순으로 골랐어요. 내 활동은 추적하지 않아요.</p>{% endif %}
+      <button type="button" class="ps-pill" data-new-pill hidden><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg><span>새 게시물 <b data-new-n>0</b>개</span></button>
+      {% if items %}
+      <div class="ps-cards" data-stream data-tab="{{ tab }}" data-newest="{{ newest }}" aria-live="off">
+        {% include "posts/_stream.html" %}
+      </div>
+      {% elif paged %}
+      <p class="muted ps-end">여기까지예요. 더 지난 게시물은 없어요.</p>
+      {% elif tab == 'rec' %}
+      {{ empty_state('book', '아직 추천할 게시물이 없어요', '가입한 모두에게 보이게 올린 게시물이 생기면 여기에 보여요.', '/posts/new', '게시물 만들기') }}
+      {% else %}
+      {{ empty_state('book', '아직 친구들의 게시물이 없어요', '친구가 읽은 책을 올리면 여기에 모여요. 먼저 올려 보세요.', '/posts/new', '첫 기록 올리기') }}
+      {% endif %}
+    {% endif %}
+
+    {% if (thin or lonely) and (people or popular) %}
+    <section class="ps-suggest" aria-labelledby="sugH">
+      <h2 id="sugH">둘러볼 만한 것</h2>
+      {% if people %}
+      <h3 class="ps-sub">함께 읽은 사람</h3>
+      <ul class="ps-people">
+        {% for u, rooms in people %}
+        <li>{{ face(u, faces, 'md') }}<span class="ps-people-t"><b>{{ u.nickname }}</b><small>{{ rooms[0] }}에서 함께 읽었어요</small></span>
+          <form method="post" action="/friends/{{ u.id }}/request"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn primary ps-people-go">친구 신청</button></form></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% if popular %}
+      <h3 class="ps-sub">요즘 인기 있는 게시물</h3>
+      <ul class="ps-grid ps-mini-grid">{% for t in popular %}{{ grid_tile(t) }}{% endfor %}</ul>
+      {% endif %}
+    </section>
+    {% endif %}
   </div>
-  <p class="muted small ps-lede">{{ '나와 친구가 올린 읽은 책이에요.' if tab == 'friends' else '가입한 모두에게 보이게 올린 읽은 책이에요.' }}</p>
-  {% if msg %}<p class="form-ok" role="status">{{ msg }}</p>{% endif %}
-  {% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
-  {% include "posts/_feed_list.html" %}
-  {% if not cards and not paged and tab == 'friends' %}<p class="ps-alt"><a href="/feed?tab=all">모두의 게시물 둘러보기 ›</a></p>{% endif %}
+
+  <aside class="ps-home-side" aria-label="내 정보와 추천">
+    <a class="ps-side-me" href="/profile">{{ face(side.me, faces, 'lg') }}<span class="ps-side-t"><b>{{ side.me.nickname }}</b><small>게시물 {{ side.posts }} · 친구 {{ side.friends }}</small></span><em>내 프로필</em></a>
+    {% if side.people %}
+    <section class="ps-side-sec" aria-labelledby="sidePeopleH">
+      <h2 id="sidePeopleH">함께 읽은 사람</h2>
+      <ul class="ps-side-people">
+        {% for u, rooms in side.people %}
+        <li>{{ face(u, faces, 'sm') }}<span class="ps-side-t"><b>{{ u.nickname }}</b><small>{{ rooms[0] }}</small></span>
+          <form method="post" action="/friends/{{ u.id }}/request"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="ps-link-btn">친구 신청</button></form></li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+    {% if side.popular %}
+    <section class="ps-side-sec" aria-labelledby="sidePopH">
+      <h2 id="sidePopH">요즘 인기 게시물</h2>
+      <ul class="ps-grid ps-mini-grid">{% for t in side.popular %}{{ grid_tile(t) }}{% endfor %}</ul>
+    </section>
+    {% endif %}
+    <footer class="ps-side-foot">
+      <nav aria-label="바닥글"><a href="/guide">도움말</a><a href="/docs">문서</a><a href="/developers">개발자</a><a href="/together">함께 읽기</a></nav>
+      <p>© 2026 偕讀 해독</p>
+    </footer>
+  </aside>
 </div>
+{% if tab != 'all' %}{{ send_sheet(friends, csrf) }}{{ comments_sheet() }}{% endif %}
 <script src="/static/posts.js" defer></script>
+{% if tab != 'all' %}<script src="/static/posts-feed.js" defer></script>{% endif %}
 {% endblock %}

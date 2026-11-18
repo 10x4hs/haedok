@@ -499,6 +499,7 @@ async def _post_cards(session: AsyncSession, me: int, msgs: list[ChatMessage]) -
         return {}
     found = {p.id: p for p in await session.scalars(select(ReadingPost).where(ReadingPost.id.in_(ids)))}
     authors = await _users(session, [p.author_id for p in found.values()])
+    photos = await posts.photos_of(session, found) if hasattr(posts, "photos_of") else {}
     cards: dict[int, dict] = {}
     for pid, p in found.items():
         if await posts.can_see(session, me, p):
@@ -508,7 +509,8 @@ async def _post_cards(session: AsyncSession, me: int, msgs: list[ChatMessage]) -
                 "href": f"/p/{pid}",
                 "title": p.book_title,
                 "author": a.nickname if a else "",
-                "cover": posts.safe_cover(p.cover_url),
+                # 사진을 올린 게시물이면 첫 사진, 아니면 책 표지 (Instagram 공유 카드처럼)
+                "cover": photos[pid][0].url if photos.get(pid) else posts.safe_cover(p.cover_url),
             }
     return cards
 

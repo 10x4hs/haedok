@@ -5,7 +5,7 @@
 {% block title %}친구 — 偕讀 해독{% endblock %}
 {% block content_class %}wide{% endblock %}
 {% block heading %}<small>함께 읽는 사람들</small>친구{% endblock %}
-{% block top_extra %}{% if feature_posts is defined and feature_posts() %}<a class="pill" href="/feed">소식</a>{% endif %}<a class="pill" href="/chat">메시지</a>{% endblock %}
+{% block top_extra %}{% if feature_posts is defined and feature_posts() %}<a class="pill" href="/feed">피드</a>{% endif %}<a class="pill" href="/chat">메시지</a>{% endblock %}
 
 {# 한 사람 줄의 버튼: action 하나 = 작은 폼 하나 #}
 {% macro act(u, action, label, cls='') -%}
