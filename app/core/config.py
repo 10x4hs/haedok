@@ -117,6 +117,9 @@ class Settings(BaseSettings):
             return self.realtime_ws
         return not self.vercel_env
 
+    # 친구 + 채팅(개인·방) 기능(FEATURE_CHAT). 끄면 메뉴·링크가 사라지고 /chat·/friends 경로가 404
+    feature_chat: bool = True
+
 
 @lru_cache
 def get_settings() -> Settings:

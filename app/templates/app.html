@@ -22,6 +22,7 @@
     {% block menu_extra %}{% endblock %}
     <a href="/search">{{ icon('search') }}<span>검색</span></a>
     <a href="/races">{{ icon('race') }}<span>친구와 대결</span></a>
+    {% if chat_enabled is defined and chat_enabled() %}<a href="/chat">{{ icon('chat') }}<span>채팅</span>{% if chat_unread(request, user) %}<i data-chat-unread role="img" aria-label="안 읽은 메시지가 있어요" style="width:8px;height:8px;margin-left:auto;border-radius:50%;background:var(--accent)"></i>{% endif %}</a>{% endif %}
     <a href="/upload">{{ icon('upload') }}<span>내 파일 올리기</span></a>
     <button type="button" data-open-look>{{ icon('theme') }}<span>화면 꾸미기</span></button>
   </nav>

@@ -11,6 +11,7 @@
     <span class="mono muted">{% if over %}끝남{% elif ends_iso %}남은 시간 <b class="js-left" id="left" data-ends="{{ ends_iso }}">–</b>{% else %}기한 없음{% endif %}</span>
     <h2>{{ board|length }}명이 달리는 중</h2>
     <a class="btn primary" href="/books/{{ book.id }}">이어서 읽기</a>
+    {% if chat_enabled is defined and chat_enabled() %}<a class="btn ghost" href="/chat/room/{{ room.id }}">채팅</a>{% endif %}
   </div>
 </section>
 {# race.css는 트랙보다 먼저, 그러나 main의 첫 자식은 아니게(.split 레이아웃이 첫 자식을 왼쪽 열로 보낸다) #}

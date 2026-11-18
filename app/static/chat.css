@@ -1,0 +1,89 @@
+/* 친구 + 채팅 — app.css 의 토큰(--surface, --line, --accent …)만 쓴다. 새 색 · 글꼴 없음. */
+.ch-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* 친구 찾기 */
+.ch-search{display:flex;gap:8px;margin:4px 0 0}
+.ch-search input{flex:1;min-width:0;height:48px;padding:0 18px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--text);font:inherit}
+.ch-search input:focus{outline:none;border-color:var(--accent)}
+.ch-search .btn{height:48px;padding:0 20px;font-size:15px}
+
+/* 사람 줄 */
+.ch-people{list-style:none;margin:0;padding:0;display:grid}
+.ch-people li{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.ch-people li:last-child{border-bottom:0}
+.ch-people li>div{flex:1;display:grid;min-width:0}
+.ch-people b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch-people li>div span{font-size:13px;color:var(--dim)}
+.ch-people form{margin:0}
+.ch-act{min-height:44px;height:44px;padding:0 14px;cursor:pointer;white-space:nowrap}
+.ch-act.ch-go{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.ch-act.ch-bad{color:var(--bad)}
+.ch-more{position:relative}
+.ch-more summary{list-style:none;justify-content:center;min-width:44px;padding:0}
+.ch-more summary::-webkit-details-marker{display:none}
+.ch-more-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:5;display:grid;gap:6px;padding:8px;border-radius:18px;background:var(--surface);border:1px solid var(--glass-line);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:var(--shadow)}
+
+/* 채팅 목록 */
+.ch-tabs{margin:4px 0 8px}
+.ch-tabs a{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;border-radius:999px;font-size:15px;font-weight:500;color:var(--dim);transition:background .4s var(--ease),color .4s var(--ease)}
+.ch-tabs a[aria-pressed="true"]{background:var(--text);color:var(--bg)}
+.ch-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-weight:600}
+.ch-convs{list-style:none;margin:0;padding:0;display:grid}
+.ch-convs a{display:flex;align-items:center;gap:12px;min-height:64px;padding:10px 0;border-bottom:1px solid var(--line)}
+.ch-convs li:last-child a{border-bottom:0}
+.ch-convs a>div{flex:1;display:grid;min-width:0}
+.ch-convs b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch-convs a>div span{font-size:13px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch-locked{font-style:italic}
+.ch-meta{display:grid;justify-items:end;gap:4px;flex:none}
+.ch-room-ic{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:50%;background:var(--sunken);font-size:17px}
+
+/* 대화 */
+.ch-thread{display:grid;gap:8px}
+.ch-note{margin:0}
+.ch-note a{color:var(--accent-strong)}
+.ch-older{justify-self:center;min-height:44px;cursor:pointer}
+.ch-log{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.ch-empty{text-align:center;padding:24px 0}
+.ch-msg{position:relative;display:grid;gap:4px;justify-items:start;max-width:86%}
+.ch-msg.me{justify-self:end;justify-items:end}
+.ch-head{display:flex;align-items:baseline;gap:8px;font-size:13px}
+.ch-who{font-weight:600}
+.ch-body{margin:0;padding:10px 14px;border-radius:18px 18px 18px 6px;background:var(--surface);border:1px solid var(--line);white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.5;text-align:left;color:var(--text)}
+.ch-msg.me .ch-body{border-radius:18px 18px 6px 18px;background:var(--sunken);border-color:var(--glass-line)}
+.ch-seal,.ch-gone{color:var(--dim);font-style:italic}
+.ch-veiled{cursor:pointer;min-height:44px}
+.ch-veil-text{filter:blur(6px);transition:filter .3s var(--ease);user-select:none}
+.ch-veiled.open .ch-veil-text{filter:none;user-select:text}
+.ch-acts{position:relative;margin:-10px -8px -10px -4px}
+.ch-acts summary{list-style:none;display:grid;place-items:center;width:44px;height:40px;border-radius:999px;color:var(--dim);cursor:pointer}
+.ch-acts summary::-webkit-details-marker{display:none}
+.ch-acts summary:hover{background:var(--sunken)}
+.ch-acts-menu{position:absolute;z-index:5;top:40px;left:0;display:grid;gap:2px;min-width:160px;padding:6px;border-radius:16px;background:var(--surface);border:1px solid var(--glass-line);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:var(--shadow)}
+.ch-msg.me .ch-acts-menu{left:auto;right:0}
+.ch-acts-menu button{min-height:44px;padding:0 12px;border-radius:12px;text-align:left;font-size:14px}
+.ch-acts-menu button:hover{background:var(--sunken)}
+
+/* 보내기: 탭 바 위에 붙는다 */
+.ch-compose{position:sticky;z-index:4;bottom:calc(var(--tab) + 20px + env(safe-area-inset-bottom));display:grid;gap:8px;margin-top:12px;padding:10px;border-radius:24px}
+.ch-mode{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ch-mode button{display:grid;gap:1px;min-height:44px;padding:6px 12px;border-radius:16px;border:1px solid var(--line);text-align:left;color:var(--dim);transition:background .3s var(--ease),color .3s var(--ease),border-color .3s var(--ease)}
+.ch-mode button b{font-size:14px;color:var(--text)}
+.ch-mode button span{font-size:12px;line-height:1.35}
+.ch-mode button[aria-checked="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--text)}
+.ch-veil{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 6px;font-size:14px;cursor:pointer}
+.ch-veil input{width:20px;height:20px;accent-color:var(--accent)}
+.ch-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+.ch-row textarea{width:100%;min-height:44px;max-height:160px;padding:11px 16px;border-radius:22px;background:var(--sunken);border:1px solid var(--line);color:var(--text);font:inherit;font-size:16px;line-height:1.4;resize:none}
+.ch-row textarea:focus{outline:none;border-color:var(--accent)}
+.ch-send{height:44px;padding:0 18px;font-size:15px}
+.ch-send:disabled{opacity:.6}
+.ch-hint{margin:0 6px;min-height:0}
+.ch-hint:empty{display:none}
+
+@media (min-width:768px) and (min-height:520px){
+  .ch-compose{bottom:16px}
+}
+@media (prefers-reduced-motion:reduce){
+  .ch-veil-text,.ch-mode button,.ch-tabs a{transition:none}
+}
