@@ -106,6 +106,21 @@
   </div>
 </div>
 
+{# 41초 데모 — 버튼·팝업 없이 화면에서 바로 재생한다. section 이 아닌 div: 아래 기능 섹션의 좌우 번갈이(nth-of-type)를 흔들지 않게 #}
+<div class="demo pub-wrap" id="demo" role="region" aria-labelledby="h-demo">
+  <div class="demo-text">
+    <h2 id="h-demo">41초로 먼저 보기</h2>
+    <p>책을 고르고, 한 쪽씩 읽고, 친구 감상이 열리고, 친구와 진도를 겨루는 흐름을 한 번에 담았어요. 소리가 있어요.</p>
+  </div>
+  <figure class="demo-phone">
+    <video controls playsinline preload="metadata" width="720" height="1280"
+      poster="/static/demo/haedok-demo-poster.jpg?v={{ demo_v['haedok-demo-poster.jpg'] }}"
+      aria-label="해독 41초 소개 영상">
+      <source src="/static/demo/haedok-demo.mp4?v={{ demo_v['haedok-demo.mp4'] }}" type="video/mp4">
+    </video>
+  </figure>
+</div>
+
 <section class="feat pub-wrap" id="search" aria-labelledby="h-search">
   <div class="feat-text">
     <h2 id="h-search">읽을 책은 검색 한 번으로 찾아요.</h2>
