@@ -1,0 +1,33 @@
+{# 대화 목록 — /chat 한 화면, 넓은 화면(≥1024px)에서는 대화 옆 왼쪽 칸 #}
+{% from "_ui.html" import avatar, flat_cover, empty_state %}
+{% macro conv_list(tab, convs, unread, current=None) -%}
+<nav class="ch-tabs" aria-label="채팅 종류">
+  {% for key, label in [('dm', '개인'), ('room', '방')] %}
+  <a href="/chat?tab={{ key }}" aria-pressed="{{ 'true' if tab == key else 'false' }}"{% if tab == key %} aria-current="page"{% endif %}>{{ label }}{% if unread[key] %}<span class="ch-count mono" aria-label="안 읽은 메시지 {{ unread[key] }}개">{{ unread[key] }}</span>{% endif %}</a>
+  {% endfor %}
+</nav>
+{% if convs %}
+<ul class="ch-convs">
+  {% for c in convs %}
+  <li>
+    <a href="{{ c.href }}" data-unread="{{ c.unread }}" class="{{ 'unread' if c.unread }}"{% if current == c.href %} aria-current="page"{% endif %}>
+      {% if c.kind == 'dm' %}{{ avatar(c.user, 'ch-av') }}
+      {% else %}<span class="ch-cover">{{ flat_cover(c.book.title, c.book.author, cover_of(c.book)|small_cover) }}</span>{% endif %}
+      <div>
+        <b>{{ c.title }}</b>
+        <span class="{{ 'ch-locked' if c.preview in ('잠긴 메시지', '삭제된 메시지') }}">{% if c.preview %}{% if c.mine %}나: {% endif %}{{ c.preview }}{% elif c.subtitle %}{{ c.subtitle }}{% else %}아직 대화가 없어요{% endif %}</span>
+      </div>
+      <span class="ch-meta">
+        {% if c.at %}<time class="mono" datetime="{{ c.at.isoformat() }}">{{ c.at|chat_when }}</time>{% endif %}
+        {% if c.unread %}<span class="ch-count mono" aria-label="안 읽은 메시지 {{ c.unread }}개">{{ c.unread if c.unread < 100 else '99+' }}</span>{% endif %}
+      </span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% elif tab == 'dm' %}
+{{ empty_state('chat', '대화할 친구가 없어요', '친구를 맺으면 여기서 1:1로 이야기할 수 있어요. 같은 대결방 사람에게 신청하는 게 가장 빨라요.', '/friends', '친구 찾기', 'compact') }}
+{% else %}
+{{ empty_state('flag', '참가한 대결방이 없어요', '대결방에 들어가면 같은 책을 읽는 사람들과 채널에서 이야기할 수 있어요.', '/races', '대결 보러 가기', 'compact') }}
+{% endif %}
+{%- endmacro %}

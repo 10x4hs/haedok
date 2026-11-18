@@ -1,0 +1,24 @@
+{# 친구 동그라미 줄(Instagram DM 맨 위 줄처럼): 최근 10분 안에 책을 펼친 친구는 하늘색 링, 아래에 읽는 책.
+   책 제목은 퍼블릭 도메인 카탈로그 책일 때만(개인 파일 제목은 절대 아님) — chat.friend_cards 가 거른다. #}
+{% from "_ui.html" import avatar %}
+{% macro bubble_row(cards, label='친구') -%}
+<section class="ch-bubbles" aria-label="{{ label }} — 누르면 대화가 열려요">
+  <ul>
+    {% for c in cards %}
+    <li>
+      <a href="/chat/dm/{{ c.user.id }}" aria-label="{{ c.user.nickname }}{% if c.active %} · 지금 읽는 중{% endif %}{% if c.book %} · {{ c.book.title }}{% endif %} — 대화 열기">
+        <span class="ch-ring{{ ' on' if c.active }}">{{ avatar(c.user, 'ch-bub') }}{% if c.active %}<i class="ch-live" aria-hidden="true"></i>{% endif %}</span>
+        <b>{{ c.user.nickname }}</b>
+        <small>{{ c.book.title if c.book else ('읽는 중' if c.active else '') }}</small>
+      </a>
+    </li>
+    {% endfor %}
+    <li>
+      <a href="/friends" aria-label="친구 찾기">
+        <span class="ch-ring add"><span class="avatar ch-bub" aria-hidden="true">＋</span></span>
+        <b>친구 찾기</b><small></small>
+      </a>
+    </li>
+  </ul>
+</section>
+{%- endmacro %}

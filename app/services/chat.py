@@ -11,19 +11,23 @@
   판정은 반응과 같은 함수(social.page_open)를 쓴다. 따라잡으면 다음 폴링에 본문이 온다.
 - 고치기는 없다(지우고 다시 보낸다) — 도장이 낡지 않는다.
 
+- 방은 두 채널로 나뉜다: '# 책 이야기'(쪽 도장, 잠김) · '# 수다'(도장 없음). 채널이 도장을 정한다.
+- 답장 인용 · 반응 · 공지 · 목록 미리보기 어디에도 잠긴 본문은 나가지 않는다.
+
 개인 채팅
-- 수락한 친구끼리만. 도장이 없고, '가리기'는 탭할 때까지 흐리게 보여 줄 뿐 본문은 전달된다.
+- 수락한 친구끼리만. 도장이 없다. ||스포일러||는 탭할 때까지 흐리게 보여 줄 뿐 본문은 전달된다.
 """
 
 import datetime as dt
+import re
 from dataclasses import dataclass, field
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import ratelimit
 from app.models import Book, Room, RoomMember, User
-from app.models_chat import ChatMessage, ChatRead, ChatReport, ChatThread, Friendship
+from app.models_chat import ChatMessage, ChatReaction, ChatRead, ChatReport, ChatThread, Friendship
 from app.services import social
 
 MAX_BODY = 500
@@ -39,6 +43,13 @@ FRIEND_LIMIT, FRIEND_WINDOW = 20, 600
 FRIEND_MSG = "친구 신청을 너무 자주 했어요. 10분 뒤에 다시 해 주세요"
 REPORT_LIMIT, REPORT_WINDOW = 20, 600
 REPORT_MSG = "신고를 너무 자주 했어요. 10분 뒤에 다시 해 주세요"
+REACT_LIMIT, REACT_WINDOW = 60, 60
+REACT_MSG = "반응을 너무 빨리 바꾸고 있어요. 잠시 뒤에 다시 해 주세요"
+MAX_NOTICE = 140
+QUOTE = 80
+ACTIVE_FOR = dt.timedelta(minutes=10)  # 이 안에 책을 펼쳤으면 '지금 읽는 중' 링
+CHANNELS = ("book", "chat")
+SPOILER = re.compile(r"\|\|(.+?)\|\|", re.S)
 
 PENDING, ACCEPTED, BLOCKED = "pending", "accepted", "blocked"
 
@@ -256,12 +267,38 @@ async def search(session: AsyncSession, me: int, nickname: str) -> list[tuple[Us
     return [(u, s) for u, s in await _states(session, me, found) if s != "blocked"]
 
 
-async def roommates(session: AsyncSession, me: int) -> list[tuple[User, str]]:
-    """나와 같은 대결방에 있는 사람 중 아직 아무 관계가 없는 사람 — 친구 신청 후보."""
+async def roommates(session: AsyncSession, me: int) -> list[tuple[User, str, list[str]]]:
+    """나와 같은 대결방에 있는 사람 중 아직 아무 관계가 없는 사람 — 친구 신청 후보와 함께 있는 방 이름."""
     my_rooms = select(RoomMember.room_id).where(RoomMember.user_id == me)
-    ids = select(RoomMember.user_id).where(RoomMember.room_id.in_(my_rooms), RoomMember.user_id != me)
-    found = list(await session.scalars(select(User).where(User.id.in_(ids)).order_by(User.nickname)))
-    return [(u, s) for u, s in await _states(session, me, found) if s == "none"]
+    rows = (
+        await session.execute(
+            select(User, Room.name)
+            .join(RoomMember, RoomMember.user_id == User.id)
+            .join(Room, Room.id == RoomMember.room_id)
+            .where(RoomMember.room_id.in_(my_rooms), User.id != me)
+            .order_by(User.nickname, Room.id)
+        )
+    ).all()
+    rooms: dict[int, list[str]] = {}
+    users: dict[int, User] = {}
+    for u, name in rows:
+        users[u.id] = u
+        rooms.setdefault(u.id, []).append(name)
+    states = await _states(session, me, list(users.values()))
+    return [(u, s, rooms[u.id]) for u, s in states if s == "none"]
+
+
+async def shared_rooms(session: AsyncSession, me: int, other: int) -> list[str]:
+    """두 사람이 함께 있는 대결방 이름."""
+    mine = select(RoomMember.room_id).where(RoomMember.user_id == me)
+    return list(
+        await session.scalars(
+            select(Room.name)
+            .join(RoomMember, RoomMember.room_id == Room.id)
+            .where(RoomMember.user_id == other, Room.id.in_(mine))
+            .order_by(Room.id)
+        )
+    )
 
 
 # ---------------------------------------------------------------- 대화
@@ -321,13 +358,31 @@ async def _ensure_thread(session: AsyncSession, me: User, conv: Conv) -> ChatThr
     return t
 
 
-def clean_body(text: str | None) -> str:
+def clean_body(text: str | None, limit: int = MAX_BODY) -> str:
     body = (text or "").strip()
     if not body:
         raise ChatError("메시지를 적어 주세요")
-    if len(body) > MAX_BODY:
-        raise ChatError(f"메시지는 {MAX_BODY}자까지 보낼 수 있어요")
+    if len(body) > limit:
+        raise ChatError(f"{limit}자까지 보낼 수 있어요")
     return body
+
+
+def channel_of(m: ChatMessage) -> str:
+    """방 메시지의 채널 — 쪽 도장이 있으면 '# 책 이야기', 없으면 '# 수다'. 개인 채팅은 늘 chat."""
+    return "book" if m.page is not None else "chat"
+
+
+CHANNEL_SQL = case((ChatMessage.page.is_(None), "chat"), else_="book")
+
+
+def mask_spoilers(text: str) -> str:
+    """미리보기 · 인용에서 ||스포일러||를 가린다."""
+    return SPOILER.sub("[스포일러]", text)
+
+
+def snippet(text: str, n: int) -> str:
+    t = " ".join(mask_spoilers(text).split())
+    return t if len(t) <= n else t[:n] + "…"
 
 
 async def _reader_page(session: AsyncSession, me: int, conv: Conv) -> int | None:
@@ -337,37 +392,89 @@ async def _reader_page(session: AsyncSession, me: int, conv: Conv) -> int | None
     return await social.verified_of(session, me, conv.room.book_id)
 
 
+def _sealed(m: ChatMessage, me: int, reader_page: int | None) -> bool:
+    """잠김 판정 — 반응(reactions_for)과 같은 social.page_open 규칙. 내 메시지는 늘 열린다."""
+    return (
+        m.user_id != me
+        and m.page is not None
+        and not social.page_open(-1 if reader_page is None else reader_page, m.page)
+    )
+
+
+def _open_for(m: ChatMessage, me: int, reader_page: int | None) -> bool:
+    return m.deleted_at is None and not m.veiled and not _sealed(m, me, reader_page)
+
+
 async def send(
     session: AsyncSession,
     me: User,
     conv: Conv,
     body: str | None,
-    book_talk: bool = True,
-    veiled: bool = False,
+    channel: str = "book",
+    reply_to: int | None = None,
 ) -> dict:
-    """보내기. 방의 '책 이야기'는 내 검증된 쪽을 서버에서 읽어 도장을 찍는다(요청의 쪽 값은 받지도 않는다)."""
+    """보내기. 방에서는 채널이 도장을 정한다: '# 책 이야기'면 내 검증된 쪽을 서버가 읽어 찍고,
+    '# 수다'면 찍지 않는다. 요청의 쪽 값은 받지도 않는다."""
     text = clean_body(body)
+    channel = channel if conv.kind == "room" and channel in CHANNELS else "chat"
+    reader_page = await _reader_page(session, me.id, conv)
+    quoted = None
+    if reply_to is not None:
+        quoted = await session.get(ChatMessage, reply_to)
+        hidden = await blocked_by_me(session, me.id) if conv.kind == "room" else set()
+        if (
+            quoted is None
+            or conv.thread is None
+            or quoted.thread_id != conv.thread.id
+            or channel_of(quoted) != channel
+            or quoted.user_id in hidden
+            or quoted.deleted_at is not None
+            or _sealed(quoted, me.id, reader_page)
+        ):
+            raise ChatError("답장할 수 없는 메시지예요")
     await ratelimit.check(session, f"chat:{me.id}", SEND_LIMIT, SEND_WINDOW, SEND_MSG)
     thread = await _ensure_thread(session, me, conv)
     msg = ChatMessage(thread_id=thread.id, user_id=me.id, body=text, created_at=clock())
-    if conv.kind == "room" and book_talk:
+    if channel == "book":
         msg.book_id = conv.room.book_id
-        msg.page = await social.verified_of(session, me.id, conv.room.book_id)
-    if conv.kind == "dm":
-        msg.veiled = bool(veiled)
+        msg.page = reader_page
+    if quoted is not None:
+        msg.reply_to_id = quoted.id
     session.add(msg)
     await session.flush()
-    await _mark(session, thread.id, me.id, msg.id)
+    await _mark(session, thread.id, me.id, channel, msg.id)
     await session.commit()
-    return render(msg, me, me.id, await _reader_page(session, me.id, conv))
+    return (await render_many(session, me.id, [msg], reader_page))[0]
 
 
 def avatar_of(u: User) -> str | None:
     return social.avatar_path(u.id, u.avatar)
 
 
-def render(m: ChatMessage, author: User | None, me: int, reader_page: int | None) -> dict:
-    """메시지 한 줄의 응답. 잠기거나 지운 메시지는 'body' 키 자체를 넣지 않는다."""
+def _quote(q: ChatMessage | None, author: User | None, me: int, reader_page: int | None) -> dict | None:
+    if q is None:
+        return None
+    out = {"id": q.id, "nickname": author.nickname if author else "(알 수 없음)", "mine": q.user_id == me}
+    if q.deleted_at is not None:
+        out["text"] = DELETED_TEXT
+        out["gone"] = True
+    elif not _open_for(q, me, reader_page):
+        out["text"] = LOCKED_TEXT  # 잠긴 인용 — 원문은 절대 싣지 않는다
+        out["locked"] = True
+    else:
+        out["text"] = snippet(q.body, QUOTE)
+    return out
+
+
+def render(
+    m: ChatMessage,
+    author: User | None,
+    me: int,
+    reader_page: int | None,
+    reactions: list[ChatReaction] | None = None,
+    quote: dict | None = None,
+) -> dict:
+    """메시지 한 줄의 응답. 잠기거나 지운 메시지는 'body' 키 자체를 넣지 않고 반응도 싣지 않는다."""
     out = {
         "id": m.id,
         "user_id": m.user_id,
@@ -375,33 +482,74 @@ def render(m: ChatMessage, author: User | None, me: int, reader_page: int | None
         "avatar": avatar_of(author) if author else None,
         "at": _aware(m.created_at).isoformat() if m.created_at else None,
         "mine": m.user_id == me,
-        "kind": "book" if m.page is not None else "chat",
+        "kind": channel_of(m),
     }
     if m.page is not None:
         out["page"] = m.page + 1  # 화면의 쪽 번호(1부터)
     if m.deleted_at is not None:
         out["deleted"] = True
         return out
-    if (
-        m.user_id != me
-        and m.page is not None
-        and not social.page_open(-1 if reader_page is None else reader_page, m.page)
-    ):
+    if _sealed(m, me, reader_page):
         out["sealed"] = True
         return out
     out["body"] = m.body
     if m.veiled:
         out["veiled"] = True
+    if quote is not None:
+        out["reply"] = quote
+    counts: dict[str, int] = {}
+    mine = None
+    for r in reactions or []:
+        counts[r.emoji] = counts.get(r.emoji, 0) + 1
+        if r.user_id == me:
+            mine = r.emoji
+    out["reactions"] = [
+        {"emoji": e, "count": counts[e], "mine": e == mine} for e in social.EMOJIS if e in counts
+    ]
     return out
 
 
-async def _mark(session: AsyncSession, thread_id: int, me: int, upto: int) -> None:
-    """마지막으로 본 위치를 앞으로만 옮긴다."""
-    r = await session.get(ChatRead, (thread_id, me))
+async def render_many(
+    session: AsyncSession, me: int, msgs: list[ChatMessage], reader_page: int | None
+) -> list[dict]:
+    """여러 메시지를 한꺼번에: 작성자 · 반응 · 답장 인용을 쿼리 몇 번으로 모은다."""
+    if not msgs:
+        return []
+    ids = [m.id for m in msgs]
+    quoted_ids = {m.reply_to_id for m in msgs if m.reply_to_id}
+    quoted = (
+        {q.id: q for q in await session.scalars(select(ChatMessage).where(ChatMessage.id.in_(quoted_ids)))}
+        if quoted_ids
+        else {}
+    )
+    authors = await _users(session, [m.user_id for m in msgs] + [q.user_id for q in quoted.values()])
+    reacts: dict[int, list[ChatReaction]] = {}
+    for r in await session.scalars(select(ChatReaction).where(ChatReaction.message_id.in_(ids))):
+        reacts.setdefault(r.message_id, []).append(r)
+    out = []
+    for m in msgs:
+        q = quoted.get(m.reply_to_id) if m.reply_to_id else None
+        quote = _quote(q, authors.get(q.user_id) if q else None, me, reader_page) if q else None
+        out.append(render(m, authors.get(m.user_id), me, reader_page, reacts.get(m.id), quote))
+    return out
+
+
+async def _mark(session: AsyncSession, thread_id: int, me: int, channel: str, upto: int) -> int:
+    """마지막으로 본 위치를 앞으로만 옮긴다. 옮기기 전 위치를 돌려준다."""
+    r = await session.get(ChatRead, (thread_id, me, channel))
     if r is None:
-        session.add(ChatRead(thread_id=thread_id, user_id=me, last_read_id=upto))
-    elif upto > (r.last_read_id or 0):
+        session.add(ChatRead(thread_id=thread_id, user_id=me, channel=channel, last_read_id=upto))
+        return 0
+    before = r.last_read_id or 0
+    if upto > before:
         r.last_read_id = upto
+    return before
+
+
+def _channel_filter(q, conv: Conv, channel: str | None):
+    if conv.kind != "room" or channel not in CHANNELS:
+        return q
+    return q.where(ChatMessage.page.is_not(None) if channel == "book" else ChatMessage.page.is_(None))
 
 
 async def messages(
@@ -412,13 +560,18 @@ async def messages(
     before: int | None = None,
     locked: list[int] | None = None,
     deleted_since: dt.datetime | None = None,
+    channel: str | None = None,
 ) -> dict:
-    """대화의 메시지. after 가 없으면 최근 50개(before 가 있으면 그보다 이전 50개).
+    """대화(방은 채널 하나)의 메시지. after 가 없으면 최근 50개(before 가 있으면 그보다 이전 50개).
 
-    폴링(after)은 새 메시지와 함께, 클라이언트가 잠긴 채 들고 있는 메시지(locked) 중 바뀐 것,
-    deleted_since 뒤에 지워진 메시지 id를 돌려준다. 볼 때마다 읽은 위치를 옮긴다.
+    폴링(after)은 새 메시지와 함께, 잠긴 채 들고 있는 메시지(locked) · deleted_since 뒤에 바뀐 메시지
+    (반응 · 삭제)를 다시 보내고, 지워진 id를 따로 알려 준다. 볼 때마다 이 채널의 읽은 위치를 옮긴다.
     """
     now = clock()
+    if conv.kind == "room":
+        channel = channel if channel in CHANNELS else "book"
+    else:
+        channel = "chat"
     reader_page = await _reader_page(session, me.id, conv)
     empty = {
         "items": [],
@@ -427,7 +580,12 @@ async def messages(
         "last_id": after or 0,
         "has_more": False,
         "now": now.isoformat(),
+        "channel": channel,
         "my_page": None if reader_page is None else reader_page + 1,
+        "read_upto": 0,
+        "seen_upto": 0,
+        "other_unread": 0,
+        "notice": None,
     }
     if conv.thread is None:
         return empty
@@ -436,6 +594,7 @@ async def messages(
     q = select(ChatMessage).where(ChatMessage.thread_id == tid)
     if hidden:
         q = q.where(ChatMessage.user_id.not_in(hidden))
+    q = _channel_filter(q, conv, channel)
     has_more = False
     if after is not None:
         rows = list(
@@ -447,11 +606,21 @@ async def messages(
         rows = list(await session.scalars(q.order_by(ChatMessage.id.desc()).limit(PAGE_SIZE + 1)))
         has_more = len(rows) > PAGE_SIZE
         rows = list(reversed(rows[:PAGE_SIZE]))
+    seen = {m.id for m in rows}
     updates: list[ChatMessage] = []
-    if locked:
-        ids = [i for i in locked[:LOCKED_MAX] if after is None or i <= after]
+    if locked or deleted_since is not None:
+        conds = []
+        ids = [i for i in (locked or [])[:LOCKED_MAX] if after is None or i <= after]
         if ids:
-            updates = list(await session.scalars(q.where(ChatMessage.id.in_(ids)).order_by(ChatMessage.id)))
+            conds.append(ChatMessage.id.in_(ids))
+        if deleted_since is not None:
+            conds.append(ChatMessage.updated_at > deleted_since)
+        if conds:
+            updates = [
+                m
+                for m in await session.scalars(q.where(or_(*conds)).order_by(ChatMessage.id))
+                if m.id not in seen and (after is None or m.id <= after)
+            ]
     deleted: list[int] = []
     if deleted_since is not None:
         deleted = list(
@@ -463,22 +632,43 @@ async def messages(
                 )
             )
         )
-    authors = await _users(session, (m.user_id for m in rows + updates))
-    items = [render(m, authors.get(m.user_id), me.id, reader_page) for m in rows]
-    newest = await session.scalar(select(func.max(ChatMessage.id)).where(ChatMessage.thread_id == tid)) or 0
+    rendered = await render_many(session, me.id, rows + updates, reader_page)
+    newest_q = _channel_filter(
+        select(func.max(ChatMessage.id)).where(ChatMessage.thread_id == tid), conv, channel
+    )
+    newest = await session.scalar(newest_q) or 0
+    read_upto = 0
     if before is None:  # 최신을 본 것 — 지난 메시지를 거슬러 볼 때는 읽은 위치를 옮기지 않는다
-        await _mark(session, tid, me.id, newest)
+        read_upto = await _mark(session, tid, me.id, channel, newest)
         await session.commit()
-    # 다음 폴링의 커서. 가려진(차단) 메시지 뒤로도 넘어가도록 대화의 최신 id까지.
+    seen_upto = 0
+    if conv.kind == "dm":  # '읽음' — 친구가 마지막으로 본 위치
+        seen_upto = (
+            await session.scalar(
+                select(ChatRead.last_read_id).where(
+                    ChatRead.thread_id == tid, ChatRead.user_id == conv.key, ChatRead.channel == "chat"
+                )
+            )
+            or 0
+        )
+    other_unread = 0
+    if conv.kind == "room":
+        other = "chat" if channel == "book" else "book"
+        other_unread = (await _unread(session, me.id, [tid], hidden, channel=other)).get(tid, 0)
+    # 다음 폴링의 커서. 가려진(차단) 메시지 뒤로도 넘어가도록 채널의 최신 id까지.
     # 한 번에 다 못 줬으면 받은 데까지
     capped = after is not None and len(rows) == 200
     last_id = rows[-1].id if capped else max(after or 0, newest)
     return empty | {
-        "items": items,
-        "updates": [render(m, authors.get(m.user_id), me.id, reader_page) for m in updates],
+        "items": rendered[: len(rows)],
+        "updates": rendered[len(rows) :],
         "deleted": deleted,
         "last_id": last_id,
         "has_more": has_more,
+        "read_upto": read_upto,
+        "seen_upto": seen_upto,
+        "other_unread": other_unread,
+        "notice": conv.thread.notice if conv.kind == "room" else None,
     }
 
 
@@ -508,7 +698,49 @@ async def remove(session: AsyncSession, me: User, message_id: int) -> None:
         raise NotFound
     if m.deleted_at is None:
         m.deleted_at, m.deleted_by = clock(), me.id
+        m.updated_at = m.deleted_at
         await session.commit()
+
+
+async def react(session: AsyncSession, me: User, message_id: int, emoji: str | None) -> dict:
+    """반응 달기 · 바꾸기 · 빼기(emoji=None). 한 사람이 한 메시지에 하나 — 기본 키가 막는다.
+
+    잠겼거나 지운 메시지에는 달 수 없다(잠긴 메시지는 무엇인지조차 모르니까).
+    """
+    m, conv = await _message_conv(session, me, message_id)
+    reader_page = await _reader_page(session, me.id, conv)
+    if m.deleted_at is not None or _sealed(m, me.id, reader_page):
+        raise ChatError("반응할 수 없는 메시지예요")
+    if emoji is not None and emoji not in social.EMOJIS:
+        raise ChatError("고를 수 있는 이모지가 아니에요")
+    await ratelimit.check(session, f"chat-react:{me.id}", REACT_LIMIT, REACT_WINDOW, REACT_MSG)
+    r = await session.get(ChatReaction, (m.id, me.id))
+    if emoji is None:
+        if r is not None:
+            await session.delete(r)
+    elif r is None:
+        session.add(ChatReaction(message_id=m.id, user_id=me.id, emoji=emoji))
+    else:
+        r.emoji = emoji
+    m.updated_at = clock()
+    await session.commit()
+    return (await render_many(session, me.id, [m], reader_page))[0]
+
+
+async def set_notice(session: AsyncSession, me: User, room_id: int, text: str | None) -> str | None:
+    """방 공지 한 줄 — 방장만. 비우면 내린다."""
+    conv = await room_conv(session, me, room_id)
+    if conv.room.owner_id != me.id:
+        raise ChatError("방장만 공지를 정할 수 있어요", 403)
+    body = (text or "").strip()
+    if len(body) > MAX_NOTICE:
+        raise ChatError(f"공지는 {MAX_NOTICE}자까지 적을 수 있어요")
+    await ratelimit.check(session, f"chat:{me.id}", SEND_LIMIT, SEND_WINDOW, SEND_MSG)
+    thread = await _ensure_thread(session, me, conv)
+    thread.notice = body or None
+    thread.notice_at = clock() if body else None
+    await session.commit()
+    return thread.notice
 
 
 async def report(session: AsyncSession, me: User, message_id: int, reason: str | None) -> None:
@@ -545,10 +777,20 @@ def _my_threads(me: int):
     )
 
 
-async def _unread(session: AsyncSession, me: int, thread_ids, hidden: set[int]) -> dict[int, int]:
+async def _unread(
+    session: AsyncSession, me: int, thread_ids, hidden: set[int], channel: str | None = None
+) -> dict[int, int]:
+    """대화별 안 읽은 수 — 메시지마다 그 채널의 읽은 위치와 비교한다."""
     q = (
         select(ChatMessage.thread_id, func.count())
-        .outerjoin(ChatRead, and_(ChatRead.thread_id == ChatMessage.thread_id, ChatRead.user_id == me))
+        .outerjoin(
+            ChatRead,
+            and_(
+                ChatRead.thread_id == ChatMessage.thread_id,
+                ChatRead.user_id == me,
+                ChatRead.channel == CHANNEL_SQL,
+            ),
+        )
         .where(
             ChatMessage.thread_id.in_(thread_ids),
             ChatMessage.user_id != me,
@@ -557,6 +799,10 @@ async def _unread(session: AsyncSession, me: int, thread_ids, hidden: set[int]) 
         )
         .group_by(ChatMessage.thread_id)
     )
+    if channel == "book":
+        q = q.where(ChatMessage.page.is_not(None))
+    elif channel == "chat":
+        q = q.where(ChatMessage.page.is_(None))
     if hidden:
         q = q.where(ChatMessage.user_id.not_in(hidden))
     return dict((await session.execute(q)).all())
@@ -568,21 +814,27 @@ async def unread_total(session: AsyncSession, me: int) -> int:
     return sum(counts.values())
 
 
+async def channel_unread(session: AsyncSession, me: User, conv: Conv) -> dict[str, int]:
+    """방의 채널 탭 숫자."""
+    if conv.thread is None:
+        return {"book": 0, "chat": 0}
+    hidden = await blocked_by_me(session, me.id)
+    return {
+        ch: (await _unread(session, me.id, [conv.thread.id], hidden, channel=ch)).get(conv.thread.id, 0)
+        for ch in CHANNELS
+    }
+
+
 def preview(m: ChatMessage | None, me: int, reader_page: int | None) -> str | None:
-    """목록 미리보기 — 잠긴(도장보다 덜 읽음) 메시지와 가린 메시지의 본문은 절대 내보내지 않는다."""
+    """목록 미리보기 — 잠긴(도장보다 덜 읽음) 메시지와 가린 메시지의 본문은 절대 내보내지 않는다.
+    ||스포일러|| 부분도 가린다."""
     if m is None:
         return None
     if m.deleted_at is not None:
         return DELETED_TEXT
-    if m.veiled:
+    if not _open_for(m, me, reader_page):
         return LOCKED_TEXT
-    if (
-        m.user_id != me
-        and m.page is not None
-        and not social.page_open(-1 if reader_page is None else reader_page, m.page)
-    ):
-        return LOCKED_TEXT
-    return m.body if len(m.body) <= PREVIEW else m.body[:PREVIEW] + "…"
+    return snippet(m.body, PREVIEW)
 
 
 async def conversations(session: AsyncSession, me: User, kind: str) -> list[dict]:
@@ -648,6 +900,7 @@ async def conversations(session: AsyncSession, me: User, kind: str) -> list[dict
                 "title": c.title,
                 "subtitle": c.book.title if c.book and c.book.title != c.title else None,
                 "user": c.other,
+                "book": c.book,
                 "at": _aware(m.created_at) if m else None,
                 "unread": unread.get(c.thread.id, 0) if c.thread else 0,
                 "preview": preview(m, me.id, pages.get(c.key) if c.kind == "room" else None),
@@ -657,3 +910,92 @@ async def conversations(session: AsyncSession, me: User, kind: str) -> list[dict
     epoch = dt.datetime.min.replace(tzinfo=dt.UTC)
     out.sort(key=lambda d: (d["at"] or epoch, d["title"]), reverse=True)
     return out
+
+
+# ---------------------------------------------------------------- 친구가 지금 읽는 책
+
+
+def public_book(book: Book | None) -> bool:
+    """제목을 친구에게 보여 줘도 되는 책 — 퍼블릭 도메인 카탈로그 책만(올린 개인 파일은 절대 아님)."""
+    return book is not None and book.has_fulltext and book.owner_id is None and book.source != "upload"
+
+
+@dataclass
+class FriendCard:
+    user: User
+    active: bool = False  # 최근 10분 안에 책을 펼쳤다
+    book: Book | None = None  # 지금 읽는 책 — public_book 일 때만
+    page: int = 0
+    total: int = 0
+    week: list[dict] | None = None  # 이번 주 읽은 날(목표 기능이 켜져 있을 때)
+
+
+async def friend_cards(session: AsyncSession, me: int, week: bool = False) -> list[FriendCard]:
+    """수락한 친구만: 지금 읽는 중인지(링), 읽는 책(공개 책만), 이번 주 읽은 날.
+
+    친구가 아닌 사람 · 차단한 사람은 아예 들어오지 않는다.
+    """
+    from app.models import LibraryEntry, Shelf
+
+    ids = await friend_ids(session, me)
+    if not ids:
+        return []
+    users = await _users(session, ids)
+    rows = (
+        await session.execute(
+            select(LibraryEntry, Book)
+            .join(Book, Book.id == LibraryEntry.book_id)
+            .where(LibraryEntry.user_id.in_(ids), LibraryEntry.shelf != Shelf.WANT)
+            .order_by(LibraryEntry.updated_at.desc())
+        )
+    ).all()
+    cutoff = clock() - ACTIVE_FOR
+    cards: dict[int, FriendCard] = {uid: FriendCard(u) for uid, u in users.items()}
+    latest: set[int] = set()
+    for e, b in rows:
+        card = cards[e.user_id]
+        if e.updated_at is not None and _aware(e.updated_at) >= cutoff:
+            card.active = True
+        if e.user_id in latest:
+            continue
+        latest.add(e.user_id)  # 가장 최근에 펼친 책 하나 — 개인 파일이면 제목 없이 둔다
+        if public_book(b):
+            card.book, card.page, card.total = b, e.current_chunk + 1, b.total_chunks
+    if week:
+        await _fill_week(session, list(cards.values()))
+    out = list(cards.values())
+    out.sort(key=lambda c: (not c.active, c.book is None, c.user.nickname))
+    return out
+
+
+async def _fill_week(session: AsyncSession, cards: list[FriendCard]) -> None:
+    """이번 주(월~일) 읽은 날 — 목표 기능(FEATURE_GOALS)이 꺼져 있으면 비워 둔다."""
+    from app.core.config import get_settings
+
+    if not cards or not get_settings().feature_goals:
+        return
+    from app.services import goals  # 기능끼리 얽히지 않게 필요할 때만 불러온다
+
+    today = goals.reading_day(goals.clock())
+    monday = today - dt.timedelta(days=today.weekday())
+    for c in cards:
+        pages = (await goals.history(session, c.user.id, monday)).pages
+        c.week = [
+            {
+                "day": "월화수목금토일"[i],
+                "read": pages.get(monday + dt.timedelta(days=i), 0) > 0,
+                "future": monday + dt.timedelta(days=i) > today,
+            }
+            for i in range(7)
+        ]
+
+
+async def members(session: AsyncSession, room: Room, me: int) -> list[dict]:
+    """방 멤버 패널 — 검증된 쪽과 진행 막대(대결방이 이미 함께 보는 값). 메시지 내용은 없다."""
+    from app.services import races as race_service
+
+    board = await race_service.standings(session, room, me)
+    return [
+        {"user": s.user, "pages": s.pages, "pct": s.pct, "me": s.is_me, "owner": s.user.id == room.owner_id}
+        for s in board
+    ]

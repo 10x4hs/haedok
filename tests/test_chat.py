@@ -122,7 +122,7 @@ async def test_chat_mode_message_is_visible_to_everyone(trio):
     url = f"/api/v1/chat/room/{room}/messages"
     sent = await post(h, url, text="오늘 저녁 뭐 먹어요?", mode="chat")
     assert sent.status_code == 201 and "page" not in sent.json() and sent.json()["kind"] == "chat"
-    item = (await m.get(url)).json()["items"][0]
+    item = (await m.get(url, params={"channel": "chat"})).json()["items"][0]
     assert item["body"] == "오늘 저녁 뭐 먹어요?" and "sealed" not in item
 
 
@@ -150,7 +150,7 @@ async def test_blocked_users_room_messages_are_hidden_from_blocker(trio):
     url = f"/api/v1/chat/room/{room}/messages"
     await post(m, url, text="민준의 말", mode="chat")
     assert (await friend_action(h, trio["ids"][1], "block")).status_code == 303
-    seen = await h.get(url)
+    seen = await h.get(url, params={"channel": "chat"})
     assert "민준의 말" not in seen.text and seen.json()["last_id"] > 0
     # 차단당한 사람은 신청도 못 보낸다
     r = await friend_action(m, trio["ids"][0], "request")
@@ -182,17 +182,17 @@ async def test_delete_own_message_and_owner_removal(trio):
     url = f"/api/v1/chat/room/{room}/messages"
     mine = (await post(m, url, text="실수로 보냄", mode="chat")).json()["id"]
     theirs = (await post(s, url, text="서연의 말", mode="chat")).json()["id"]
-    before = (await m.get(url)).json()
+    before = (await m.get(url, params={"channel": "chat"})).json()
 
     assert (await m.delete(f"/api/v1/chat/messages/{theirs}", headers={"X-CSRF-Token": m.csrf})).status_code == 404
     assert (await m.delete(f"/api/v1/chat/messages/{mine}", headers={"X-CSRF-Token": m.csrf})).status_code == 204
     # 방장은 방 안의 남의 메시지를 지울 수 있다
     assert (await h.delete(f"/api/v1/chat/messages/{theirs}", headers={"X-CSRF-Token": h.csrf})).status_code == 204
 
-    items = (await s.get(url)).json()["items"]
+    items = (await s.get(url, params={"channel": "chat"})).json()["items"]
     assert all(i.get("deleted") and "body" not in i for i in items)
-    assert "실수로 보냄" not in (await s.get(url)).text
-    poll = await m.get(url, params={"after": before["last_id"], "deleted_since": before["now"]})
+    assert "실수로 보냄" not in (await s.get(url, params={"channel": "chat"})).text
+    poll = await m.get(url, params={"after": before["last_id"], "deleted_since": before["now"], "channel": "chat"})
     assert sorted(poll.json()["deleted"]) == sorted([mine, theirs])
 
 
@@ -220,7 +220,7 @@ async def test_admin_sees_reports(trio, monkeypatch):
     assert (await trio["m"].get("/admin/chat-reports")).status_code == 404
     hide = await trio["h"].post(f"/admin/chat-reports/{mid}/hide", data={"csrf": trio["h"].csrf})
     assert hide.status_code == 303
-    assert (await trio["m"].get(url)).json()["items"][0]["deleted"] is True
+    assert (await trio["m"].get(url, params={"channel": "chat"})).json()["items"][0]["deleted"] is True
 
 
 # ---------------------------------------------------------------- 대화 목록 · 안 읽은 수
@@ -245,7 +245,7 @@ async def test_unread_counts_and_menu_dot(trio):
     assert re.search(r'data-unread="2"', listing)
     assert 'data-chat-unread' in (await m.get("/me")).text  # 메뉴의 점
     assert 'data-chat-unread' not in (await h.get("/me")).text  # 내가 보낸 건 안 읽은 수가 아니다
-    await m.get(url)  # 대화를 열면 읽음
+    await m.get(url, params={"channel": "chat"})  # 대화를 열면 읽음
     assert 'data-unread="2"' not in (await m.get("/chat", params={"tab": "room"})).text
     assert 'data-chat-unread' not in (await m.get("/me")).text
 
@@ -301,12 +301,12 @@ async def test_dm_only_between_accepted_friends(api, session_factory):
     await friend_action(a, b_id, "request")
     assert (await post(a, url, text="안녕")).status_code == 404  # 신청만으로는 안 된다
     await friend_action(b, a_id, "accept")
-    sent = await post(a, url, text="스포 조심", veiled=True, page=3, mode="book")
+    sent = await post(a, url, text="결말은 ||스포 조심||", page=3, mode="book")
     assert sent.status_code == 201 and "page" not in sent.json()  # 개인 채팅에는 도장이 없다
     got = (await b.get(f"/api/v1/chat/dm/{a_id}/messages")).json()["items"][0]
-    assert got["veiled"] is True and got["body"] == "스포 조심"  # 가리기는 예의일 뿐 본문은 온다
+    assert got["body"] == "결말은 ||스포 조심||"  # ||가리기||는 예의일 뿐 본문은 온다
     listing = await b.get("/chat")
-    assert "스포 조심" not in listing.text and "잠긴 메시지" in listing.text
+    assert "스포 조심" not in listing.text and "[스포일러]" in listing.text  # 미리보기는 가린다
 
     # 차단하면 대화도 끝난다(양쪽 모두)
     await friend_action(b, a_id, "block")

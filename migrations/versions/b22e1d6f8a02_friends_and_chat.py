@@ -1,4 +1,4 @@
-"""friends and chat: friendships, chat threads/messages/reads/reports
+"""friends and chat: friendships, chat threads/messages/reactions/reads/reports
 
 Revision ID: b22e1d6f8a02
 Revises: d44a3f8b0c04
@@ -43,6 +43,8 @@ def upgrade() -> None:
         sa.Column('room_id', sa.Integer(), nullable=True),
         sa.Column('user_low', sa.Integer(), nullable=True),
         sa.Column('user_high', sa.Integer(), nullable=True),
+        sa.Column('notice', sa.String(length=140), nullable=True),
+        sa.Column('notice_at', sa.DateTime(timezone=True), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
         sa.ForeignKeyConstraint(['room_id'], ['rooms.id'], name=op.f('fk_chat_threads_room_id_rooms'), ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['user_low'], ['users.id'], name=op.f('fk_chat_threads_user_low_users'), ondelete='CASCADE'),
@@ -64,11 +66,14 @@ def upgrade() -> None:
         sa.Column('veiled', sa.Boolean(), server_default=sa.false(), nullable=False),
         sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
         sa.Column('deleted_by', sa.Integer(), nullable=True),
+        sa.Column('reply_to_id', BigId, nullable=True),
+        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
         sa.ForeignKeyConstraint(['thread_id'], ['chat_threads.id'], name=op.f('fk_chat_messages_thread_id_chat_threads'), ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('fk_chat_messages_user_id_users'), ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['book_id'], ['books.id'], name=op.f('fk_chat_messages_book_id_books'), ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['deleted_by'], ['users.id'], name=op.f('fk_chat_messages_deleted_by_users'), ondelete='SET NULL'),
+        sa.ForeignKeyConstraint(['reply_to_id'], ['chat_messages.id'], name=op.f('fk_chat_messages_reply_to_id_chat_messages'), ondelete='SET NULL'),
         sa.PrimaryKeyConstraint('id', name=op.f('pk_chat_messages')),
     )
     op.create_index('ix_chat_messages_thread_id_id', 'chat_messages', ['thread_id', 'id'], unique=False)
@@ -78,12 +83,25 @@ def upgrade() -> None:
         'chat_reads',
         sa.Column('thread_id', sa.Integer(), nullable=False),
         sa.Column('user_id', sa.Integer(), nullable=False),
+        sa.Column('channel', sa.String(length=8), server_default='chat', nullable=False),
         sa.Column('last_read_id', sa.BigInteger(), server_default='0', nullable=False),
         sa.ForeignKeyConstraint(['thread_id'], ['chat_threads.id'], name=op.f('fk_chat_reads_thread_id_chat_threads'), ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('fk_chat_reads_user_id_users'), ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('thread_id', 'user_id', name=op.f('pk_chat_reads')),
+        sa.PrimaryKeyConstraint('thread_id', 'user_id', 'channel', name=op.f('pk_chat_reads')),
     )
     op.create_index(op.f('ix_chat_reads_user_id'), 'chat_reads', ['user_id'], unique=False)
+
+    op.create_table(
+        'chat_reactions',
+        sa.Column('message_id', BigId, nullable=False),
+        sa.Column('user_id', sa.Integer(), nullable=False),
+        sa.Column('emoji', sa.String(length=16), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+        sa.ForeignKeyConstraint(['message_id'], ['chat_messages.id'], name=op.f('fk_chat_reactions_message_id_chat_messages'), ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('fk_chat_reactions_user_id_users'), ondelete='CASCADE'),
+        sa.PrimaryKeyConstraint('message_id', 'user_id', name=op.f('pk_chat_reactions')),
+    )
+    op.create_index(op.f('ix_chat_reactions_user_id'), 'chat_reactions', ['user_id'], unique=False)
 
     op.create_table(
         'chat_reports',
@@ -104,6 +122,8 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index(op.f('ix_chat_reports_reporter_id'), table_name='chat_reports')
     op.drop_table('chat_reports')
+    op.drop_index(op.f('ix_chat_reactions_user_id'), table_name='chat_reactions')
+    op.drop_table('chat_reactions')
     op.drop_index(op.f('ix_chat_reads_user_id'), table_name='chat_reads')
     op.drop_table('chat_reads')
     op.drop_index(op.f('ix_chat_messages_user_id'), table_name='chat_messages')
