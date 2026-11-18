@@ -27,7 +27,7 @@ from app.core.config import Settings, get_settings
 from app.db.session import get_session
 from app.models import Book, LibraryEntry, Room, Shelf, User
 from app.public_facts import CLIP_V, FACTS
-from app.services import bestsellers, bookstore, mail, social
+from app.services import bestsellers, bookstore, mail, race_list, social
 from app.services import board as board_service
 from app.services import books as book_service
 from app.services import mileage as mileage_service
@@ -1020,13 +1020,12 @@ async def races(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(auth.require_user),
 ) -> HTMLResponse:
-    mine = await race_service.races_of(session, user.id)
     reading = [b for e, b in await book_service.library_of(session, user.id) if e.shelf == Shelf.READING]
     return _render(
         request,
         "races.html",
         user,
-        races=[(r, b, race_service.is_over(r)) for r, b in mine],
+        rooms=await race_list.my_rooms(session, user.id),
         reading=reading,
         popular=await popular(session, 12),
         durations=race_service.DURATIONS,

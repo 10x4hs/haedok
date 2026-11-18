@@ -1,15 +1,16 @@
-{# 모집 글 카드: 표지 · 책 · 한 줄 소개 · 하루 분량 · 몇 명 · 방장 · 남은 자리 #}
-{% from "_ui.html" import book_cover, avatar %}
-{% macro post_card(v) -%}
-<a class="tg-card glass-card" href="/together/{{ v.post.id }}">
-  {{ book_cover(v.book.title, v.book.author, 'sm', img=cover_of(v.book)|small_cover) }}
-  <div class="tg-body">
-    <b class="tg-title">{{ v.book.title }}{% if v.book.author %}<span> · {{ v.book.author }}</span>{% endif %}</b>
-    <p class="tg-pitch">{{ v.post.pitch }}</p>
-    <span class="tg-meta"><span class="tg-pace">{{ v.pace_text }}</span><span class="mono">{{ v.count }}/{{ v.post.capacity }}명</span></span>
-    <span class="tg-foot">{{ avatar(v.host, 'sm') }}<span class="tg-host">{{ v.host.nickname }}</span>
-      {%- if v.known %}<em class="tag ok">아는 사람 {{ v.known }}명</em>{% endif %}
-      <em class="tag{{ '' if v.joinable or v.is_member else ' bad' }}">{{ '참가 중' if v.is_member else v.state }}</em></span>
+{# 모집 글 한 줄 — /races '모집 중'과 /together가 같은 줄을 쓴다.
+   표지 · 제목 · 저자 / 한 줄 소개(잘림) / 하루 분량 · 몇 명 · 방장 / 오른쪽 끝 참가 표시 #}
+{% from "_ui.html" import book_cover %}
+{% macro post_row(v) -%}
+<li><a class="rl-row rl-post" href="/together/{{ v.post.id }}">
+  {{ book_cover(v.book.title, v.book.author, 'xs', img=cover_of(v.book)|small_cover) }}
+  <div class="rl-main">
+    <b>{{ v.book.title }}{% if v.book.author %}<span> · {{ v.book.author }}</span>{% endif %}</b>
+    <span class="rl-pitch">{{ v.post.pitch }}</span>
+    <span class="rl-meta"><em class="rl-pace">{{ v.pace_text }}</em> · <span class="mono">{{ v.count }}/{{ v.post.capacity }}명</span> · {{ v.host.nickname }}{% if v.known %} · <em class="rl-known">아는 사람 {{ v.known }}명</em>{% endif %}</span>
   </div>
-</a>
+  {% if v.is_member %}<span class="rl-end muted small">참가 중</span>
+  {% elif v.joinable %}<span class="rl-join">참가</span>
+  {% else %}<span class="rl-end muted small">{{ '마감' if v.post.status != 'open' else '다 찼어요' if v.full else v.state }}</span>{% endif %}
+</a></li>
 {%- endmacro %}
