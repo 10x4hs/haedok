@@ -742,6 +742,8 @@ class Card:
     saved: bool = False
     friend_liker: str | None = None  # 'OO님 외 n명' 에 쓸 친구 이름(가장 최근에 누른 친구)
     recent: bool = False  # 24시간 안에 게시물을 올린 사람이면 머리 사진에 고리
+    suggested: bool = False  # 피드 전체 탭: 친구가 아닌 사람의 공개 게시물('새로운 사람' 표시)
+    rel: str = ""  # 그 사람과의 관계(none · outgoing · incoming …) — 친구 신청 단추를 그릴지
 
     @property
     def status_label(self) -> str:

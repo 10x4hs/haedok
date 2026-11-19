@@ -5,8 +5,10 @@
 {% set posts_on = feature_posts is defined and feature_posts() %}
 {% macro svg(d) -%}<svg class="ch-svg" viewBox="0 0 24 24" aria-hidden="true">{{ d|safe }}</svg>{%- endmacro %}
 {% block title %}{{ conv.title }} — 메시지 · 偕讀 해독{% endblock %}
-{% block body_class %}app chat-shell chat-at-thread{% endblock %}
+{% block body_class %}app chat-shell cm-chat chat-at-thread{% endblock %}
 {% block content_class %}chat{% endblock %}
+{% block heading %}커뮤니티{% endblock %}
+{% block top_extra %}{% include "_community.html" %}{% endblock %}
 {% block main %}
 <link rel="stylesheet" href="/static/chat.css">
 <div class="ch-app ch-scope in-thread">
@@ -23,7 +25,7 @@
 
     <div class="ch-col">
       <header class="ch-thead">
-        <a class="ch-icon-btn ch-back" href="/chat?tab={{ conv.kind }}" aria-label="메시지 목록으로">{{ icon('back') }}</a>
+        <a class="ch-icon-btn ch-back" href="/community/messages?tab={{ conv.kind }}" aria-label="메시지 목록으로">{{ icon('back') }}</a>
         {% if room %}
         <span class="ch-thead-cover">{{ flat_cover(conv.book.title, conv.book.author, img) }}</span>
         <div class="ch-thead-t">

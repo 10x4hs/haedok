@@ -2,7 +2,7 @@
 (() => {
   const bar = document.querySelector('.tabbar');
   if (!bar) return;
-  const roots = { home: ['/'], discover: ['/discover'], feed: ['/feed'], library: ['/library', '/races'], chat: ['/chat'], me: ['/profile', '/me'] };
+  const roots = { home: ['/'], discover: ['/discover'], community: ['/community', '/community/messages', '/community/together'], library: ['/library', '/races'], me: ['/profile', '/me'] };
   bar.addEventListener('click', e => {
     const a = e.target.closest('a.on[data-nav]');
     if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button) return;

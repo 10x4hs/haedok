@@ -1,4 +1,4 @@
-/* 피드(/feed) — 새 게시물 알약 · 바닥 가까이에서 자동 이어 읽기 · 동그라미 '봤음'.
+/* 커뮤니티 피드(/community) — 새 게시물 알약 · 바닥 가까이에서 자동 이어 읽기 · 동그라미 '봤음'.
  *
  * - 새 게시물: 화면이 보이는 동안만 60초마다 /feed/new?after=<가장 새 게시물 id> 로 숫자만 묻는다(presence.js 와 같은 규칙:
  *   숨으면 멈추고, 실패하면 간격을 늘린다). 알약을 누르면 맨 위로 올라가 /feed/fresh 조각을 끼워 넣는다.
@@ -30,6 +30,8 @@
           const nodes = await fragment(link.dataset.nextPage);
           const box = document.createElement('div');
           box.append(...nodes);
+          // 이미 화면에 있는 게시물(알약으로 끼운 것 등)은 다시 붙이지 않는다
+          box.querySelectorAll('article.ps-post').forEach(a => { if (document.getElementById(a.id)) a.remove(); });
           P.enhance(box);
           link.replaceWith(...Array.from(box.childNodes));
           watch();
@@ -44,9 +46,10 @@
     watch();
   }
 
-  // ---------- 새 게시물 알약(친구 탭)
+  // ---------- 새 게시물 알약(전체 · 친구 탭)
   const pill = document.querySelector('[data-new-pill]');
-  if (stream && pill && stream.dataset.tab === 'friends') {
+  if (stream && pill && (stream.dataset.tab === 'friends' || stream.dataset.tab === 'mix')) {
+    const tabq = `&tab=${stream.dataset.tab}`;
     const BASE = 60_000;
     let newest = Number(stream.dataset.newest) || 0;
     let wait = BASE, timer = null;
@@ -55,7 +58,7 @@
     async function tick() {
       if (!newest || document.hidden) return;
       try {
-        const r = await fetch(`/feed/new?after=${newest}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+        const r = await fetch(`/feed/new?after=${newest}${tabq}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
         if (!r.ok) throw new Error(String(r.status));
         const j = await r.json();
         n.textContent = String(j.count);
@@ -70,7 +73,7 @@
     pill.addEventListener('click', async () => {
       pill.disabled = true;
       try {
-        const nodes = await fragment(`/feed/fresh?after=${newest}`);
+        const nodes = await fragment(`/feed/fresh?after=${newest}${tabq}`);
         const box = document.createElement('div');
         box.append(...nodes);
         box.querySelectorAll('article.ps-post').forEach(a => { const old = document.getElementById(a.id); if (old) old.remove(); });
@@ -84,7 +87,7 @@
         const first = stream.querySelector('article.ps-post a.ps-who-n');
         if (first) first.focus({ preventScroll: true });
       } catch (_) {
-        location.href = '/feed';
+        location.href = '/community';
       } finally {
         pill.disabled = false;
       }
@@ -111,4 +114,30 @@
       try { localStorage.setItem('ps-seen', JSON.stringify(seen)); } catch (_) { /* 비공개 창 */ }
     });
   }
+
+  // ---------- 친구 신청('새로운 사람' 게시물 머리 · 모듈) — 화면을 넘기지 않고 보내고 '신청함'으로 바꾼다
+  document.addEventListener('submit', async e => {
+    const f = e.target;
+    if (!f.matches('form[data-follow], form[data-hide]')) return;
+    e.preventDefault();
+    const btn = f.querySelector('button');
+    if (btn) btn.disabled = true;
+    try {
+      const r = await fetch(f.action, { method: 'POST', body: new FormData(f), credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      if (!r.ok) throw new Error(String(r.status));
+      if (f.matches('[data-hide]')) {
+        const mod = f.closest('[data-mod]');
+        if (mod) mod.remove();
+        if (window.haedokToast) window.haedokToast('오늘 하루 이 칸을 숨겨요');
+      } else {
+        const done = document.createElement('span');
+        done.className = 'ps-follow-done';
+        done.textContent = '신청함';
+        f.replaceWith(done);
+        if (window.haedokToast) window.haedokToast('친구 신청을 보냈어요');
+      }
+    } catch (_) {
+      f.submit();
+    }
+  });
 })();

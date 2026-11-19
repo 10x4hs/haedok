@@ -59,7 +59,7 @@ body.chat-shell .content.chat{padding:0;margin:0;max-width:none}
 
 /* ---------- 목록 칸 ---------- */
 .ch-lhead{display:flex;align-items:center;gap:8px;height:64px;padding:env(safe-area-inset-top) 10px 0 20px;flex:none}
-.ch-lhead h1{flex:1;margin:0;font:700 20px/1 var(--f-ui);letter-spacing:-.03em}
+.ch-lhead h1,.ch-lhead h2{flex:1;margin:0;font:700 20px/1 var(--f-ui);letter-spacing:-.03em}
 .ch-lscroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--hair) transparent}
 .ch-bubbles{overflow-x:auto;scrollbar-width:none}
 .ch-bubbles::-webkit-scrollbar{display:none}

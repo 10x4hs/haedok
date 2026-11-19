@@ -3,7 +3,7 @@
 {% from "_nav.html" import nav_icon %}
 {% block body_class %}app{% endblock %}
 {% block body %}
-{# 아래 막대(휴대폰 5칸) · 왼쪽 레일(데스크톱, + 만들기 · 나 포함) — 칸은 app/nav.py 가 정한다 #}
+{# 아래 막대(휴대폰 4칸) · 왼쪽 레일(데스크톱, 나 포함) — 칸은 app/nav.py 가 정한다 #}
 {% set items = nav_items(request, user if user is defined else None, path if path is defined else request.url.path) %}
 {% set me_item = items|selectattr('key', 'equalto', 'me')|first %}
 <link rel="stylesheet" href="/static/nav.css">
@@ -18,7 +18,7 @@
   <nav class="tabbar" aria-label="주 메뉴" style="--tabs:{{ items|rejectattr('rail_only')|list|length }}">
     <a class="side-brand" href="/" aria-label="해독 홈">{{ brand() }}</a>
     {% for it in items %}
-    <a href="{{ it.href }}" class="{{ 'on' if it.on else '' }}" data-nav="{{ it.key }}"{% if it.on %} aria-current="page"{% endif %}{% if it.badge %} aria-label="{{ it.label }}, 안 읽은 메시지 {{ it.badge }}개"{% elif it.dot %} aria-label="{{ it.label }}, 친구의 새 게시물이 있어요"{% endif %}>{% if it.key == 'me' and user is defined and user %}{{ avatar(user, 'nv-av') }}{% else %}{{ nav_icon(it.key) }}{% endif %}<span>{{ it.label }}</span>{% if it.badge %}<i class="nv-badge" data-chat-unread aria-hidden="true">{{ it.badge|badge_text }}</i>{% elif it.dot %}<i class="nv-dot" data-feed-dot aria-hidden="true"></i>{% endif %}</a>
+    <a href="{{ it.href }}" class="{{ 'on' if it.on else '' }}" data-nav="{{ it.key }}"{% if it.on %} aria-current="page"{% endif %}{% if it.badge %} aria-label="{{ it.label }}, 안 읽은 메시지 {{ it.badge }}개{{ ', 친구의 새 게시물이 있어요' if it.dot else '' }}"{% elif it.dot %} aria-label="{{ it.label }}, 친구의 새 게시물이 있어요"{% endif %}>{% if it.key == 'me' and user is defined and user %}{{ avatar(user, 'nv-av') }}{% else %}{{ nav_icon(it.key) }}{% endif %}<span>{{ it.label }}</span>{% if it.badge %}<i class="nv-badge" data-chat-unread aria-hidden="true">{{ it.badge|badge_text }}</i>{% elif it.dot %}<i class="nv-dot" data-feed-dot aria-hidden="true"></i>{% endif %}</a>
     {% endfor %}
   </nav>
 </div>

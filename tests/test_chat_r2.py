@@ -55,7 +55,7 @@ async def test_unread_is_counted_per_channel(trio):  # noqa: F811
     await post(h, url, text="수다", channel="chat")
     seen = (await m.get(url, params={"channel": "chat"})).json()
     assert seen["other_unread"] == 1  # 수다를 봐도 책 이야기는 아직 안 읽음
-    listing = (await m.get("/chat", params={"tab": "room"})).text
+    listing = (await m.get("/community/messages", params={"tab": "room"})).text
     assert 'data-unread="1"' in listing
 
 
@@ -218,7 +218,7 @@ async def test_friend_activity_hides_private_uploads_and_non_friends(api, sessio
         ),
         1,
     )
-    for page in ("/friends", "/chat"):
+    for page in ("/friends", "/community/messages"):
         html = (await a.get(page)).text
         assert "나의 비밀 일기" not in html  # 친구여도 개인 파일 제목은 절대 나오지 않는다
         assert "공개된 고전" not in html  # 친구가 아닌 사람의 책은 나오지 않는다
@@ -271,7 +271,7 @@ async def test_search_explains_not_found(trio):  # noqa: F811
 
 async def test_list_preview_masks_spoilers_in_room(trio):  # noqa: F811
     await post(trio["h"], url_of(trio), text="||범인은 집사|| 맞죠?", channel="chat")
-    html = (await trio["m"].get("/chat", params={"tab": "room"})).text
+    html = (await trio["m"].get("/community/messages", params={"tab": "room"})).text
     assert "범인은 집사" not in html and "[스포일러] 맞죠?" in html
 
 

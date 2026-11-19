@@ -54,7 +54,7 @@ async def test_nav_me_points_to_profile_and_stays_highlighted(api, session_facto
         for path in ("/profile", "/me", f"/u/{me}", "/profile?tab=feed"):
             a = tab_me((await c.get(path)).text)
             assert 'href="/profile"' in a and 'class="on"' in a, path
-        a = tab_me((await c.get("/feed")).text)
+        a = tab_me((await c.get("/community")).text)
         assert 'href="/profile"' in a and 'class="on"' not in a
 
 
@@ -90,7 +90,7 @@ async def test_double_tap_like_is_idempotent(api, session_factory):
         assert r.json() == {"liked": False, "count": 0}
         r = await f.post(f"/p/{pid}/like", data={"csrf": t, "want": "1"}, headers=h)
         assert r.json() == {"liked": True, "count": 1}
-        html = (await f.get("/feed")).text
+        html = (await f.get("/community")).text
         assert "data-dbl-like" in html and "좋아요 <b data-like-count>1</b>개" in html
 
 

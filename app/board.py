@@ -64,14 +64,25 @@ async def _post_or_404(session: AsyncSession, post_id: int) -> RecruitPost:
 # --- 게시판 ---
 
 
-@router.get("/together", response_class=HTMLResponse)
+@router.get("/together")
+async def board_moved(request: Request) -> RedirectResponse:
+    """예전 주소 — 모집 게시판은 커뮤니티의 '같이 읽기' 갈래가 되었다(검색어는 그대로).
+
+    글(/together/{id}) · 쓰기(/together/new) 주소는 그대로다."""
+    q = request.url.query
+    return RedirectResponse("/community/together" + (f"?{q}" if q else ""), status_code=308)
+
+
+@router.get("/community/together", response_class=HTMLResponse)
 async def board(
     request: Request,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(auth.require_user),
 ) -> HTMLResponse:
     posts = await board_service.board(session, user.id)
-    return _render(request, "board/board.html", user, posts=posts, **_notes(request))
+    return _render(
+        request, "board/board.html", user, posts=posts, community="together", **_notes(request)
+    )
 
 
 async def _picks(session: AsyncSession, user: User) -> tuple[list[Book], list[dict]]:
@@ -261,7 +272,7 @@ async def remove(
         await board_service.remove(session, post, user)
     except board_service.BoardError as e:
         return _to(f"/together/{post_id}", error=str(e))
-    return _to("/together", msg="모집 글을 지웠어요")
+    return _to("/community/together", msg="모집 글을 지웠어요")
 
 
 @router.post("/together/{post_id}/report")
