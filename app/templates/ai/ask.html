@@ -43,5 +43,21 @@
   <p class="muted">아직 물어본 게 없어요. 예: “주인공은 왜 그렇게 했어요?”</p>
   {% endif %}
 </section>
+{% if ai_notes %}
+<section class="row ask-history" aria-labelledby="aiNotesH">
+  <div class="row-h"><h2 id="aiNotesH">내 AI 노트</h2><span class="mono muted">{{ ai_notes|length }}개 · 나만 봐요</span></div>
+  <ol class="ask-list page">
+    {% for n in ai_notes %}
+    <li class="ask-q"><p>✦ {{ n.label }}{% if n.quote %} · “{{ n.quote|truncate(60, true, '…') }}”{% endif %}</p></li>
+    <li class="ask-a">
+      <span class="ask-label mono">{{ n.chunk + 1 }}쪽 · AI 노트{{ ' · 반응으로 공유함' if n.shared else '' }}</span>
+      <p>{{ n.answer }}</p>
+      {% if n.pages %}<span class="ask-pages">{% for p in n.pages %}<em class="mono">{{ p }}쪽</em>{% endfor %}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  <p class="hint">리더에서 문단을 누르거나 글을 골라 ‘✦ AI에게’로 물은 답을 저장하면 여기에 모여요. 그 문단 여백에도 ✦ 가 남아요.</p>
+</section>
+{% endif %}
 <p class="hint">읽은 쪽 안에서 찾은 글만 AI에게 보내요. 다른 사람의 기록은 보내지 않아요.</p>
 {% endblock %}

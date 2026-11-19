@@ -150,6 +150,8 @@ class Settings(BaseSettings):
     feature_ai_rag: bool = True
     # AI 서점 도우미(/assistant) · 독서 요약(/me/recap) — AI 가 꺼져 있으면 이 값과 상관없이 숨는다
     feature_ai_shop: bool = True
+    # 읽는 중의 AI — 문단에서 묻기 · AI 노트 · 지난 이야기 · 등장인물 · 생각해 볼 질문 (FEATURE_AI_READER)
+    feature_ai_reader: bool = True
 
     @property
     def ai_enabled(self) -> bool:

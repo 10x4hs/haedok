@@ -66,13 +66,30 @@
     }
   }
 
-  function open() {
+  let loading = null;
+  function open({ focus = true } = {}) {
     lastFocus = document.activeElement;
     wrap.hidden = false;
     btn.setAttribute('aria-expanded', 'true');
-    if (!loaded) load();
-    setTimeout(() => input.focus(), 50);
+    if (!loaded && !loading) loading = load().finally(() => { loading = null; });
+    if (focus) setTimeout(() => input.focus(), 50);
+    return loading || Promise.resolve();
   }
+
+  // 리더의 다른 AI 기능(reader-ai.js)이 답을 이 시트에 보여 준다: 질문 줄 + 답 카드(+ 덧붙일 노드)
+  window.haedokAsk = {
+    async show(q, item, extra) {
+      await open({ focus: false });
+      const a = answer(item);
+      if (extra) a.append(extra);
+      list.append(question(q), a);
+      sync();
+      list.scrollTop = list.scrollHeight;
+      return a;
+    },
+    open,
+    answer,
+  };
 
   function close() {
     wrap.hidden = true;

@@ -41,6 +41,7 @@ function save(verified = false) {
     if (!d) return;
     const opened = d.verified_chunk > verifiedUpTo;
     verifiedUpTo = d.verified_chunk;
+    if (opened) document.dispatchEvent(new CustomEvent('haedok:verified', { detail: { verified: verifiedUpTo } }));
     paintDwell();
     if (opened && verified) loadReactions(chunk);   // 다 읽은 순간 봉인이 풀린다
     // 서버 시계로는 아직 모자라면 잠시 뒤 다시 보낸다
@@ -289,6 +290,7 @@ function paintReactions() {
     p.appendChild(b);
   });
   paintSide();
+  document.dispatchEvent(new CustomEvent('haedok:paint', { detail: { chunk } }));   // AI 노트 표시(reader-ai.js)
 }
 
 // ---------------- 넓은 화면 오른쪽 열: 친구 진행 + 이 쪽의 반응 ----------------
@@ -359,6 +361,7 @@ function paintSide() {
   });
   if (reacts.sealed) rl.insertAdjacentHTML('beforeend', `<li class="sealed">🔒 아직 안 읽은 곳의 반응 ${reacts.sealed}개 — 다 읽으면 열려요</li>`);
   if (!by.size && !reacts.sealed) rl.innerHTML = '<li class="muted small">문단을 누르면 첫 반응을 남길 수 있어요</li>';
+  document.dispatchEvent(new CustomEvent('haedok:side', { detail: { chunk } }));   // 내 AI 노트도 이 목록에(reader-ai.js)
 }
 
 // 친구 소식이 그 친구의 자리(오른쪽 열 또는 아래 동그라미)로 날아와 앉는다

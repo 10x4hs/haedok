@@ -116,6 +116,7 @@ def clean_cites(text: str, allowed: set[int]) -> tuple[str, list[int]]:
     kept: list[str] = []
     for sent in _SENT.findall(text):
         if not sent.strip():
+            kept.append(sent)  # 줄바꿈은 남긴다(지난 이야기 3줄 · 문단 나눔)
             continue
         nums = [int(n) for n in _BARE.findall(sent)]
         if any(n not in allowed for n in nums):

@@ -18,6 +18,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app import admin, ai_rag, auth, intro, pwa, seo, web
 from app import board as board_pages
+from app.ai_reader import router as ai_reader_router
 from app.ai_shop import router as ai_shop_router
 from app.api import books, me, points, social
 from app.api import goals as goals_api
@@ -230,6 +231,7 @@ app.include_router(chat_router)
 app.include_router(posts_router)
 app.include_router(ai_rag.router)
 app.include_router(ai_shop_router)
+app.include_router(ai_reader_router)
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
 
