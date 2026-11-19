@@ -2,6 +2,6 @@
 <link rel="stylesheet" href="/static/ai-shop.css">
 <a class="ai-entry" href="/assistant{% if ai_q %}?q={{ ai_q|urlencode }}{% endif %}">
   <span class="ai-ava" aria-hidden="true">{% include "ai/_spark.svg" %}</span>
-  <span class="ai-entry-t"><b>AI에게 책 추천받기</b><span>{{ ai_hint or '기분 · 상황 · 예산을 말하면 무료 고전과 서점 책에서 골라 드려요' }}</span></span>
+  <span class="ai-entry-t"><b>AI에게 책 추천받기</b><span>{{ ai_hint or '기분이나 예산을 말해 보세요' }}</span></span>
   <span class="ai-entry-go" aria-hidden="true">›</span>
 </a>

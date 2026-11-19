@@ -1,7 +1,8 @@
 {% extends "app.html" %}
 {% from "_ui.html" import book_cover %}
 {% block title %}책에게 물어보기 · {{ book.title }} — 偕讀 해독{% endblock %}
-{% block head_extra %}<link rel="stylesheet" href="/static/ai.css">{% endblock %}
+{% block body_class %}app ai-page{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/ai.css"><script src="/static/ai-page.js" defer></script>{% endblock %}
 {% block heading %}<small><a href="/books/{{ book.id }}">‹ {{ book.title }}</a></small>책에게 물어보기{% endblock %}
 {% block main %}
 <section class="ask-book glass-card">
@@ -9,7 +10,7 @@
   <div>
     <b>{{ book.title }}</b>
     <span class="muted">{{ book.author or '' }}</span>
-    <p class="hint ask-scope"><span class="ask-dot" aria-hidden="true"></span>{% if read_upto %}<span><b class="mono">{{ read_upto }}쪽</b>까지 읽었어요. 거기까지만 보고 답해요.</span>{% else %}<span>아직 다 읽은 쪽이 없어요. 몇 쪽 읽고 나서 물어봐 주세요.</span>{% endif %}</p>
+    <p class="ask-scope">{% if read_upto %}{{ read_upto }}쪽까지 읽은 곳에서만 답해요{% else %}아직 다 읽은 쪽이 없어요{% endif %}</p>
   </div>
 </section>
 {% if notice %}<p class="hint ask-notice">{{ notice }}</p>{% endif %}
@@ -23,15 +24,15 @@
 </form>
 
 <section class="row ask-history" aria-labelledby="askHistH">
-  <div class="row-h"><h2 id="askHistH">최근 문답</h2><span class="mono muted">최근 5개까지 남아요</span></div>
+  <div class="row-h"><h2 id="askHistH" title="최근 5개까지 남아요">최근 문답</h2></div>
   {% if items %}
   <ol class="ask-list page">
     {% for it in items %}
     <li class="ask-q"{% if loop.first %} id="latest"{% endif %}><p>{{ it.question }}</p></li>
     <li class="ask-a{{ '' if it.found else ' none' }}">
-      <span class="ask-label mono">AI 답변 · 틀릴 수 있어요</span>
+      <span class="ask-label">AI 답변 · 틀릴 수 있어요</span>
       <p>{{ it.answer }}</p>
-      {% if it.pages %}<span class="ask-pages">{% for p in it.pages %}<em class="mono">{{ p }}쪽</em>{% endfor %}</span>{% endif %}
+      {% if it.pages %}<span class="ask-pages">{% for p in it.pages %}<em>{{ p }}쪽</em>{% endfor %}</span>{% endif %}
     </li>
     {% endfor %}
   </ol>
@@ -40,24 +41,23 @@
     <button class="link-btn">내 문답 기록 지우기</button>
   </form>
   {% else %}
-  <p class="muted">아직 물어본 게 없어요. 예: “주인공은 왜 그렇게 했어요?”</p>
+  <p class="muted">예: “주인공은 왜 그렇게 했어요?”</p>
   {% endif %}
 </section>
 {% if ai_notes %}
 <section class="row ask-history" aria-labelledby="aiNotesH">
-  <div class="row-h"><h2 id="aiNotesH">내 AI 노트</h2><span class="mono muted">{{ ai_notes|length }}개 · 나만 봐요</span></div>
+  <div class="row-h"><h2 id="aiNotesH">내 AI 노트</h2><span class="muted">나만 봐요</span></div>
   <ol class="ask-list page">
     {% for n in ai_notes %}
     <li class="ask-q"><p>✦ {{ n.label }}{% if n.quote %} · “{{ n.quote|truncate(60, true, '…') }}”{% endif %}</p></li>
     <li class="ask-a">
-      <span class="ask-label mono">{{ n.chunk + 1 }}쪽 · AI 노트{{ ' · 반응으로 공유함' if n.shared else '' }}</span>
+      <span class="ask-label">{{ n.chunk + 1 }}쪽 · AI 노트{{ ' · 반응으로 공유함' if n.shared else '' }}</span>
       <p>{{ n.answer }}</p>
-      {% if n.pages %}<span class="ask-pages">{% for p in n.pages %}<em class="mono">{{ p }}쪽</em>{% endfor %}</span>{% endif %}
+      {% if n.pages %}<span class="ask-pages">{% for p in n.pages %}<em>{{ p }}쪽</em>{% endfor %}</span>{% endif %}
     </li>
     {% endfor %}
   </ol>
-  <p class="hint">리더에서 문단을 누르거나 글을 골라 ‘✦ AI에게’로 물은 답을 저장하면 여기에 모여요. 그 문단 여백에도 ✦ 가 남아요.</p>
 </section>
 {% endif %}
-<p class="hint">읽은 쪽 안에서 찾은 글만 AI에게 보내요. 다른 사람의 기록은 보내지 않아요.</p>
+<p class="ask-scope">읽은 쪽 안의 글만 AI에게 보내요</p>
 {% endblock %}
