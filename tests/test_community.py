@@ -134,4 +134,13 @@ async def test_sticky_bar_assets_and_quiet_view_transitions(api, session_factory
         assert "community.css" not in lib and "community.js" not in lib
         # 같이 읽기: 설명 문단 대신 목록 머리의 작은 '모집 글 쓰기'
         tg = (await a.get("/community/together")).text
-        assert "rl-lede" not in tg and 'class="tg-new" href="/together/new"' in tg
+        assert "rl-lede" not in tg
+        # 라운드 10: 위 막대 아래에 제목줄을 두지 않는다 — 만들기는 그 갈래의 첫 줄에
+        body = tg.split('<main', 1)[1]
+        assert 'class="row-h"' not in body and '<h2 class="sr" id="tgListH">' in body
+        first = body.split('<ul class="rl-list">', 1)[1].split("</li>", 1)[0]
+        assert 'class="rl-new" href="/together/new"' in first and "모집 글 쓰기" in first
+        msgs = (await a.get("/community/messages")).text
+        assert 'class="ch-lhead"' not in msgs and '<h2 class="sr" id="chListH">메시지</h2>' in msgs
+        tabs_row = msgs.split('<nav class="ch-ltabs"', 1)[1].split("</nav>", 1)[0]
+        assert 'class="ch-icon-btn ch-new" href="/friends"' in tabs_row  # 새 대화 연필은 개인 · 방 줄 끝

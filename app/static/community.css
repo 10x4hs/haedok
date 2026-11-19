@@ -95,24 +95,39 @@ body.cm .row-h h2{font-size:17px;font-weight:600}
 body.cm .ps-likes,body.cm .rl-ago,body.cm .ps-post time,body.cm .cm-badge,body.cm .ch-conv time{font-variant-numeric:tabular-nums}
 
 /* 같이 읽기: '모집 글 쓰기'는 목록 머리 오른쪽의 작은 글자 단추 */
-.row-h .tg-new{display:inline-flex;align-items:center;gap:4px;min-height:44px;margin-left:auto;padding:0 4px;font:600 15px/1 var(--f-ui);color:var(--accent-strong)}
-.tg-new .ic{width:18px;height:18px}
-body.cm .rl-sec .row-h{align-items:center;gap:8px}
+/* 같이 읽기: 제목줄 없이 목록의 첫 줄이 '모집 글 쓰기'(인스타그램 '새 메시지' 줄처럼 작게) */
+.rl-new{display:flex;align-items:center;gap:12px;min-height:60px;padding:8px;border-radius:12px;transition:background-color .18s var(--ease)}
+.rl-new:hover{background:var(--sunken)}
+.rl-new-ic{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);color:var(--accent-strong)}
+.rl-new-ic .ic{width:20px;height:20px}
+.rl-new b{font:600 15px/1.2 var(--f-ui);color:var(--text)}
+.rl-new-n{margin-left:auto;font:400 13px/1 var(--f-ui);color:var(--dim);font-variant-numeric:tabular-nums}
+body.cm .rl-sec{margin-top:4px}
 
 /* ---------------------------------------------------------------- 메시지: 채팅 앱 셸을 위 막대 아래에 둔다(남은 높이를 채운다) */
 body.chat-shell.cm-chat .top{display:flex}
 body.cm-chat .phone{display:flex;flex-direction:column;height:100dvh;min-height:0}
 body.cm-chat .content.chat{flex:1;min-height:0;display:flex;flex-direction:column;width:100%}
 body.cm-chat .ch-app{flex:1;height:auto;min-height:0}
-body.cm-chat .ch-lhead{height:52px}
-body.cm-chat .ch-lhead h2{font:600 17px/1 var(--f-ui)}
+/* 막대와 목록이 한 면으로 읽히게: 막대 바탕 = 채팅 칸 바탕(--pane, chat.css 와 같은 값), 사이에 선 없음 */
+body.cm-chat{--cm-pane:#0c0d10}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]):not([data-bg-tone="dark"]) body.cm-chat{--cm-pane:#ffffff}}
+:root[data-theme="light"]:not([data-bg-tone="dark"]) body.cm-chat{--cm-pane:#ffffff}
+body.cm-chat .top,body.cm-chat .top.is-scrolled{background:var(--cm-pane);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+/* 새 대화 연필: 개인 · 방 줄 끝 */
+.ch-ltabs .ch-new{display:grid;place-items:center;margin-left:auto;align-self:center;width:44px;height:44px;color:var(--text)}
+.ch-ltabs .ch-new::after{display:none}
+body.cm-chat .ch-lscroll{padding-top:4px}
 @media (max-width:767px),(max-height:519px){
   /* 휴대폰에서 대화를 열면 대화만(인스타그램 DM 처럼) — 위 막대 · 아래 막대를 숨긴다 */
   body.chat-shell.cm-chat.chat-at-thread .top{display:none}
 }
 @media (min-width:768px) and (min-height:520px){
   /* 대화 두 칸은 화면 폭을 다 쓰니 막대도 다 쓴다(일반 화면의 760px 가운데 정렬보다 우선) */
-  body.cm-chat .top{max-width:none!important;margin:0!important;padding-left:20px;box-shadow:0 1px 0 var(--line)}
+  body.cm-chat .top{max-width:none!important;margin:0!important;padding-left:20px}
+  /* 대화 머리의 아래 선은 대화 칸 끝까지(가운데 760px 기둥에서 끊기지 않게) — 칸이 overflow:hidden 이라 밖은 잘린다 */
+  body.cm-chat .ch-thead{position:relative;border-bottom:0}
+  body.cm-chat .ch-thead::after{content:"";position:absolute;left:-100vw;right:-100vw;bottom:0;height:1px;background:var(--hair)}
 }
 
 /* + 는 표시일 뿐 — 누르면 아래 동그라미 링크(/posts/new)가 받는다 */

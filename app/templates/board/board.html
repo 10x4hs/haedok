@@ -10,10 +10,13 @@
 {% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
 
 <section class="rl-sec" aria-labelledby="tgListH">
-  <div class="row-h"><h2 id="tgListH">모집 중</h2>{% if posts %}<span class="mono muted">{{ posts|length }}</span>{% endif %}<a class="tg-new" href="/together/new"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>모집 글 쓰기</a></div>
-  {% if posts %}
-  <ul class="rl-list">{% for v in posts %}{{ post_row(v) }}{% endfor %}</ul>
-  {% else %}
+  {# 제목줄은 두지 않는다 — 위 막대의 같이 읽기 아이콘이 '여기'를 말한다. 모집 글 쓰기는 목록의 첫 줄 #}
+  <h2 class="sr" id="tgListH">모집 중{% if posts %} {{ posts|length }}개{% endif %}</h2>
+  <ul class="rl-list">
+    <li><a class="rl-new" href="/together/new"><span class="rl-new-ic" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><b>모집 글 쓰기</b>{% if posts %}<span class="rl-new-n">모집 중 {{ posts|length }}</span>{% endif %}</a></li>
+    {% for v in posts %}{{ post_row(v) }}{% endfor %}
+  </ul>
+  {% if not posts %}
   <div class="rl-empty">
     <b>아직 모집 중인 글이 없어요</b>
     <p>고전 한 권과 하루 분량을 정해 첫 글을 올려 보세요.</p>
