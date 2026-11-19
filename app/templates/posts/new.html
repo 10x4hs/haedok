@@ -100,6 +100,7 @@
             <label class="ps-star-none"><input class="sr" type="radio" name="rating" value=""{% if not draft.rating %} checked{% endif %}><span>안 매길래요</span></label>
           </div>
         </fieldset>
+        {% if request.query_params.get('ai') %}<p class="muted small ps-note" role="status">AI가 쓴 초안이에요 · 틀릴 수 있어요. 내 말로 고친 뒤에 올려 주세요.</p>{% endif %}
         <div class="ps-field"><label for="psCaption"><b>문구</b></label>
           <textarea class="ps-input" id="psCaption" name="caption" rows="4" maxlength="{{ max_caption }}" placeholder="문구를 입력하세요… 읽고 남은 생각을 자유롭게" aria-describedby="capHint" data-count="capCount">{{ draft.caption }}</textarea>
           <p class="muted small ps-hint" id="capHint"><span class="mono" id="capCount">{{ draft.caption|length }}/{{ max_caption }}</span> · 줄거리 이야기는 <code>||이렇게||</code> 감싸면 가려져요</p></div>

@@ -5,6 +5,7 @@
 {% block heading %}탐색{% endblock %}
 {% block main %}
 <form class="big-search at-top" action="/search" role="search"><label class="sr" for="xq">책 검색</label><input id="xq" type="search" name="q" placeholder="제목이나 저자로 찾기" enterkeyhint="search" autocomplete="off"></form>
+{% if ai_shop_on is defined and ai_shop_on() %}{% include "ai/_entry.html" %}{% endif %}
 <nav class="chips" aria-label="서가">
   <a href="/discover?g=%EC%84%9C%EC%A0%90">서점 <span>{{ store|length }}</span></a>
   <a href="/discover?g=all">전체 <span>{{ total }}</span></a>
