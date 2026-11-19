@@ -14,7 +14,7 @@
   </div>
   <form class="react-form ai-word" id="aiWordForm" hidden>
     <label class="sr" for="aiWord">궁금한 낱말</label>
-    <input id="aiWord" maxlength="30" placeholder="이 문단 속 낱말 (예: 인력거)" autocomplete="off" enterkeyhint="send">
+    <input id="aiWord" maxlength="30" placeholder="문단 속 낱말" autocomplete="off" enterkeyhint="send">
     <button class="btn primary">뜻 보기</button>
   </form>
 </div>
@@ -31,7 +31,7 @@
 <div class="sheet-wrap" id="aiNote" data-lenis-prevent hidden>
   <section class="sheet glass ask-sheet ai-note-sheet" role="dialog" aria-modal="true" aria-labelledby="aiNoteTitle" tabindex="-1">
     <header class="sheet-h"><h2 id="aiNoteTitle"><span class="ai-star" aria-hidden="true">✦</span> 내 AI 노트</h2><button type="button" class="x" data-close aria-label="닫기">×</button></header>
-    <p class="hint">나만 보는 노트예요. '반응으로 공유'를 누르면 한 줄만 반응이 되어 친구에게 보여요.</p>
+    <p class="ask-scope">나만 봐요 · 공유하면 한 줄만 반응이 돼요</p>
     <ol class="ask-list page" id="aiNoteList"></ol>
     <p class="hint" id="aiNoteMsg" role="status"></p>
   </section>
@@ -39,19 +39,19 @@
 
 {# 3a. 하루 넘게 쉬었다 펼치면: 지난 이야기 #}
 <section class="ai-top glass" id="aiRecap" hidden aria-labelledby="aiRecapH">
-  <header><h2 id="aiRecapH"><span class="ai-star" aria-hidden="true">✦</span> 지난 이야기</h2><span class="mono muted" id="aiRecapUpto"></span><button type="button" class="x" id="aiRecapX" aria-label="지난 이야기 닫기">×</button></header>
+  <header><h2 id="aiRecapH"><span class="ai-star" aria-hidden="true">✦</span> 지난 이야기</h2><span class="muted" id="aiRecapUpto"></span><button type="button" class="x" id="aiRecapX" aria-label="지난 이야기 닫기">×</button></header>
   <p id="aiRecapText" aria-live="polite">읽은 쪽까지 되짚는 중…</p>
-  <footer><span class="ask-label mono">AI 요약 · 틀릴 수 있어요</span><button type="button" class="link-btn" id="aiRecapChars">등장인물 보기</button></footer>
+  <footer><span class="ask-label">AI 요약 · 틀릴 수 있어요</span><button type="button" class="link-btn" id="aiRecapChars">등장인물 보기</button></footer>
 </section>
 
 {# 3c. 10쪽마다: 생각해 볼 질문 하나 #}
 <section class="ai-top glass" id="aiReflect" hidden aria-labelledby="aiReflectH">
-  <header><h2 id="aiReflectH"><span class="ai-star" aria-hidden="true">✦</span> AI 질문 하나</h2><span class="mono muted" id="aiReflectUpto"></span><button type="button" class="x" id="aiReflectX" aria-label="질문 닫기">×</button></header>
+  <header><h2 id="aiReflectH"><span class="ai-star" aria-hidden="true">✦</span> AI 질문 하나</h2><span class="muted" id="aiReflectUpto"></span><button type="button" class="x" id="aiReflectX" aria-label="질문 닫기">×</button></header>
   <p id="aiReflectText" aria-live="polite"></p>
   <button type="button" class="btn ghost" id="aiReflectGet">질문 받기</button>
   <form class="react-form" id="aiReflectForm" hidden>
     <label class="sr" for="aiReflectIn">내 생각</label>
-    <input id="aiReflectIn" maxlength="140" placeholder="내 생각을 한 줄 반응으로 (같은 방 친구만 봐요)" autocomplete="off" enterkeyhint="send">
+    <input id="aiReflectIn" maxlength="140" placeholder="내 생각 한 줄" autocomplete="off" enterkeyhint="send">
     <button class="btn primary">남기기</button>
   </form>
 </section>

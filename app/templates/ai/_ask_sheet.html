@@ -7,10 +7,10 @@
       <a class="link-btn" href="/books/{{ book.id }}/ask">기록 전체</a>
       <button type="button" class="x" data-close aria-label="닫기">×</button>
     </header>
-    <p class="hint ask-scope"><span class="ask-dot" aria-hidden="true"></span><span id="askScope">읽은 쪽까지만 보고 답해요. 뒤 내용은 말하지 않아요.</span></p>
+    <p class="ask-scope" id="askScope">읽은 쪽 안에서만 답해요</p>
     {% if book.owner_id %}<p class="hint ask-notice" id="askNotice">{{ upload_notice if upload_notice is defined else '내 파일 내용 일부가 AI 서비스로 보내져요.' }}</p>{% endif %}
     <ol class="ask-list" id="askList" aria-live="polite" aria-busy="false"></ol>
-    <p class="ask-empty muted" id="askEmpty" hidden>궁금한 걸 물어보세요. 예: “주인공은 왜 그렇게 했어요?”</p>
+    <p class="ask-empty muted" id="askEmpty" hidden>예: “주인공은 왜 그렇게 했어요?”</p>
     <form class="react-form ask-form" id="askForm">
       <label class="sr" for="askQ">질문</label>
       <input id="askQ" name="question" maxlength="300" placeholder="이 책에 대해 물어보기" autocomplete="off" enterkeyhint="send" required>

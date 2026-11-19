@@ -1,27 +1,29 @@
 {% extends "app.html" %}
 {% from "_ui.html" import flat_cover %}
 {% block title %}{{ r.month.label }} 독서 — 偕讀 해독{% endblock %}
+{% block body_class %}app ai-page{% endblock %}
 {% block heading %}<small><a href="/profile">‹ 나</a></small>{{ r.month.label }} 독서{% endblock %}
 {% block main %}
 <link rel="stylesheet" href="/static/ai-shop.css">
+<link rel="stylesheet" href="/static/ai.css">
+<script src="/static/ai-page.js" defer></script>
 <div class="ai-recap">
   <nav class="ai-months" aria-label="달 고르기">
     <a class="ai-ghost" href="/me/recap?month={{ prev.key }}" aria-label="{{ prev.label }}">‹ {{ prev.month }}월</a>
-    <b class="mono">{{ r.month.key }}</b>
+    <b>{{ r.month.key }}</b>
     {% if next %}<a class="ai-ghost" href="/me/recap?month={{ next.key }}" aria-label="{{ next.label }}">{{ next.month }}월 ›</a>{% else %}<span class="ai-ghost is-off" aria-hidden="true">이번 달</span>{% endif %}
   </nav>
 
   {% if msg %}<p class="ai-note ok" role="status">{{ msg }}</p>{% endif %}
   {% if error %}<p class="ai-note" role="alert">{{ error }}</p>{% endif %}
 
-  <ul class="ai-stats" aria-label="{{ r.month.label }} 숫자">
-    <li><b class="mono">{{ r.pages }}</b><span>검증한 쪽</span></li>
-    <li><b class="mono">{{ r.days }}</b><span>읽은 날</span></li>
-    <li><b class="mono">{{ r.finished|length }}</b><span>다 읽은 책</span></li>
-    <li><b class="mono">{{ r.posts }}</b><span>게시물</span></li>
-    <li><b class="mono">{{ r.reactions }}</b><span>반응</span></li>
+  <ul class="ai-stats" aria-label="{{ r.month.label }} 숫자" title="쪽은 체류시간 검증을 통과한 것만, 날짜는 새벽 4시에 바뀌어요">
+    <li><b>{{ r.pages }}</b><span>검증한 쪽</span></li>
+    <li><b>{{ r.days }}</b><span>읽은 날</span></li>
+    <li><b>{{ r.finished|length }}</b><span>다 읽은 책</span></li>
+    <li><b>{{ r.posts }}</b><span>게시물</span></li>
+    <li><b>{{ r.reactions }}</b><span>반응</span></li>
   </ul>
-  <p class="muted small ai-rule">쪽은 체류시간 검증을 통과한 것만, 날짜는 새벽 4시에 바뀌어요(잔디와 같아요).</p>
 
   {% if r.finished %}
   <section class="row">
@@ -34,7 +36,7 @@
   <section class="row">
     <div class="row-h"><h2>내가 남긴 문장 · 반응</h2></div>
     {% if r.top_lines %}<ul class="ai-lines">{% for x in r.top_lines %}<li><q>{{ x.quote }}</q><span class="muted small">{{ x.title }}{% if x.votes %} · 공감 {{ x.votes }}{% endif %}</span></li>{% endfor %}</ul>{% endif %}
-    {% if r.top_emojis %}<p class="ai-emojis" aria-label="자주 쓴 반응">{% for e, n in r.top_emojis %}<span>{{ e }} <i class="mono">{{ n }}</i></span>{% endfor %}</p>{% endif %}
+    {% if r.top_emojis %}<p class="ai-emojis" aria-label="자주 쓴 반응">{% for e, n in r.top_emojis %}<span>{{ e }} <i>{{ n }}</i></span>{% endfor %}</p>{% endif %}
   </section>
   {% endif %}
 
@@ -44,24 +46,23 @@
     <p class="ai-para">{{ paragraph }}</p>
     <span class="ai-label">AI 요약 · 틀릴 수 있어요</span>
     {% elif r.empty %}
-    <p class="muted">이 달에는 아직 기록이 없어요. 책을 읽고 문장이나 반응을 남기면 요약해 드릴게요.</p>
+    <p class="muted">이 달에는 아직 기록이 없어요.</p>
     {% else %}
-    <p class="muted">이 달에 남긴 문장 · 반응 · 게시물 글을 읽고, 어떤 주제에 마음이 갔는지 정리해 드려요.</p>
+    <p class="muted">이 달에 남긴 문장 · 반응 · 글로 정리해요.</p>
     {% endif %}
     {% if not r.empty %}
     <form method="post" action="/me/recap" class="ai-sum-f">
       <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="month" value="{{ r.month.key }}">
       <button class="btn {{ 'ghost' if paragraph else 'primary' }}"{% if not can_make %} disabled aria-describedby="aiOnce"{% endif %}>{{ '새로 만들기' if paragraph else 'AI 요약 만들기' }}</button>
-      {% if not can_make %}<p class="muted small" id="aiOnce">새로 만들기는 하루 한 번이에요. 내일 다시 만들 수 있어요.</p>{% endif %}
+      {% if not can_make %}<p class="muted" id="aiOnce">하루 한 번 만들 수 있어요</p>{% endif %}
     </form>
-    <p class="ai-fine">내가 이 달에 남긴 기록만 보내요. 다른 사람의 글은 보내지 않아요 · 내 파일 내용 일부가 AI 서비스로 보내져요</p>
+    <p class="ai-label" title="다른 사람의 글은 보내지 않아요 · 내 파일 내용 일부가 AI 서비스로 보내져요">내 기록만 AI로 보내요</p>
     {% endif %}
   </section>
 
   {% if posts_on and finished %}
   <section class="row" id="drafts" aria-labelledby="draftH">
-    <div class="row-h"><h2 id="draftH">게시물 초안 만들기</h2><span class="mono muted">다 읽은 책</span></div>
-    <p class="muted small">AI가 문구와 내가 남긴 문장 하나를 골라 글쓰기 화면에 채워 둬요. 고친 뒤 직접 올리기 전에는 아무것도 올라가지 않아요.</p>
+    <div class="row-h"><h2 id="draftH" title="AI가 글쓰기 화면을 채워 둬요. 직접 올리기 전에는 아무것도 올라가지 않아요">게시물 초안 만들기</h2></div>
     <ul class="ai-drafts">
       {% for b in finished %}
       <li>
