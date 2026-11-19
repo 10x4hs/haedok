@@ -8,17 +8,14 @@
 {%- elif name == 'discover' %}
 <g class="nv-o"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></g>
 <g class="nv-f"><path fill="currentColor" stroke="none" fill-rule="evenodd" d="M12 2.15a9.85 9.85 0 1 1 0 19.7 9.85 9.85 0 0 1 0-19.7zm4.3 5.55-6.3 2.3-2.3 6.3 6.3-2.3z"/></g>
-{%- elif name == 'feed' %}
-{# 피드: 사진 한 장 뒤에 한 장 더 — 쌓인 게시물 #}
-<g class="nv-o"><rect x="3" y="7" width="14" height="14" rx="2.5"/><path d="M7 3.5h10.5a3 3 0 0 1 3 3V17"/><circle cx="8" cy="11.5" r="1.4"/><path d="m3.5 19 4.5-4.5 3.5 3.5 2-2 3.2 3.2"/></g>
-<g class="nv-f"><path fill="currentColor" stroke="none" fill-rule="evenodd" d="M5.45 6.15h9.1a3.3 3.3 0 0 1 3.3 3.3v9.1a3.3 3.3 0 0 1-3.3 3.3h-9.1a3.3 3.3 0 0 1-3.3-3.3v-9.1a3.3 3.3 0 0 1 3.3-3.3zM9.6 11.5a1.6 1.6 0 1 0-3.2 0 1.6 1.6 0 0 0 3.2 0zM4.6 19.6l3.9-3.9 3.2 3.2 1.8-1.8 2.5 2.5z"/><path d="M7 3.5h10.5a3 3 0 0 1 3 3V17"/></g>
+{%- elif name == 'community' %}
+{# 커뮤니티: 두 사람 — 피드 · 메시지 · 같이 읽기가 이 칸 안에 있다 #}
+<g class="nv-o"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-6 6.5-6s5.9 2.4 6.5 6"/><path d="M15.5 4.8a3.3 3.3 0 0 1 0 6.4"/><path d="M17.8 14.4c2 .7 3.3 2.7 3.7 5.6"/></g>
+<g class="nv-f"><circle cx="9" cy="8" r="3.6" fill="currentColor"/><path fill="currentColor" d="M2.5 20.2c.6-3.7 3.2-6.2 6.5-6.2s5.9 2.5 6.5 6.2c.1.5-.3.8-.8.8H3.3c-.5 0-.9-.3-.8-.8z"/><path d="M15.5 4.8a3.3 3.3 0 0 1 0 6.4"/><path d="M17.8 14.4c2 .7 3.3 2.7 3.7 5.6"/></g>
 {%- elif name == 'library' %}
 {# 서재: 펼친 책 + 책등에 꽂힌 깃발(대결) — 내 책과 대결을 한 칸에 #}
 <g class="nv-o"><path d="M3 9.5c2.8-1 5.8-.7 9 1.2 3.2-1.9 6.2-2.2 9-1.2v10.3c-2.8-1-5.8-.7-9 1.2-3.2-1.9-6.2-2.2-9-1.2z"/><path d="M12 10.7V21"/><path d="M12 10.7V2.8l5 2.2-5 2.2"/></g>
 <g class="nv-f"><path fill="currentColor" d="M3 9.5c2.8-1 5.8-.7 9 1.2 3.2-1.9 6.2-2.2 9-1.2v10.3c-2.8-1-5.8-.7-9 1.2-3.2-1.9-6.2-2.2-9-1.2z"/><path fill="currentColor" d="M12 10.7V2.8l5 2.2-5 2.2"/></g>
-{%- elif name == 'chat' %}
-<g class="nv-o"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4z"/></g>
-<g class="nv-f"><path fill="currentColor" d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4z"/></g>
 {%- endif %}
 </svg>
 {%- endmacro %}

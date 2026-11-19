@@ -616,9 +616,6 @@ dialog.ps-sheet[open]{display:flex;animation:ps-up .38s var(--ease) both}
  * 탭(X) · 활동 소식(Facebook/X, 더 가볍게) · 새 게시물 알약 · 모두 확인했어요 · 오른쪽 칸(넓은 화면).
  * 색은 기능마다 하나: 게시물 장미, 목표(연속 읽기) 민트, 보상(대결 1등) 금색, 모집(게시판) 복숭아 — 작은 표시에만.
  * ====================================================================== */
-.ps-top-plus{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:12px;color:var(--text);transition:background .3s var(--ease)}
-.ps-top-plus:hover{background:var(--sunken)}
-.ps-top-plus .ic{width:26px;height:26px}
 .ps-home-main{min-width:0;max-width:470px;margin:0 auto}
 .ps-home:has(.ps-explore) .ps-home-main{max-width:640px}
 .ps-home-side{display:none}
@@ -641,20 +638,8 @@ dialog.ps-sheet[open]{display:flex;animation:ps-up .38s var(--ease) both}
 .ps-story-plus::before{content:"";position:absolute;inset:-10px}
 
 /* 작성 칸 */
-.ps-composer{display:grid;gap:10px;margin:2px 0 10px;padding:12px 14px;border-radius:18px;background:var(--surface)}
-.ps-composer-row{display:flex;align-items:center;gap:12px;min-height:48px}
-.ps-composer-t{flex:1;min-width:0;padding:12px 16px;border-radius:999px;background:var(--sunken);color:var(--dim);font-size:15px;transition:background .3s var(--ease)}
-.ps-composer-row:hover .ps-composer-t{background:color-mix(in srgb,var(--sunken) 60%,var(--rose-fill))}
-.ps-composer-ic{flex:none;width:26px;height:26px;color:var(--rose-mark)}
-.ps-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -2px;padding:0 2px}
-.ps-chips::-webkit-scrollbar{display:none}
-.ps-chip{flex:none;display:inline-flex;align-items:center;gap:6px;max-width:230px;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--rose-line);background:var(--rose-fill);color:var(--text);font-size:13px;font-weight:600}
-.ps-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ps-chip .ic{flex:none;width:16px;height:16px;color:var(--rose-ink)}
 
 /* 탭: 머리 아래에 붙어 따라온다(휴대폰은 오른쪽 위 고정 메뉴 버튼을 피한다) */
-.ps-feed-tabs{position:sticky;top:0;z-index:7;margin:0 -20px;padding:0 64px 0 20px;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%)}
-.ps-feed-tabs a{flex:1;min-width:0;padding:0 8px}
 @media (min-width:768px){.ps-feed-tabs{margin:0;padding:0;top:0}}
 
 /* 새 게시물 알약 */
@@ -738,25 +723,13 @@ dialog.ps-sheet[open]{display:flex;animation:ps-up .38s var(--ease) both}
 }
 @media (prefers-reduced-motion:reduce){
   .ps-pill{animation:none}
-  .ps-top-plus,.ps-composer-t,.ps-act-item{transition:none}
 }
 
 /* ======================================================================
- * 라운드 7 — 피드 = 소셜 허브: 머리 버튼(올리기 · 메시지 · 같이 읽기), 전체 흐름의 '추천' 표시와 친구 신청,
- * 흐름 안의 제안 모듈(같이 읽을 사람 · 이 책 읽는 사람들 · 알 수도 있는 사람), 같이 읽기 시트.
+ * 라운드 7 — 전체 흐름의 '새로운 사람' 표시와 친구 신청,
+ * 흐름 안의 제안 모듈(같이 읽을 사람 · 이 책 읽는 사람들 · 알 수도 있는 사람). (머리 버튼 · 작성 칸은 라운드 8에서 뺐다)
  * ====================================================================== */
-.ps-top-acts{display:flex;align-items:center;gap:2px;flex:none}
-.ps-top-plus{position:relative}
-.ps-top-l{display:none}
-.ps-top-dm .ic{width:24px;height:24px}
-.ps-top-badge{position:absolute;top:4px;right:2px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font:700 10px/18px var(--f-mono);font-style:normal;text-align:center;box-shadow:0 0 0 2px var(--bg)}
-@media (min-width:1100px){
-  .ps-top-acts{gap:6px}
-  .ps-top-plus{width:auto;gap:6px;padding:0 12px;font-size:14px;font-weight:600;display:flex}
-  .ps-top-l{display:inline}
-  .ps-top-badge{position:static;margin-left:2px;box-shadow:none}
-}
-/* 추천 게시물 머리: 닉네임 옆 작은 '· 추천', 오른쪽에 친구 신청 */
+/* 새로운 사람 게시물 머리: 닉네임 옆 작은 '· 새로운 사람', 오른쪽에 친구 신청 */
 .ps-who-l1{display:flex;align-items:baseline;gap:4px;min-width:0}
 .ps-sug{flex:none;font-size:12px;font-weight:500;color:var(--dim)}
 .ps-follow{margin:0;flex:none}
@@ -791,11 +764,8 @@ dialog.ps-sheet[open]{display:flex;animation:ps-up .38s var(--ease) both}
 .ps-mod-btn{height:36px;padding:0 14px;font-size:13px}
 .ps-mod-people form{margin:0}
 @media (min-width:768px){.ps-mod-strip{margin:0;padding:2px 0 6px;scroll-padding-inline:0}}
-/* 오른쪽 칸 · 같이 읽기 시트: 모집 글 한 줄 */
+/* 오른쪽 칸: 모집 글 한 줄 */
 .ps-side-rc{flex:1;display:flex;align-items:center;gap:10px;min-height:56px;min-width:0}
 .ps-side-rc .flatbook{width:32px;flex:none}
 .ps-side-rc em{font-style:normal;font-size:12px;font-weight:700;color:color-mix(in srgb,#ffc2a8 62%,var(--text))}
 .ps-side-all{display:inline-flex;align-items:center;min-height:36px;font-size:13px;font-weight:600;color:var(--rose-ink)}
-.ps-tg-list{padding:10px 0}
-.ps-tg-foot{flex:none;display:flex;gap:8px;padding:10px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
-.ps-tg-foot .btn{flex:1;height:44px;font-size:14px}

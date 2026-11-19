@@ -213,14 +213,23 @@ async def _list_ctx(session: AsyncSession, user: User, tab: str) -> dict:
     }
 
 
-@pages.get("/chat", response_class=HTMLResponse)
+@pages.get("/chat")
+async def chat_moved(request: Request) -> RedirectResponse:
+    """예전 주소 — 메시지 목록은 커뮤니티의 '메시지' 갈래가 되었다(검색어는 그대로).
+
+    대화(/chat/dm · /chat/room)는 주소를 그대로 두고 커뮤니티 머리 아래에 그린다."""
+    q = request.url.query
+    return RedirectResponse("/community/messages" + (f"?{q}" if q else ""), status_code=308)
+
+
+@pages.get("/community/messages", response_class=HTMLResponse)
 async def chat_home(
     request: Request,
     tab: str = "dm",
     session: AsyncSession = Depends(get_session),
     user: User = Depends(auth.require_user),
 ) -> HTMLResponse:
-    return _render(request, "chat.html", user, **await _list_ctx(session, user, tab))
+    return _render(request, "chat.html", user, community="messages", **await _list_ctx(session, user, tab))
 
 
 async def _conv_page(
@@ -247,7 +256,7 @@ async def _conv_page(
     ctx |= await _list_ctx(session, user, kind)
     # 개인 채팅 머리의 상태 한 줄 — friend_cards 와 같은 공개 규칙(공개 책 제목만, 수락한 친구만)
     ctx["status"] = next((c for c in ctx["bubbles"] if c.user.id == key), None) if kind == "dm" else None
-    return _render(request, "chat_thread.html", user, **ctx)
+    return _render(request, "chat_thread.html", user, community="messages", **ctx)
 
 
 @pages.get("/chat/room/{room_id}", response_class=HTMLResponse)

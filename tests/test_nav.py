@@ -1,4 +1,5 @@
-"""아래 막대 · 왼쪽 레일 — 칸 순서, 켜진 칸, 서재(내 책 + 대결) 합친 화면, 배지(99+), 피드 점, 기능 끄기."""
+"""아래 막대 · 왼쪽 레일 — 4칸(홈 · 탐색 · 커뮤니티 · 서재), 켜진 칸, 서재(내 책 + 대결) 합친 화면,
+커뮤니티 칸의 배지(안 읽은 메시지 99+) · 점(친구 새 글), 기능 끄기."""
 
 import re
 
@@ -36,17 +37,18 @@ def pick(i: int = 1) -> str:
     return svc.sign_pick(svc.BookPick("store", str(i), f"책{i}"))
 
 
-async def test_items_in_order_and_five_on_the_phone(api):
+async def test_exactly_four_tabs_on_the_phone(api):
     async with api(upstream) as c:
         await signup(c)
         html = (await c.get("/library")).text
-        assert keys(html) == ["home", "discover", "feed", "library", "chat", "me"]
+        assert keys(html) == ["home", "discover", "community", "library", "me"]
         nav = nav_of(html)
         labels = re.findall(r"<span>([^<]+)</span></a>|<span>([^<]+)</span><i", nav)
-        assert [a or b for a, b in labels] == ["홈", "탐색", "피드", "서재", "메시지", "나"]
-        assert "--tabs:5" in nav  # 막대는 5칸(나는 레일에만)
-        assert 'href="/feed"' in nav and 'href="/library"' in nav
-        assert 'href="/posts/new"' not in nav and "만들기" not in nav  # 만들기는 메뉴에 없다(피드 머리의 + 올리기)
+        assert [a or b for a, b in labels] == ["홈", "탐색", "커뮤니티", "서재", "나"]
+        assert "--tabs:4" in nav  # 막대는 4칸(나는 레일에만)
+        assert 'href="/community"' in nav and 'href="/library"' in nav
+        assert "피드" not in nav and "메시지" not in nav and 'href="/chat"' not in nav  # 메시지는 커뮤니티 안
+        assert 'href="/posts/new"' not in nav and "만들기" not in nav  # 만들기는 메뉴에 없다
         assert 'href="/races"' not in nav  # 대결 칸은 서재로 합쳤다
         assert 'class="top-me' in html and 'href="/profile"' in html.split('class="top-me', 1)[1][:80]
 
@@ -61,11 +63,13 @@ async def test_active_tab_follows_the_page(api, session_factory):
             ("/library", "library"),
             ("/races", "library"),
             ("/library?tab=races", "library"),
-            ("/together", "library"),
-            ("/feed", "feed"),
-            (f"/p/{pid}", "feed"),
-            ("/posts/new", "feed"),
-            ("/chat", "chat"),
+            ("/community", "community"),
+            ("/community/messages", "community"),
+            ("/community/together", "community"),
+            ("/together/new", "community"),
+            ("/friends", "community"),
+            (f"/p/{pid}", "community"),
+            ("/posts/new", "community"),
             ("/profile", "me"),
         ]:
             html = (await c.get(path)).text
@@ -105,7 +109,7 @@ async def test_message_badge_shows_99_plus(api, monkeypatch):
         await signup(c)
         monkeypatch.setattr(chat_pages, "chat_unread", lambda request, user: 250)
         nav = nav_of((await c.get("/library")).text)
-        assert 'aria-label="메시지, 안 읽은 메시지 250개"' in nav
+        assert 'aria-label="커뮤니티, 안 읽은 메시지 250개"' in nav
         assert re.search(r'<i class="nv-badge" data-chat-unread aria-hidden="true">99\+</i>', nav)
 
 
@@ -114,12 +118,15 @@ async def test_flags_off_hide_feed_and_messages(api, monkeypatch):
         await signup(c)
         monkeypatch.setattr(get_settings(), "feature_posts", False)
         html = (await c.get("/library")).text
-        assert keys(html) == ["home", "discover", "library", "chat", "me"]
-        assert 'href="/me"' in nav_of(html)
+        assert keys(html) == ["home", "discover", "community", "library", "me"]
+        assert 'href="/me"' in nav_of(html) and 'href="/community/messages"' in nav_of(html)  # 첫 갈래로
         monkeypatch.setattr(get_settings(), "feature_chat", False)
         html = (await c.get("/library")).text
+        assert 'href="/community/together"' in nav_of(html)
+        monkeypatch.setattr(get_settings(), "feature_board", False)
+        html = (await c.get("/library")).text
         assert keys(html) == ["home", "discover", "library", "me"] and "--tabs:3" in nav_of(html)
-        assert "피드" not in nav_of(html) and "메시지" not in nav_of(html)
+        assert "커뮤니티" not in nav_of(html)
 
 
 async def test_feed_dot_when_a_friend_posts_after_my_last_visit(api, session_factory):
@@ -132,7 +139,7 @@ async def test_feed_dot_when_a_friend_posts_after_my_last_visit(api, session_fac
         nav = nav_of((await a.get("/library")).text)
         assert "data-feed-dot" in nav and "친구의 새 게시물이 있어요" in nav
         assert "data-feed-dot" not in nav_of((await f.get("/library")).text)  # 내 글은 내게 점이 아니다
-        r = await a.get("/feed")
+        r = await a.get("/community")
         assert "feed_seen=" in r.headers.get("set-cookie", "")
         assert "data-feed-dot" not in nav_of(r.text)
         assert "data-feed-dot" not in nav_of((await a.get("/library")).text)  # 피드를 봤으니 꺼진다

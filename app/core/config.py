@@ -127,7 +127,7 @@ class Settings(BaseSettings):
     # 친구 + 채팅(개인·방) 기능(FEATURE_CHAT). 끄면 메뉴·링크가 사라지고 /chat·/friends 경로가 404
     feature_chat: bool = True
 
-    # 읽은 책 게시물(/feed · /posts/new · /p/{id} · /u/{id}, FEATURE_POSTS). 끄면 입구가 숨고 주소는 404
+    # 읽은 책 게시물(/community · /posts/new · /p/{id} · /u/{id}, FEATURE_POSTS). 끄면 입구가 숨고 주소는 404
     feature_posts: bool = True
 
 

@@ -1,4 +1,6 @@
-"""피드(/feed) — 앱의 소셜 홈. Instagram · X · Facebook · Threads 의 홈 피드를 우리 규칙으로 섞는다.
+"""커뮤니티의 피드(/community, 예전 /feed) — 앱의 소셜 홈.
+
+Instagram · X · Facebook · Threads 의 홈 피드를 우리 규칙으로 섞는다.
 
 - 동그라미 줄(Instagram): 나 → 친구(24시간 안에 올렸거나 지금 읽는 중이면 고리).
 - 전체 탭(기본): 친구 게시물을 최신순으로 먼저, 친구 3개마다 '새로운 사람'(친구가 아닌 사람)의
@@ -614,7 +616,7 @@ async def popular_tiles(session: AsyncSession, viewer_id: int, n: int = 3, skip_
     return await psvc.tiles_of(session, [posts[i] for i in ids[:n] if i in posts])
 
 
-# ---------------------------------------------------------------- 동그라미 줄 · 작성 칸 · 함께 읽은 사람
+# ---------------------------------------------------------------- 동그라미 줄 · 함께 읽은 사람
 
 
 @dataclass
@@ -672,12 +674,6 @@ async def stories(session: AsyncSession, viewer: User, limit: int = 20) -> list[
     epoch = dt.datetime.min.replace(tzinfo=dt.UTC)
     others.sort(key=lambda s: (s.ring, newest.get(s.user.id, (0, epoch))[1]), reverse=True)
     return out + others[: limit - 1]
-
-
-async def reading_now(session: AsyncSession, user_id: int, n: int = 3) -> list[tuple[str, str]]:
-    """작성 칸의 칩 — 지금 읽는 책(개인 파일 제외): (폼 값, 제목)."""
-    picks = await psvc.library_picks(session, user_id)
-    return [(value, pick.title) for value, pick, shelf in picks if shelf == "reading"][:n]
 
 
 async def people(session: AsyncSession, viewer_id: int, n: int = 5) -> list[tuple[User, list[str]]]:

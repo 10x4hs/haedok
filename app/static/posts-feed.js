@@ -1,4 +1,4 @@
-/* 피드(/feed) — 새 게시물 알약 · 바닥 가까이에서 자동 이어 읽기 · 동그라미 '봤음'.
+/* 커뮤니티 피드(/community) — 새 게시물 알약 · 바닥 가까이에서 자동 이어 읽기 · 동그라미 '봤음'.
  *
  * - 새 게시물: 화면이 보이는 동안만 60초마다 /feed/new?after=<가장 새 게시물 id> 로 숫자만 묻는다(presence.js 와 같은 규칙:
  *   숨으면 멈추고, 실패하면 간격을 늘린다). 알약을 누르면 맨 위로 올라가 /feed/fresh 조각을 끼워 넣는다.
@@ -87,7 +87,7 @@
         const first = stream.querySelector('article.ps-post a.ps-who-n');
         if (first) first.focus({ preventScroll: true });
       } catch (_) {
-        location.href = '/feed';
+        location.href = '/community';
       } finally {
         pill.disabled = false;
       }
@@ -139,14 +139,5 @@
     } catch (_) {
       f.submit();
     }
-  });
-
-  // ---------- 같이 읽기: 머리의 사람 아이콘 → 아래에서 올라오는 시트(없으면 /together 로 그대로)
-  const tg = document.getElementById('psTogether');
-  document.addEventListener('click', e => {
-    const a = e.target.closest('[data-together]');
-    if (!a || !tg || typeof tg.showModal !== 'function') return;
-    e.preventDefault();
-    tg.showModal();
   });
 })();

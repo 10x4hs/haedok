@@ -1,4 +1,5 @@
-"""읽은 책 게시물 화면 — /feed · /posts/new · /p/{id} · /u/{id} · /profile · /media/p/... · /admin/posts.
+"""읽은 책 게시물 화면 — /community(피드, 예전 /feed) · /posts/new · /p/{id} · /u/{id} · /profile ·
+/media/p/... · /admin/posts.
 
 책 한 권 + 내 생각 + 사진 1~5장(없으면 책 표지)을 인스타그램처럼 올리고 본다.
 사진은 파일 저장소가 없어 DB에 JPEG 바이트로 둔다(프로필 사진과 같은 방식) — 브라우저가 1080px로 줄이고,
@@ -68,7 +69,8 @@ def _notes(request: Request) -> dict:
 
 def _back(back: str, fallback: str) -> str:
     """돌아갈 곳 — 이 기능의 화면만(다른 사이트 · 다른 화면으로 튕기지 않는다)."""
-    if back.startswith(("/feed", "/p/", "/u/", "/profile")) and "//" not in back and "\\" not in back:
+    ok = ("/community", "/feed", "/p/", "/u/", "/profile")
+    if back.startswith(ok) and "//" not in back and "\\" not in back:
         return back[:200]
     return fallback
 
@@ -758,11 +760,18 @@ def _more_href(st: dict) -> str | None:
     if st["cursor"] is None:
         return None
     if st["tab"] == "mix":
-        return f"/feed?cur={st['cursor']}"
-    return f"/feed?tab={st['tab']}&before={st['cursor']}"
+        return f"/community?cur={st['cursor']}"
+    return f"/community?tab={st['tab']}&before={st['cursor']}"
 
 
-@router.get("/feed", response_class=HTMLResponse)
+@router.get("/feed")
+async def feed_moved(request: Request) -> RedirectResponse:
+    """예전 주소 — 피드는 커뮤니티의 첫 갈래가 되었다(검색어는 그대로 넘긴다)."""
+    q = request.url.query
+    return RedirectResponse("/community" + (f"?{q}" if q else ""), status_code=308)
+
+
+@router.get("/community", response_class=HTMLResponse)
 async def feed_page(
     request: Request,
     tab: str = "mix",
@@ -771,11 +780,10 @@ async def feed_page(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(auth.require_user),
 ) -> HTMLResponse:
-    """피드 — 앱의 소셜 홈. 전체(친구 먼저 + 다른 사람의 공개 글) · 친구 · 탐색(격자).
+    """커뮤니티의 피드 갈래 — 전체(친구 먼저 + 다른 사람의 공개 글) · 친구 · 탐색(격자).
 
-    머리: + 올리기 · 메시지(안 읽은 수) · 같이 읽기. 흐름 안에는 활동 소식과 제안 모듈."""
-    from app.chat import chat_unread
-
+    위에는 커뮤니티 갈래(피드 · 메시지 · 같이 읽기), 흐름 안에는 활동 소식과 제안 모듈.
+    새 게시물은 동그라미 줄 맨 앞 '내 기록 +' 에서만 만든다(따로 만들기 단추를 두지 않는다)."""
     tab = _tab(tab)
     st = await _stream(request, session, user, tab, before, cur)
     paged = bool(before) or bool(cur)
@@ -793,17 +801,15 @@ async def feed_page(
         faces=await svc.face_ids(session, user.id),
         friends=await svc.share_targets(session, user.id) if tab != "all" else [],
         stories=await feed_svc.stories(session, user) if first else [],
-        chips=await feed_svc.reading_now(session, user.id) if first else [],
         newest=max((i.card.post.id for i in st["items"] if i.kind == "post"), default=0),
         thin=thin,
         lonely=first and friend_n == 0 and st["count"] == 0,
         people=await feed_svc.people(session, user.id) if thin else [],
         popular=await feed_svc.popular_tiles(session, user.id, 6) if thin else [],
         side=await feed_svc.side(session, user),
-        together=await feed_svc.recruits(session, user.id, 5),
         chat_on=settings.feature_chat,
         board_on=settings.feature_board,
-        unread=chat_unread(request, user) if settings.feature_chat else 0,
+        community="feed",
         **_notes(request),
     )
 
@@ -880,7 +886,9 @@ async def feed_hide(
     if key not in feed_svc.MODULES:
         raise HTTPException(404)
     resp: RedirectResponse | JSONResponse = (
-        JSONResponse({"hidden": key}) if _wants_json(request) else RedirectResponse("/feed", status_code=303)
+        JSONResponse({"hidden": key})
+        if _wants_json(request)
+        else RedirectResponse("/community", status_code=303)
     )
     resp.set_cookie(
         HIDE_COOKIE + key,

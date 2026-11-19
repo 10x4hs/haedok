@@ -1,8 +1,10 @@
-"""앱 아래 막대(휴대폰) · 왼쪽 레일(데스크톱)의 칸과 피드의 '새 글' 점.
+"""앱 아래 막대(휴대폰) · 왼쪽 레일(데스크톱)의 칸, 커뮤니티 안의 갈래, 피드의 '새 글' 점.
 
-막대는 5칸(홈 · 탐색 · 피드 · 서재 · 메시지) — Apple HIG·Material 모두 3~5칸을 권한다.
+막대는 4칸(홈 · 탐색 · 커뮤니티 · 서재) — Apple HIG·Material 모두 3~5칸을 권한다.
+커뮤니티는 인스타그램처럼 한 칸 안에서 피드 · 메시지 · 같이 읽기로 나뉜다(app/templates/_community.html).
+안 읽은 메시지 수는 커뮤니티 칸의 숫자 알약으로, 친구 새 글은 점으로 보인다.
 '나'는 레일에만 칸으로 있고 휴대폰에서는 위쪽 프로필 사진으로 연다. 만들기는 메뉴에 두지 않는다 —
-피드 머리의 '+ 올리기'(와 프로필)에서만 연다(만들기가 두 곳이면 헷갈린다).
+피드의 '내 기록 +' 동그라미와 프로필의 + 에서만 연다.
 조사 메모: scratchpad/v3/nav-research.md
 """
 
@@ -28,8 +30,8 @@ class NavItem:
     href: str
     label: str
     on: bool = False
-    badge: int = 0  # 숫자 알약(메시지)
-    dot: bool = False  # 작은 점(피드: 친구가 새로 올림)
+    badge: int = 0  # 숫자 알약(커뮤니티: 안 읽은 메시지)
+    dot: bool = False  # 작은 점(커뮤니티: 친구가 새로 올림)
     rail_only: bool = False  # 휴대폰 막대에서는 숨긴다(나)
 
 
@@ -37,21 +39,46 @@ def _under(path: str, *prefixes: str) -> bool:
     return any(path == p or path.startswith(p.rstrip("/") + "/") for p in prefixes)
 
 
-def nav_items(request: Request, user: User | None, path: str) -> list[NavItem]:
+def community_sections(request: Request, user: User | None) -> list[tuple[str, str, str, int]]:
+    """커뮤니티 안의 갈래: (열쇠, 주소, 이름, 숫자). 켜진 기능만 — 피드 · 메시지 · 같이 읽기."""
     from app.chat import chat_enabled, chat_unread
     from app.posts import feature_posts
 
-    posts_on, chat_on = feature_posts(), chat_enabled()
+    out: list[tuple[str, str, str, int]] = []
+    if feature_posts():
+        out.append(("feed", "/community", "피드", 0))
+    if chat_enabled():
+        out.append(("messages", "/community/messages", "메시지", chat_unread(request, user)))
+    if get_settings().feature_board:
+        out.append(("together", "/community/together", "같이 읽기", 0))
+    return out
+
+
+COMMUNITY_PATHS = ("/community", "/feed", "/p", "/posts", "/chat", "/friends", "/together")
+
+
+def nav_items(request: Request, user: User | None, path: str) -> list[NavItem]:
+    from app.chat import chat_unread
+    from app.posts import feature_posts
+
+    posts_on = feature_posts()
     me_href = "/profile" if posts_on else "/me"
     mine = user is not None and (_under(path, "/me", "/profile") or path == f"/u/{user.id}")
     items = [
         NavItem("home", "/", "홈", on=path == "/"),
         NavItem("discover", "/discover", "탐색", on=_under(path, "/discover", "/search", "/store", "/shelf")),
     ]
-    if posts_on:
+    sections = community_sections(request, user)
+    if sections:
+        unread = chat_unread(request, user) if any(k == "messages" for k, *_ in sections) else 0
         items.append(
             NavItem(
-                "feed", "/feed", "피드", on=_under(path, "/feed", "/p", "/posts"), dot=feed_dot(request, user)
+                "community",
+                sections[0][1],
+                "커뮤니티",
+                on=_under(path, *COMMUNITY_PATHS),
+                badge=unread,
+                dot=posts_on and feed_dot(request, user),
             )
         )
     items.append(
@@ -59,19 +86,9 @@ def nav_items(request: Request, user: User | None, path: str) -> list[NavItem]:
             "library",
             "/library",
             "서재",
-            on=_under(path, "/library", "/races", "/join", "/together", "/leaderboard", "/upload"),
+            on=_under(path, "/library", "/races", "/join", "/leaderboard", "/upload"),
         )
     )
-    if chat_on:
-        items.append(
-            NavItem(
-                "chat",
-                "/chat",
-                "메시지",
-                on=_under(path, "/chat", "/friends"),
-                badge=chat_unread(request, user),
-            )
-        )
     items.append(NavItem("me", me_href, "나", on=mine, rail_only=True))
     return items
 
@@ -126,7 +143,7 @@ async def latest_post_id(session) -> int:
 class FeedDot:
     """화면(HTML GET)을 그리기 전에 '친구 새 글' 점을 정한다 — ChatMenuDot 과 같은 방식.
 
-    /feed 를 열면 그때의 마지막 게시물 id 를 쿠키에 적고, 다른 화면에서는 그 뒤로 친구가 올린 글이
+    /community(피드)를 열면 그때의 마지막 게시물 id 를 쿠키에 적고, 다른 화면에서는 그 뒤로 친구가 올린 글이
     있는지만 본다. 새 표·마이그레이션 없이 사람마다(브라우저마다) 기억한다.
     """
 
@@ -141,7 +158,7 @@ class FeedDot:
         uid = (scope.get("session") or {}).get("uid")
         if not uid or not get_settings().feature_posts:
             return await self.app(scope, receive, send)
-        at_feed = scope.get("path") == "/feed"
+        at_feed = scope.get("path") == "/community"
         try:
             async with self._session(scope) as session:
                 if at_feed:
@@ -191,4 +208,5 @@ class FeedDot:
 
 
 templates.env.globals["nav_items"] = nav_items
+templates.env.globals["community_sections"] = community_sections
 templates.env.filters["badge_text"] = badge_text

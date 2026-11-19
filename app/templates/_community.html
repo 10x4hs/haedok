@@ -1,0 +1,12 @@
+{# 커뮤니티 갈래(인스타그램처럼 한 칸 안에서 나뉜다) — 피드 · 메시지 · 같이 읽기.
+   라우트가 community 값('feed' · 'messages' · 'together')을 넘기고 화면이 include 한다.
+   켜진 기능만 보인다(app/nav.py community_sections). 메시지 칸에는 안 읽은 수. #}
+<link rel="stylesheet" href="/static/community.css">
+{% set cm_items = community_sections(request, user if user is defined else None) %}
+{% if cm_items|length > 1 %}
+<nav class="cm-tabs" aria-label="커뮤니티">
+  {% for key, href, label, n in cm_items %}
+  <a href="{{ href }}" data-cm="{{ key }}"{% if community == key %} aria-current="page"{% endif %}{% if n %} aria-label="{{ label }}, 안 읽은 메시지 {{ n }}개"{% endif %}>{{ label }}{% if n %}<i class="cm-badge" aria-hidden="true">{{ n|badge_text }}</i>{% endif %}</a>
+  {% endfor %}
+</nav>
+{% endif %}

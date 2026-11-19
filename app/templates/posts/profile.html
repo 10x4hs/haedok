@@ -3,7 +3,7 @@
 {% from "_ui.html" import empty_state %}
 {% block title %}{{ prof.user.nickname }} — 偕讀 해독{% endblock %}
 {% block head_extra %}<link rel="stylesheet" href="/static/posts.css">{% endblock %}
-{% block heading %}{% if not me %}<small><a href="/feed">‹ 피드</a></small>{% endif %}{{ prof.user.nickname if not me else '나' }}{% endblock %}
+{% block heading %}{% if not me %}<small><a href="/community">‹ 커뮤니티</a></small>{% endif %}{{ prof.user.nickname if not me else '나' }}{% endblock %}
 {% block main %}
 <div class="ps ps-profile">
   {% if msg %}<p class="form-ok" role="status">{{ msg }}</p>{% endif %}
@@ -80,7 +80,7 @@
   {% if tab == 'feed' %}
     {% set more_base = '/profile?tab=feed&' %}
     {% include "posts/_feed_list.html" %}
-    <p class="ps-alt"><a href="/feed?tab=all">모두의 게시물 둘러보기 ›</a></p>
+    <p class="ps-alt"><a href="/community?tab=all">모두의 게시물 둘러보기 ›</a></p>
   {% elif tab == 'saved' %}
     <p class="muted small ps-saved-note">{{ bookmark_icon() }} 저장한 게시물은 나만 볼 수 있어요.</p>
     {% if grid %}
@@ -89,7 +89,7 @@
     {% elif paged %}
     <p class="muted ps-end">여기까지예요.</p>
     {% else %}
-    {{ empty_state('book', '아직 저장한 게시물이 없어요', '게시물 아래 책갈피를 누르면 여기에 모여요.', '/feed?tab=all', '모두의 게시물 보기') }}
+    {{ empty_state('book', '아직 저장한 게시물이 없어요', '게시물 아래 책갈피를 누르면 여기에 모여요.', '/community?tab=all', '모두의 게시물 보기') }}
     {% endif %}
   {% elif grid %}
     <ul class="ps-grid">{% for t in grid %}{{ grid_tile(t) }}{% endfor %}</ul>

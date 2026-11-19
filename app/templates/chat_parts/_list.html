@@ -10,7 +10,7 @@
 {% set live = {} %}{% for c in bubbles %}{% if c.active %}{% set _ = live.update({c.user.id: True}) %}{% endif %}{% endfor %}
 <aside class="ch-listpane" aria-label="메시지 목록">
   <header class="ch-lhead">
-    <h1>메시지</h1>
+    <h2>메시지</h2>
     <a class="ch-icon-btn" href="/friends" aria-label="친구 찾기 · 새 대화">
       <svg class="ch-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>
     </a>
@@ -19,7 +19,7 @@
     {% if bubbles %}{{ bubble_row(bubbles) }}{% endif %}
     <nav class="ch-ltabs" aria-label="메시지 종류">
       {% for key, label in [('dm', '개인'), ('room', '방')] %}
-      <a href="/chat?tab={{ key }}" aria-pressed="{{ 'true' if tab == key else 'false' }}"{% if tab == key %} aria-current="page"{% endif %}>{{ label }}{% if unread[key] and tab != key %}<i class="ch-dot" aria-label="안 읽은 메시지 있음"></i>{% endif %}</a>
+      <a href="/community/messages?tab={{ key }}" aria-pressed="{{ 'true' if tab == key else 'false' }}"{% if tab == key %} aria-current="page"{% endif %}>{{ label }}{% if unread[key] and tab != key %}<i class="ch-dot" aria-label="안 읽은 메시지 있음"></i>{% endif %}</a>
       {% endfor %}
     </nav>
     {% if convs %}

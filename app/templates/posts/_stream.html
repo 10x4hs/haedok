@@ -1,5 +1,5 @@
 {# 피드의 줄줄이 칸 — 게시물 · 활동 소식 · '모두 확인했어요' 줄 · 다음 쪽 링크.
-   /feed 처음 그릴 때와 이어 읽기 조각(/feed/more) · 새 게시물 조각(/feed/fresh)이 같이 쓴다. #}
+   /community(피드) 처음 그릴 때와 이어 읽기 조각(/feed/more) · 새 게시물 조각(/feed/fresh)이 같이 쓴다. #}
 {% from "posts/_parts.html" import post_card, face, grid_tile %}
 {% from "_ui.html" import flat_cover %}
 {% macro module(m, csrf, faces, chat_on, alt=False) -%}
@@ -33,7 +33,7 @@
     {% endif %}
   </section>
 {%- endmacro %}
-{% set back = '/feed' ~ ('?tab=friends' if tab == 'friends' else '') %}
+{% set back = '/community' ~ ('?tab=friends' if tab == 'friends' else '') %}
 {% for it in items %}
   {% if it.kind == 'post' %}
   {{ post_card(it.card, csrf, back, faces, user.id, eager=loop.first and not paged) }}
@@ -67,12 +67,12 @@
     <div class="ps-caught-sug">
       <h3>새로운 사람들의 게시물</h3>
       <ul class="ps-grid ps-mini-grid">{% for t in caught_tiles %}{{ grid_tile(t) }}{% endfor %}</ul>
-      <a href="/feed">전체에서 더 보기 ›</a>
+      <a href="/community">전체에서 더 보기 ›</a>
     </div>
     {% endif %}
   </section>
   <p class="ps-older" aria-hidden="true"><span>지난 게시물</span></p>
   {% endif %}
 {% endfor %}
-{% if more_href %}<a class="btn ghost wide ps-more" href="{{ more_href }}" data-next-page="{{ more_href|replace('/feed?', '/feed/more?') }}">더 보기</a>
+{% if more_href %}<a class="btn ghost wide ps-more" href="{{ more_href }}" data-next-page="{{ more_href|replace('/community?', '/feed/more?') }}">더 보기</a>
 {% elif paged and not fresh %}<p class="muted ps-end">여기까지예요. 더 지난 게시물은 없어요.</p>{% endif %}

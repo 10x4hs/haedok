@@ -252,13 +252,13 @@ async def test_visibility_self_friend_stranger(api, session_factory):
         assert f"/p/{closed}" in mine and f"/p/{closed}" not in stranger and f"/p/{open_}" in stranger
         assert 'data-count="posts">1<' in stranger
         # 피드: 친구 탭에는 친구의 친구만 글도, 모두 탭에는 '가입한 모두' 글만
-        ff = (await f.get("/feed")).text
+        ff = (await f.get("/community")).text
         assert f"post-{closed}" in ff and f"post-{open_}" in ff
-        fa = (await f.get("/feed?tab=all")).text  # 모두 = 탐색 격자
+        fa = (await f.get("/community?tab=all")).text  # 모두 = 탐색 격자
         assert f'href="/p/{open_}"' in fa and f'href="/p/{closed}"' not in fa
-        xf = (await x.get("/feed?tab=friends")).text
+        xf = (await x.get("/community?tab=friends")).text
         assert f"post-{open_}" not in xf  # 친구가 아니면 친구 탭에 없다
-        assert f'href="/p/{open_}"' in (await x.get("/feed?tab=all")).text
+        assert f'href="/p/{open_}"' in (await x.get("/community?tab=all")).text
     assert ix
 
 
@@ -274,7 +274,7 @@ async def test_blocked_users_see_nothing_of_each_other(api, session_factory, who
         for c, other, other_post in ((x, ia, pid), (a, ix, mine)):
             assert (await c.get(f"/p/{other_post}")).status_code == 404
             assert (await c.get(f"/u/{other}")).status_code == 404
-            assert f"post-{other_post}" not in (await c.get("/feed?tab=all")).text
+            assert f"post-{other_post}" not in (await c.get("/community?tab=all")).text
         assert "차단 전 댓글" not in (await a.get(f"/p/{pid}")).text  # 막힌 사람의 댓글도 안 보인다
 
 
@@ -424,20 +424,20 @@ async def test_feed_newest_first_with_cursor_paging(api, session_factory):
         ids = await _seed_posts(session_factory, ia, 7) + await _seed_posts(
             session_factory, i_f, 6, "friends"
         )
-        html = (await a.get("/feed?tab=friends")).text
+        html = (await a.get("/community?tab=friends")).text
         shown = [int(x) for x in re.findall(r'id="post-(\d+)"', html)]
         assert shown == sorted(ids, reverse=True)[: svc.FEED_PAGE]
-        more = re.search(r'href="/feed\?tab=friends&amp;before=(\d+)"', html)
+        more = re.search(r'href="/community\?tab=friends&amp;before=(\d+)"', html)
         assert more and int(more.group(1)) == shown[-1]
         rest = [
             int(x)
-            for x in re.findall(r'id="post-(\d+)"', (await a.get(f"/feed?tab=friends&before={more.group(1)}")).text)
+            for x in re.findall(r'id="post-(\d+)"', (await a.get(f"/community?tab=friends&before={more.group(1)}")).text)
         ]
         assert rest == sorted(ids, reverse=True)[svc.FEED_PAGE :]
-        assert "wide ps-more" not in (await a.get(f"/feed?tab=friends&before={more.group(1)}")).text  # 마지막 쪽엔 '더 보기' 없음
+        assert "wide ps-more" not in (await a.get(f"/community?tab=friends&before={more.group(1)}")).text  # 마지막 쪽엔 '더 보기' 없음
         # 모두 탭(탐색 격자): 친구만 글은 빠진다
         all_ids = [
-            int(x) for x in re.findall(r'class="ps-tile" href="/p/(\d+)"', (await a.get("/feed?tab=all")).text)
+            int(x) for x in re.findall(r'class="ps-tile" href="/p/(\d+)"', (await a.get("/community?tab=all")).text)
         ]
         assert all_ids == sorted(ids[:7], reverse=True)
 
@@ -517,7 +517,7 @@ async def test_report_row_and_admin_page(api, session_factory, monkeypatch):
 
 async def test_anonymous_refused(api, session_factory):
     async with api(upstream) as c:
-        for path in ("/feed", "/posts/new", "/u/1", "/p/1"):
+        for path in ("/community", "/posts/new", "/u/1", "/p/1"):
             r = await c.get(path)
             assert r.status_code == 303 and r.headers["location"].startswith("/login"), path
         r = await c.post("/posts", data={"book": "b:1", "csrf": "x"})

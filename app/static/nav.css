@@ -1,6 +1,6 @@
-/* 아래 막대(휴대폰 5칸) · 왼쪽 레일(데스크톱) — app/nav.py · templates/_nav.html
+/* 아래 막대(휴대폰 4칸) · 왼쪽 레일(데스크톱) — app/nav.py · templates/_nav.html
    선택 = 채운 아이콘 + 진한 라벨(색만으로 구분하지 않는다), 나머지는 글자색 62 %.
-   배지는 두 가지뿐: 메시지 숫자(99+), 피드 점. 조사: scratchpad/v3/nav-research.md */
+   배지는 커뮤니티 칸 하나에만: 안 읽은 메시지 숫자(99+), 없으면 친구 새 글 점. 조사: scratchpad/v3/nav-research.md */
 .tabbar a[data-nav]{position:relative;min-width:44px;min-height:44px;color:color-mix(in srgb,var(--text) 62%,transparent);font-size:11.5px;font-weight:500;white-space:nowrap;letter-spacing:-.01em}
 .tabbar a[data-nav]:hover{color:var(--text)}
 .tabbar a[data-nav].on{color:var(--text);font-weight:700}
@@ -9,8 +9,12 @@
 .nv-f{display:none}
 .tabbar a.on .nv-f{display:inline}
 .tabbar a.on .nv-o{display:none}
-/* 휴대폰 막대에는 5칸만 — '나'는 위쪽 프로필 사진. 만들기는 메뉴에 없다(피드 머리의 '+ 올리기') */
+/* 휴대폰 막대에는 4칸만 — '나'는 위쪽 프로필 사진. 만들기는 메뉴에 없다(피드의 '내 기록 +') */
 .tabbar a[data-nav="me"]{display:none}
+/* 칸이 넷이면 넓은 휴대폰에서 칸 사이가 휑하지 않게 막대 폭을 칸 수에 맞춘다(칸마다 86px) */
+@media (max-width:767px),(max-height:519px){
+  .tabbar{width:min(calc(100% - 32px),calc(var(--tabs,4) * 86px + 12px))}
+}
 
 .nv-badge{position:absolute;top:6px;left:calc(50% + 4px);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font:700 10px/18px var(--f-mono);font-style:normal;text-align:center;box-shadow:0 0 0 2px var(--bg)}
 .nv-dot{position:absolute;top:7px;left:calc(50% + 10px);width:8px;height:8px;border-radius:50%;background:var(--accent-strong);box-shadow:0 0 0 2px var(--bg)}
