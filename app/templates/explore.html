@@ -28,6 +28,7 @@
   {% for b in marquee + marquee %}{{ book_cover(b.title, b.author, 'sm', img=b.cover|small_cover) }}{% endfor %}
 </div></div>
 
+{% include "ai/_next_row.html" %}
 <section class="row">
   <div class="row-h"><h2>인기 순위</h2><span class="mono muted">유명 고전 + 해독 독자 수</span></div>
   <ol class="ranklist">{% for b in popular[:10] %}<li><a href="/open/{{ b.source }}/{{ b.id|urlencode }}"><span class="mono">{{ b.rank }}</span>{{ book_cover(b.title, b.author, 'xs', img=b.cover|small_cover) }}<div><b>{{ b.title }}</b><span>{{ b.author or '' }}</span></div></a></li>{% endfor %}</ol>

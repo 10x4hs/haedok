@@ -26,6 +26,7 @@ from app.services import bookstore
 from app.services import feed as feed_svc
 from app.services import post_photos as photo_rules
 from app.services import posts as svc
+from app.services import recs as recs_svc
 from app.services.search import search_all
 from app.sources.base import BookSource
 from app.web import _render, templates
@@ -657,6 +658,7 @@ async def _profile(
         page=page,
         paged=bool(before) or page > 0,
         mine=await svc.tiles(session, user.id) if me else None,
+        next_books=await recs_svc.row(session, user) if me and tab == "posts" else None,
         chat_on=settings.feature_chat,
         friends=await svc.share_targets(session, user.id) if tab == "feed" else [],
         **_notes(request),

@@ -1,0 +1,47 @@
+{% extends "app.html" %}
+{% from "_ui.html" import book_cover %}
+{% block title %}책에게 물어보기 · {{ book.title }} — 偕讀 해독{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/ai.css">{% endblock %}
+{% block heading %}<small><a href="/books/{{ book.id }}">‹ {{ book.title }}</a></small>책에게 물어보기{% endblock %}
+{% block main %}
+<section class="ask-book glass-card">
+  {{ book_cover(book.title, book.author, 'sm', img=cover_of(book)|small_cover) }}
+  <div>
+    <b>{{ book.title }}</b>
+    <span class="muted">{{ book.author or '' }}</span>
+    <p class="hint ask-scope"><span class="ask-dot" aria-hidden="true"></span>{% if read_upto %}<span><b class="mono">{{ read_upto }}쪽</b>까지 읽었어요. 거기까지만 보고 답해요.</span>{% else %}<span>아직 다 읽은 쪽이 없어요. 몇 쪽 읽고 나서 물어봐 주세요.</span>{% endif %}</p>
+  </div>
+</section>
+{% if notice %}<p class="hint ask-notice">{{ notice }}</p>{% endif %}
+{% if flash %}<p class="form-err ask-flash" role="alert">{{ flash }}</p>{% endif %}
+
+<form class="react-form ask-form" method="post" action="/books/{{ book.id }}/ask">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label class="sr" for="askQ">질문</label>
+  <input id="askQ" name="question" maxlength="300" placeholder="이 책에 대해 물어보기" autocomplete="off" enterkeyhint="send" required{% if not read_upto %} disabled{% endif %}>
+  <button class="btn primary"{% if not read_upto %} disabled{% endif %}>묻기</button>
+</form>
+
+<section class="row ask-history" aria-labelledby="askHistH">
+  <div class="row-h"><h2 id="askHistH">최근 문답</h2><span class="mono muted">최근 5개까지 남아요</span></div>
+  {% if items %}
+  <ol class="ask-list page">
+    {% for it in items %}
+    <li class="ask-q"{% if loop.first %} id="latest"{% endif %}><p>{{ it.question }}</p></li>
+    <li class="ask-a{{ '' if it.found else ' none' }}">
+      <span class="ask-label mono">AI 답변 · 틀릴 수 있어요</span>
+      <p>{{ it.answer }}</p>
+      {% if it.pages %}<span class="ask-pages">{% for p in it.pages %}<em class="mono">{{ p }}쪽</em>{% endfor %}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  <form method="post" action="/books/{{ book.id }}/ask/clear" class="ask-clear-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="link-btn">내 문답 기록 지우기</button>
+  </form>
+  {% else %}
+  <p class="muted">아직 물어본 게 없어요. 예: “주인공은 왜 그렇게 했어요?”</p>
+  {% endif %}
+</section>
+<p class="hint">읽은 쪽 안에서 찾은 글만 AI에게 보내요. 다른 사람의 기록은 보내지 않아요.</p>
+{% endblock %}

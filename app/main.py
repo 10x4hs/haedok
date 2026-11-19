@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
-from app import admin, auth, intro, pwa, seo, web
+from app import admin, ai_rag, auth, intro, pwa, seo, web
 from app import board as board_pages
 from app.api import books, me, points, social
 from app.api import goals as goals_api
@@ -227,6 +227,7 @@ app.include_router(pwa.router)
 app.include_router(seo.router)
 app.include_router(chat_router)
 app.include_router(posts_router)
+app.include_router(ai_rag.router)
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
 

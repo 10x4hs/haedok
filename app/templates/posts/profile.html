@@ -70,6 +70,8 @@
   </ul>
   {% endif %}
 
+  {% include "ai/_next_row.html" %}
+
   {# 아이콘 탭: 게시물 격자 · 소식(내 프로필) · 저장됨(나만 보인다) #}
   <nav class="ps-ig-tabs ps-prof-tabs" aria-label="보기">
     <a href="{{ base }}" aria-current="{{ 'page' if tab == 'posts' else 'false' }}" aria-label="게시물">{{ grid_icon() }}<span>게시물</span></a>

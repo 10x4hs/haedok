@@ -1,0 +1,9 @@
+{# 나를 위한 다음 책 — 탐색(인기 순위 위) · 내 프로필(동그라미 아래). app/services/recs.row() 가 채운다 #}
+{% if next_books %}
+{% from "_ui.html" import book_cover %}
+<link rel="stylesheet" href="/static/ai.css">
+<section class="row ai-next" aria-labelledby="aiNextH">
+  <div class="row-h"><h2 id="aiNextH">나를 위한 다음 책</h2><span class="mono muted">{{ '유명한 책부터 골랐어요' if next_books.cold else '내 서재를 보고 골랐어요' }}</span></div>
+  <div class="rail">{% for r in next_books.books %}<a class="card ai-card" href="{{ r.href }}">{{ book_cover(r.title, r.author, img=r.cover|small_cover) }}<b>{{ r.title }}</b>{% if r.reason %}<span class="ai-why">{{ r.reason }}</span>{% else %}<span>{{ r.author or '' }}</span>{% endif %}<span class="ai-kind{{ ' store' if not r.free }}">{{ '바로 읽기' if r.free else '서점' }}</span></a>{% endfor %}</div>
+</section>
+{% endif %}

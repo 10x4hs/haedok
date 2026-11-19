@@ -33,6 +33,7 @@ from app.services import books as book_service
 from app.services import mileage as mileage_service
 from app.services import points as points_service
 from app.services import races as race_service
+from app.services import recs as recs_service
 from app.services.search import FULLTEXT_SOURCES, search_all
 from app.services.uploads import parse_upload
 from app.sources.base import BookSource, SourceError
@@ -743,6 +744,7 @@ async def discover(
         picks=picks,
         marquee=marquee,
         popular=await popular(session, 30),
+        next_books=await recs_service.row(session, user),
         shelves={name: books[:14] for name, books in SHELVES.items()},
         **common,
     )
