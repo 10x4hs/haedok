@@ -3,6 +3,7 @@
 {% block title %}{{ book.title }} · 서점 — 偕讀 해독{% endblock %}
 {% block content_class %}split{% endblock %}
 {% block heading %}<small>{{ book.author or '' }}</small>{{ book.title }}{% endblock %}
+{% block top_extra %}{% if ai_shop_on is defined and ai_shop_on() %}<a class="pill" href="/assistant?q={{ (book.title ~ ' 같은 책')|urlencode }}">AI 추천</a>{% endif %}{% endblock %}
 {% block main %}
 <section class="store-hero">
   <div class="store-cover" data-tilt="14">{{ book_cover(book.title, book.author, 'lg', img=book.cover) }}</div>
@@ -21,7 +22,7 @@
 </ol>
 
 <div class="store-actions">
-  <a class="btn primary wide" id="buy" href="{{ book.url }}" target="_blank" rel="noopener">알라딘에서 전자책 사기 ↗</a>
+  <a class="btn primary wide" id="buy" href="{{ book.url|buy_link }}" target="_blank" rel="noopener">알라딘에서 전자책 사기 ↗</a>
   <a class="btn ghost wide" id="toUpload" href="/upload?store={{ book.id }}">산 파일 올리기</a>
 </div>
 {% if videos %}

@@ -49,7 +49,8 @@
   </div>
 
   {# 내 동그라미들(인스타의 하이라이트 자리): 오늘의 목표 · 잔디 · 마일리지 — 기능마다 꺼져 있으면 사라진다 #}
-  {% if me and mine and mine.any %}
+  {% set ai_recap = me and ai_shop_on is defined and ai_shop_on() %}
+  {% if me and ((mine and mine.any) or ai_recap) %}
   <ul class="ps-hl" aria-label="내 기록">
     {% if mine.goal %}
     <li><a class="ps-hl-a t-goal" href="/me#goal" aria-label="오늘의 목표 {{ mine.goal.target }}쪽 가운데 {{ mine.goal.pages }}쪽">
@@ -67,6 +68,7 @@
       <span class="ps-hl-c"><b>{{ '{:,}'.format(mine.mileage) }}</b></span>
       <span class="ps-hl-l">마일리지</span></a></li>
     {% endif %}
+    {% if ai_recap %}{% include "ai/_recap_hl.html" %}{% endif %}
   </ul>
   {% endif %}
 

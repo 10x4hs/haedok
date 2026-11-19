@@ -1,0 +1,46 @@
+{% extends "app.html" %}
+{% block title %}AI 서점 도우미 — 偕讀 해독{% endblock %}
+{% block body_class %}app ai-shop-page{% endblock %}
+{% block heading %}<small><a href="/discover">‹ 탐색</a></small>AI 서점 도우미{% endblock %}
+{% block top_extra %}<a class="pill ai-new" href="/assistant" data-ai-new{% if not turns %} hidden{% endif %}>새 대화</a>{% endblock %}
+{% block main %}
+<link rel="stylesheet" href="/static/ai.css">
+{% set last = turns[-1] if turns else none %}
+<section class="ai-shop" id="aiShop" aria-label="AI 서점 도우미 대화" data-turns="{{ turns|length }}">
+  <div class="ai-log" id="aiLog" role="log" aria-live="polite" aria-relevant="additions" aria-label="대화">
+    <div class="ai-msg bot first">
+      <span class="ai-ava" aria-hidden="true">{% include "ai/_spark.svg" %}</span>
+      <div class="ai-stack">
+        <p class="ai-bubble">어떤 책을 찾고 있어요? 기분이나 상황, 예산을 편하게 말해 주세요. 해독에서 바로 읽는 무료 고전과 서점 책 가운데서 골라 드릴게요.</p>
+        {% if not turns %}
+        <div class="ai-chips" role="group" aria-label="이렇게 물어볼 수 있어요">
+          {% for ex in examples %}<button class="ai-chip" form="aiForm" name="chip" value="{{ ex }}">{{ ex }}</button>{% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% for t in turns %}{% set ti = loop.index %}{% include "ai/_turn.html" %}{% endfor %}
+  </div>
+
+  <div class="ai-dock">
+    {% if last and (chips or last.followup) %}
+    <div class="ai-chips ai-quick" role="group" aria-label="빠른 답">
+      {% if last.followup %}<label class="ai-chip ai-chip-q" for="aiQ" data-ai-followup="{{ last.followup }}" aria-label="질문에 답하기: {{ last.followup }}">질문에 답하기</label>{% endif %}
+      {% for c in chips %}<button class="ai-chip" form="aiForm" name="chip" value="{{ c }}">{{ c }}</button>{% endfor %}
+    </div>
+    {% endif %}
+    <form class="ai-compose" id="aiForm" method="post" action="/assistant" autocomplete="off">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="state" value="{{ state }}" data-ai-state>
+      <div class="ai-pill">
+        <label class="sr" for="aiQ">원하는 책 이야기하기</label>
+        <textarea id="aiQ" name="q" rows="1" maxlength="{{ max_q }}" placeholder="{{ last.followup if last and last.followup else '예: 요즘 지쳐서 짧고 따뜻한 소설' }}" enterkeyhint="send">{{ prefill }}</textarea>
+        <button class="ai-send" aria-label="보내기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
+      </div>
+      <p class="ai-fine">AI 답변 · 틀릴 수 있어요 · 가격과 구매는 서점에서 확인해요 · 대화는 이 창을 닫으면 사라져요</p>
+      <p class="ai-status" id="aiStatus" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</section>
+<script src="/static/ai.js" defer></script>
+{% endblock %}

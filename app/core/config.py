@@ -146,6 +146,8 @@ class Settings(BaseSettings):
     ai_embed_dim: int = 256  # 저장하는 벡터 길이 — 모델이 지원하면 dimensions 로 줄여 받는다
     ai_timeout_seconds: float = 20.0
     ai_daily_requests: int = 40  # 한 사람이 하루에 부를 수 있는 AI 답변 수(비용 상한)
+    # AI 서점 도우미(/assistant) · 독서 요약(/me/recap) — AI 가 꺼져 있으면 이 값과 상관없이 숨는다
+    feature_ai_shop: bool = True
 
     @property
     def ai_enabled(self) -> bool:
