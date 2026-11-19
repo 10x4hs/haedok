@@ -66,9 +66,12 @@ async def ask_page(
     _require_on()
     book = await _book_for(session, book_id, user)
     st = await _state(session, user, book)
-    return _render(
-        request, "ai/ask.html", user, book=book, flash=FLASH.get(request.query_params.get("m", "")), **st
-    )
+    from app.services import reader_ai  # 읽는 중의 AI 가 켜져 있으면 '내 AI 노트'도 이 화면에
+
+    notes = await reader_ai.notes(session, user, book) if reader_ai.on() else []
+    notes = [reader_ai.note_out(n) for n in notes]
+    flash = FLASH.get(request.query_params.get("m", ""))
+    return _render(request, "ai/ask.html", user, book=book, flash=flash, ai_notes=notes, **st)
 
 
 @router.post("/books/{book_id}/ask")

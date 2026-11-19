@@ -11,6 +11,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     DateTime,
     ForeignKey,
     Index,
@@ -145,3 +146,46 @@ class UserTaste(Base):
     vec: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)  # float32, 양쪽 DB 같은 모양
     basis_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AINote(Base):
+    """리더에서 AI 에게 물은 답 — 문단(쪽 · 문단 번호)에 붙는다. 나만 본다.
+
+    saved=False 는 방금 받은 답(저장 전 초안), True 가 '내 AI 노트'. '반응으로 공유'하면
+    한 줄 요약이 보통 반응(reactions)이 되고 reaction_id 가 그 반응을 가리킨다 — 그때부터는
+    반응의 스포일러 가드가 친구에게 적용된다.
+    """
+
+    __tablename__ = "ai_notes"
+    __table_args__ = (Index("ix_ai_notes_user_book", "user_id", "book_id", "chunk_index"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    book_id: Mapped[int] = mapped_column(ForeignKey("books.id", ondelete="CASCADE"))
+    chunk_index: Mapped[int] = mapped_column(Integer)
+    anchor: Mapped[int] = mapped_column(SmallInteger, default=0)  # 청크 안 문단 번호(반응과 같다)
+    kind: Mapped[str] = mapped_column(String(12))  # explain | word | summary
+    quote: Mapped[str] = mapped_column(String(300), default="")  # 고른 글(문단 일부 또는 낱말)
+    answer: Mapped[str] = mapped_column(Text)
+    pages: Mapped[list] = mapped_column(JSON, default=list)  # 근거 쪽(1부터)
+    saved: Mapped[bool] = mapped_column(Boolean, default=False)
+    reaction_id: Mapped[int | None] = mapped_column(
+        ForeignKey("reactions.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AIBookCache(Base):
+    """사람 · 책마다 한 번 만든 AI 글 — 지난 이야기(recap) · 등장인물(chars) · 생각해 볼 질문(reflect).
+
+    verified_chunk 는 만들 때 근거로 쓴 마지막 쪽. 읽은 쪽이 늘면(recap · chars) 다시 만든다.
+    """
+
+    __tablename__ = "ai_book_cache"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    book_id: Mapped[int] = mapped_column(ForeignKey("books.id", ondelete="CASCADE"), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(10), primary_key=True)
+    verified_chunk: Mapped[int] = mapped_column(Integer)
+    body: Mapped[str] = mapped_column(Text)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
