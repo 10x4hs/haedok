@@ -45,9 +45,33 @@
 .goal-edit{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:48px;margin-top:12px;padding:0 2px;border-top:1px solid var(--line);font-size:15px;color:var(--text);text-align:left}
 .goal-edit em{font-style:normal;color:var(--dim);transition:transform .3s var(--ease)}
 .goal-edit[aria-expanded="true"] em{transform:rotate(90deg)}
-.goal-tiers .seg.full{margin:4px 0 10px}
-.goal-tiers .seg button{min-height:44px;padding:0 6px}
-.goal-note{margin:6px 2px 0;font-size:12px;color:var(--dim);line-height:1.55}
+.goal-edit-v{display:inline-flex;align-items:center;gap:10px}
+.goal-edit-v b{font-size:14px;font-weight:500;color:var(--dim)}
+
+/* 하루에 읽을 쪽: − [n]쪽 + (?) / 빠른 선택 칩 / 약 n분 · 저장됨 */
+.goal-set{padding:4px 2px 2px}
+.goal-stepper{display:flex;align-items:center;gap:8px}
+.goal-step{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--sunken);font-size:22px;line-height:1;color:var(--text);touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.goal-step:active{transform:scale(.94)}
+.goal-step:disabled{opacity:.35;cursor:default;transform:none}
+.goal-num input{width:72px;height:44px;padding:0 6px;border-radius:12px;border:1px solid var(--line);background:var(--sunken);color:var(--text);font-size:22px;font-weight:500;letter-spacing:-.03em;text-align:center;-moz-appearance:textfield;appearance:textfield}
+.goal-num input::-webkit-inner-spin-button,.goal-num input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.goal-num input:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent)}
+.goal-num{display:flex}
+.goal-unit{font-size:15px;line-height:1;color:var(--dim);margin:0 2px 0 -2px}
+.goal-help{position:relative;flex:none;width:28px;height:28px;margin-left:auto;border-radius:50%;border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--dim)}
+.goal-help::after{content:"";position:absolute;inset:-8px}
+.goal-help[aria-expanded="true"]{color:var(--text);border-color:var(--text)}
+.goal-presets{display:flex;gap:8px;margin-top:12px}
+.goal-presets button{position:relative;height:32px;min-width:44px;padding:0 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--dim)}
+.goal-presets button::after{content:"";position:absolute;inset:-6px -2px}
+.goal-presets button[aria-pressed="true"]{background:var(--text);border-color:var(--text);color:var(--bg)}
+.goal-est{display:flex;justify-content:space-between;gap:12px;min-height:20px;margin:10px 2px 0;font-size:13px;color:var(--dim)}
+.goal-saved{color:var(--ok)}
+.goal-help-box{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--sunken);font-size:12px;line-height:1.55;color:var(--dim)}
+.goal-help-box p{margin:0}
+.goal-help-box p+p{margin-top:2px}
+.goal-help-box a{color:var(--accent-strong)}
 
 /* 홈: 헤더 아래 왼쪽, 나선(3D 책)보다 위 — 스크롤하면 함께 올라간다 */
 .goal-chip{position:relative;z-index:3;display:inline-flex;align-items:center;gap:8px;height:34px;margin:2px 0 0;padding:0 14px 0 12px;border-radius:999px;font-size:13px;color:var(--text);white-space:nowrap}
@@ -58,5 +82,5 @@
 
 @media (prefers-reduced-motion:reduce){
   .goal-ring .fill,.goal-edit em{transition:none}
-  .goal-chip:active{transform:none}
+  .goal-chip:active,.goal-step:active{transform:none}
 }
