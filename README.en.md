@@ -28,10 +28,10 @@ The server keeps the reading time, and the server hides what you haven't read ye
 
 <table>
 <tr>
-<td width="200" align="center"><img src="docs/images/app/5-reader.jpg" alt="Reader with the 15-second ring at the bottom" width="180"></td>
+<td width="200" align="center"><img src="docs/images/app/5-reader.jpg" alt="Reader with the reading-time ring at the bottom" width="180"></td>
 <td>
 <h3>📖 Read together, verified</h3>
-Public-domain classics (Wikisource, Project Gutenberg) open in the in-app reader. Keep a page open for <b>15 seconds</b> and it counts as read — the same for every page, whatever its length or your screen size. The server measures the time, not the browser. DRM-free EPUB · PDF · TXT files you bought can be uploaded and read in the same reader; only the uploader can open them. On a desktop the reader opens two pages like a paper book.
+Public-domain classics (Wikisource, Project Gutenberg) open in the in-app reader. Keep a page open for as long as it takes to read it — <b>3–60 seconds, from the page's own length</b>, set at a fast reader's pace so real readers rarely wait — and it counts as read. Font size doesn't change it. The server measures the time, not the browser. DRM-free EPUB · PDF · TXT files you bought can be uploaded and read in the same reader; only the uploader can open them. On a desktop the reader opens two pages like a paper book.
 </td>
 </tr>
 <tr>
@@ -95,7 +95,7 @@ Continue-reading card, a cover strip and daily picks drawn only from famous book
 <td align="center"><img src="docs/images/app/20-guide.jpg" alt="Public how-to page" width="180"></td>
 <td>
 <h3>🌐 Public pages · sign-in</h3>
-<a href="https://haedok.vercel.app/guide">How to use</a> (8 steps), <a href="https://haedok.vercel.app/docs">Docs</a> (the 15-second rule, mileage table, upload limits) and <a href="https://haedok.vercel.app/developers">Developer</a> (four layers, choices and trade-offs) need no account. Their numbers are read from code constants (<code>app/public_facts.py</code>). Sign-in and sign-up float over a wall of book covers.
+<a href="https://haedok.vercel.app/guide">How to use</a> (8 steps), <a href="https://haedok.vercel.app/docs">Docs</a> (the reading-time rule, mileage table, upload limits) and <a href="https://haedok.vercel.app/developers">Developer</a> (four layers, choices and trade-offs) need no account. Their numbers are read from code constants (<code>app/public_facts.py</code>). Sign-in and sign-up float over a wall of book covers.
 </td>
 </tr>
 </table>
@@ -139,7 +139,7 @@ Also: board, chat and post reports.
 ## How it works
 
 - **Four layers** — templates + vanilla JS (`app/templates`, `app/static`) → routes that check login and CSRF (`app/web.py`, `app/api/`, `app/chat.py`, `app/posts.py`, …) → services where every rule lives (`app/services/`) → SQLAlchemy models (`app/models*.py`, Postgres on Neon, SQLite locally and in tests).
-- **Reading verification** — the server records when a page was opened and when "done" arrives (`reading_events`); only the next page can be credited, only after 15 s (`PAGE_DWELL_MS`), and idle time is capped at 10× (`DWELL_CAP_MULTIPLIER`). `DWELL_SCALE` shrinks it for demos.
+- **Reading verification** — the server records when a page was opened and when "done" arrives (`reading_events`); only the next page can be credited, only after that page's reading time (`pace.min_dwell_ms`: Hangul/CJK characters at 1000/min plus other words at 400/min, clamped to 3–60 s — 1.5× the average adult silent rate from Brysbaert's 2019 meta-analysis, so fast readers pass and skimming doesn't), and idle time is capped at 10× that page's time (`DWELL_CAP_MULTIPLIER`). `DWELL_SCALE` shrinks it for demos.
 - **Spoiler guard** — reactions are filtered by your progress in the database (`social.reactions_for`); book-talk chat messages carry the sender's verified page and reach readers behind them only as a placeholder. Live updates never carry reaction text.
 - **Polling, not WebSocket, on Vercel** — the in-memory broker (`app/realtime.py`) can't reach other function instances, so production polls: reader 3 s (backing off to 2 min), presence beat 5 s, chat 3 s (to 60 s). Hidden tabs stop polling. `REALTIME_WS` turns sockets on for a single server.
 - **Mail chain** — on Vercel: Apps Script → Brevo → Resend → SMTP; locally: SMTP → Apps Script → Brevo → Resend; if all fail the code is relayed to `ADMIN_EMAILS`. Every attempt goes to `mail_logs`. Codes are stored only as HMAC fingerprints.

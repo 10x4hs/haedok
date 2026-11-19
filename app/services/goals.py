@@ -6,7 +6,7 @@
   처음 검증된 날에 센다.
 - 하루 목표는 검증된 쪽 1~100 사이 아무 정수(기본 5). 3 / 5 / 10 / 20은 화면의 빠른 선택일 뿐이다.
   "약 n분"은 내 쪽당 중앙값 시간
-  (15~120초로 자름, 기록이 없으면 60초) × 쪽수로 낸 추정치다.
+  (쪽 최소 시간 3초~120초로 자름, 기록이 없으면 60초) × 쪽수로 낸 추정치다.
 - 잔디는 하루 1쪽 이상이면 생긴다. 진하기 5단계는 아래 level() 참고.
 - 연속 = 오늘(아직 안 읽었으면 어제)에서 거슬러 올라가며 이어진 읽은 날 수. 보호권으로 메운 날과
   복구한 날은 사슬을 잇기만 하고 날 수에는 더하지 않는다.
@@ -28,6 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import ReadingEvent
 from app.models_goals import ReadingDayMark, ReadingGoal
+from app.services import pace
 
 KST = dt.timezone(dt.timedelta(hours=9), "KST")
 DAY_SHIFT = dt.timedelta(hours=4)  # 새벽 4시에 날짜가 바뀐다
@@ -40,7 +41,7 @@ FREEZE_CAP = 2
 FREEZE, REPAIR = "freeze", "repair"
 
 SEC_PER_PAGE_DEFAULT = 60
-SEC_PER_PAGE_MIN, SEC_PER_PAGE_MAX = 15, 120
+SEC_PER_PAGE_MIN, SEC_PER_PAGE_MAX = pace.MIN_PAGE_MS // 1000, 120
 
 WEEKS_PHONE, WEEKS_MAX = 17, 26
 HISTORY_DAYS = WEEKS_MAX * 7 + 7  # 한 번의 쿼리로 읽어 오는 범위(잔디 최대 폭 + 이번 주)
@@ -84,7 +85,7 @@ def level(pages: int, goal: int) -> int:
 
 
 def seconds_per_page(dwells_ms: list[int]) -> int:
-    """내 쪽당 시간(초)의 중앙값, 15~120초로 자른다. 기록이 없으면 60초."""
+    """내 쪽당 시간(초)의 중앙값, 쪽 최소 시간(3초)~120초로 자른다. 기록이 없으면 60초."""
     if not dwells_ms:
         return SEC_PER_PAGE_DEFAULT
     sec = statistics.median(dwells_ms) / 1000

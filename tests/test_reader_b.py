@@ -1,6 +1,8 @@
 """리더: 쪽 이동은 읽음이 아니고, 다시 열면 '다 읽은 쪽 + 1'에서 이어 읽는다."""
 
-from app.services.pace import PAGE_DWELL_MS
+import httpx
+
+from app.services import pace
 from tests.conftest import read_chunk, signup
 from tests.test_api import upstream
 
@@ -46,21 +48,43 @@ async def test_fresh_book_starts_at_first_page(api):
     assert 'data-start="0"' in reader.text and 'id="jump"' in reader.text and 'id="back"' in reader.text
 
 
-async def test_chunk_dwell_is_flat_15s_and_server_decided(api, clock):
-    async with api(upstream) as c:
+PAGES_HTML = "<p>" + ("가나다라 " * 230).strip() + "</p><p>" + "가" * 100 + "</p>"
+
+
+def pages_upstream(req: httpx.Request) -> httpx.Response:
+    if req.url.host == "ko.wikisource.org" and req.url.params.get("page") == "길고짧은글":
+        return httpx.Response(200, json={"parse": {"title": "길고짧은글", "text": PAGES_HTML}})
+    return upstream(req)
+
+
+async def test_dwell_follows_the_page_length_and_server_decides(api, clock):
+    async with api(pages_upstream) as c:
         await signup(c)
-        _, book_id, h = await _open(c)
-        chunk = (await c.get(f"/api/v1/books/{book_id}/chunks/0")).json()
-        need = chunk["min_dwell_ms"]
+        url = (await c.get("/open/wikisource/길고짧은글")).headers["location"]
+        token = (await c.get(url)).text.split('data-csrf="')[1].split('"')[0]
+        book_id, h = url.rsplit("/", 1)[1], {"X-CSRF-Token": token}
+        long, short = [(await c.get(f"/api/v1/books/{book_id}/chunks/{i}")).json() for i in (0, 1)]
+        assert long["min_dwell_ms"] == pace.min_dwell_ms(long["text"]) == 55_200  # 920자
+        assert short["min_dwell_ms"] == pace.min_dwell_ms(short["text"]) == 6_000  # 100자
+
+        async def verify(i):
+            r = await c.put(
+                f"/api/v1/books/{book_id}/progress", json={"chunk_index": i, "verified": True}, headers=h
+            )
+            return r.json()["verified_chunk"]
+
         await c.put(f"/api/v1/books/{book_id}/progress", json={"chunk_index": 0}, headers=h)
-        clock((need - 1000) / 60_000)  # 1초 모자람
-        early = await c.put(
-            f"/api/v1/books/{book_id}/progress", json={"chunk_index": 0, "verified": True}, headers=h
-        )
+        clock(2 / 60)  # 긴 쪽을 2초 만에 넘김
+        skim = await verify(0)
+        clock((long["min_dwell_ms"] - 3_000) / 60_000)  # 펼친 뒤 필요 시간 - 1초
+        early = await verify(0)
         clock(2 / 60)
-        ok = await c.put(
-            f"/api/v1/books/{book_id}/progress", json={"chunk_index": 0, "verified": True}, headers=h
-        )
-    assert need == PAGE_DWELL_MS == 15_000
-    assert early.json()["verified_chunk"] == -1
-    assert ok.json()["verified_chunk"] == 0
+        ok = await verify(0)
+        # 짧은 쪽은 6초면 된다
+        await c.put(f"/api/v1/books/{book_id}/progress", json={"chunk_index": 1}, headers=h)
+        clock(5 / 60)
+        short_early = await verify(1)
+        clock(1 / 60)
+        short_ok = await verify(1)
+    assert (skim, early, ok) == (-1, -1, 0)
+    assert (short_early, short_ok) == (0, 1)

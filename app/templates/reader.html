@@ -32,10 +32,10 @@
   <div class="rf-row">
     <button type="button" class="pill-btn r-nav" id="prevPg" aria-label="앞 쪽" title="앞 쪽 (←)">{{ icon('prev') }}</button>
     <button type="button" class="mono pos-btn" id="pos" aria-label="쪽 이동" aria-expanded="false" aria-controls="jump">–</button>
-    {# 이 쪽이 '읽음'으로 인정되기까지 남은 시간(쪽마다 15초) #}
+    {# 이 쪽이 '읽음'으로 인정되기까지 남은 시간(쪽 글자 수에 맞춰 서버가 정함, app/services/pace.py) #}
     <span class="ring" id="ring" role="timer" aria-live="off" title="이 쪽을 다 읽었다고 인정되기까지">
       <svg viewBox="0 0 36 36" aria-hidden="true"><circle class="ring-trk" cx="18" cy="18" r="15"/><circle class="ring-arc" id="ringArc" cx="18" cy="18" r="15" pathLength="100"/></svg>
-      <b id="ringNum" class="mono">15</b>
+      <b id="ringNum" class="mono">–</b>
     </span>
     <span id="state">읽는 중</span>
     <span class="friends" id="friends" aria-label="같이 읽는 친구"></span>

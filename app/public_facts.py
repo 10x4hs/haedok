@@ -89,17 +89,27 @@ DEMO_S = mp4_seconds(ROOT / "app" / "static" / "demo" / "haedok-demo.mp4")
 
 def _facts() -> dict:
     s = get_settings()
-    page_s = pace.PAGE_DWELL_MS * s.dwell_scale / 1000
+
+    def secs(ms: int) -> str:  # 화면에 보이는 초 — DWELL_SCALE(시연 배율)을 곱한 값
+        return f"{ms * s.dwell_scale / 1000:g}"
+
+    page_min_s, page_max_s = secs(pace.MIN_PAGE_MS), secs(pace.MAX_PAGE_MS)
     js_files, js_lines = _count_js()
     return {
-        "page_s": f"{page_s:g}",
-        "base_page_s": pace.PAGE_DWELL_MS // 1000,
+        "page_min_s": page_min_s,
+        "page_max_s": page_max_s,
+        "page_range": f"{page_min_s}~{page_max_s}초",
+        "page_rule": f"쪽의 글자 수에 맞춰 {page_min_s}~{page_max_s}초",
+        "base_min_s": pace.MIN_PAGE_MS // 1000,
+        "base_max_s": pace.MAX_PAGE_MS // 1000,
+        "chars_per_min": pace.CJK_CHARS_PER_MIN,
+        "words_per_min": pace.WORDS_PER_MIN,
         "cap_x": pace.DWELL_CAP_MULTIPLIER,
         "goal_range": f"{goals.GOAL_MIN}~{goals.GOAL_MAX}쪽",
         "goal_min": goals.GOAL_MIN,
         "goal_max": goals.GOAL_MAX,
         "freeze_cap": goals.FREEZE_CAP,
-        "cap_s": f"{page_s * pace.DWELL_CAP_MULTIPLIER:g}",
+        "cap_max_s": secs(pace.MAX_PAGE_MS * pace.DWELL_CAP_MULTIPLIER),
         "points": [
             {"key": k, "label": points.LABELS[k], "amount": v, "when": POINT_WHEN.get(k, "")}
             for k, v in points.RULES.items()

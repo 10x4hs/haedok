@@ -10,7 +10,7 @@
 |---|---|---|
 | 1 화면 | `app/templates/` · `app/static/` | Jinja2 서버 렌더링 + 바닐라 JS(빌드 없음). 기능별 CSS/JS는 따로 파일(`chat.css`·`chat.js`, `posts.js`, `goals.js`, `board.css` …) |
 | 2 라우트 | `app/web.py` · `app/*.py` 라우터 · `app/api/` | 주소마다 함수 하나. 로그인·CSRF·기능 스위치를 확인하고 서비스에 넘긴다 |
-| 3 서비스 | `app/services/` | 15초 판정, 스포일러 가드, 대결, 마일리지, 목표, 모집, 채팅, 게시물, 메일 |
+| 3 서비스 | `app/services/` | 쪽 읽기 시간 판정, 스포일러 가드, 대결, 마일리지, 목표, 모집, 채팅, 게시물, 메일 |
 | 4 DB | `app/models.py` + `app/models_*.py` · `migrations/` | SQLAlchemy 2(async). 배포는 Postgres(Neon), 로컬·테스트는 SQLite |
 
 ```
@@ -31,7 +31,7 @@ app/
                        · 대결 목록/방/초대 · 순위 · 내 정보
   auth.py              세션 · BCrypt · CSRF · 6자리 코드(HMAC 지문) · 비밀번호 재설정
   intro.py             공개 페이지 /guide · /docs · /developers (+ /intro → /guide 308)
-  public_facts.py      공개 페이지의 숫자를 코드 상수에서 읽는다(15초, 마일리지 표, 업로드 한도, 테스트·마이그레이션 수)
+  public_facts.py      공개 페이지의 숫자를 코드 상수에서 읽는다(쪽 읽기 시간 3~60초, 마일리지 표, 업로드 한도, 테스트·마이그레이션 수)
   board.py             /community/together(예전 /together는 308) (모집 글 목록·쓰기·참가·나가기·닫기·신고) · /admin/together
   chat.py              /friends · /community/messages(예전 /chat은 308) · /chat/dm/{id} · /chat/room/{id} · /admin/chat-reports
                        · 메뉴의 안 읽음 점(ChatMenuDot 미들웨어)
@@ -192,7 +192,7 @@ app/templates/_welcome.html      첫 가입 뒤 홈의 3단계 안내 카드 (�
 | 결정 | 이유 |
 |---|---|
 | **읽기 날짜는 KST 새벽 4시에 바뀐다** | 자정을 넘겨 읽은 쪽이 다음 날로 넘어가 연속이 끊기지 않게, 밤늦게 읽은 쪽은 그 전날로 친다 |
-| **센다 = 체류시간을 통과한 쪽만**, 같은 (책, 쪽)은 처음 인정된 날 한 번 | 잔디도 15초 규칙을 그대로 따른다 |
+| **센다 = 체류시간을 통과한 쪽만**, 같은 (책, 쪽)은 처음 인정된 날 한 번 | 잔디도 쪽 읽기 시간 규칙을 그대로 따른다 |
 | **보호권(최대 2개)·무료 복구(한 달에 한 번)는 화면을 볼 때 한꺼번에 정산(lazy)** | 크론 없이 서버리스에서 돈다. `settled_through`로 한 번만, (user, day) unique로 같은 날을 두 번 메우지 않는다 |
 | **7일 연속 마일리지는 그대로 자정(KST) 경계** | 적립 규칙(points)은 바꾸지 않았다 |
 
@@ -244,7 +244,7 @@ app/templates/_welcome.html      첫 가입 뒤 홈의 3단계 안내 카드 (�
 | 결정 | 이유 |
 |---|---|
 | **`/guide`(사용법) · `/docs`(규칙) · `/developers`(만든 방법)는 로그인 없이 공개** | 처음 오는 사람과 "어떻게 만들었어?" 하는 사람에게 링크 하나로 |
-| **화면의 숫자는 코드 상수에서 읽는다** (`pace.PAGE_DWELL_MS`, `points.RULES`, `uploads.ALLOWED` …, 테스트·마이그레이션 수는 import 때 센다) | 규칙이 바뀌면 문서도 같이 바뀐다. 배포 번들에 `tests/`가 없으면 그 줄만 뺀다 |
+| **화면의 숫자는 코드 상수에서 읽는다** (`pace.MIN_PAGE_MS`·`MAX_PAGE_MS`·`CJK_CHARS_PER_MIN`, `points.RULES`, `uploads.ALLOWED` …, 테스트·마이그레이션 수는 import 때 센다) | 규칙이 바뀌면 문서도 같이 바뀐다. 배포 번들에 `tests/`가 없으면 그 줄만 뺀다 |
 | **Swagger는 `/api/docs`로** | `/docs`는 사람이 읽는 규칙 문서가 쓴다 |
 
 ### 실시간 원칙 (모든 기능 공통)

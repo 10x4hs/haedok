@@ -83,7 +83,9 @@ async def test_docs_renders_rules_from_the_code(api):
     for key, amount in points.RULES.items():
         assert points.LABELS[key] in html
         assert f'<td class="num mono">+{amount}</td>' in html
-    assert f"쪽마다 {pace.PAGE_DWELL_MS // 1000}초" in html
+    rule = f"쪽의 글자 수에 맞춰 {pace.MIN_PAGE_MS // 1000}~{pace.MAX_PAGE_MS // 1000}초"
+    assert rule in html
+    assert f"분당 {pace.CJK_CHARS_PER_MIN}자" in html and f"분당 {pace.WORDS_PER_MIN}단어" in html
     assert f"{pace.DWELL_CAP_MULTIPLIER}배" in html
     assert f"정원 {races.MAX_MEMBERS}명" in html and f"초대 코드 {races.CODE_LEN}자리" in html
     assert "마일리지" in html
@@ -180,3 +182,13 @@ def test_public_videos_have_no_sound_track(path):
     """소개 영상은 소리 없이 — 음악 저작권 문제가 생기지 않게 오디오 트랙 자체가 없다."""
     data = (STATIC / path).read_bytes()
     assert b"hdlr" in data and b"soun" not in data
+
+
+async def test_public_pages_no_longer_promise_a_flat_15_seconds(api):
+    async with api(upstream) as c:
+        pages = {p: (await c.get(p)).text for p in ("/", "/docs", "/guide", "/developers")}
+    for path, html in pages.items():
+        assert "15초" not in html, path
+    rule = f"{pace.MIN_PAGE_MS // 1000}~{pace.MAX_PAGE_MS // 1000}초"
+    for path in ("/", "/guide", "/developers"):
+        assert rule in pages[path], path

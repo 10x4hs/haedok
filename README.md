@@ -32,10 +32,10 @@
 
 <table>
 <tr>
-<td width="200" align="center"><img src="docs/images/app/5-reader.jpg" alt="리더 — 운수 좋은 날 본문과 아래쪽 15초 고리" width="180"></td>
+<td width="200" align="center"><img src="docs/images/app/5-reader.jpg" alt="리더 — 운수 좋은 날 본문과 아래쪽 읽기 시간 고리" width="180"></td>
 <td>
 <h3>📖 같이 읽기 · 읽기 인증</h3>
-고전은 앱 안 리더로 바로 읽어요(위키문헌 · 구텐베르크의 퍼블릭 도메인 작품). 한 쪽을 펼쳐 두고 <b>15초</b>가 지나면 그 쪽이 ‘다 읽음’으로 인정돼요 — 글자 수나 화면 크기와 상관없이 모든 쪽이 같아요. 시간은 화면이 아니라 서버가 재요. 산 전자책이 DRM 없는 EPUB · PDF · TXT면 올려서 같은 리더로 읽고, 올린 파일은 올린 사람만 열어요. PC에서는 종이책처럼 두 쪽을 펼쳐요.
+고전은 앱 안 리더로 바로 읽어요(위키문헌 · 구텐베르크의 퍼블릭 도메인 작품). 한 쪽을 펼쳐 두고 그 쪽을 읽을 만큼의 시간(<b>글자 수에 맞춰 3~60초</b>)이 지나면 ‘다 읽음’으로 인정돼요 — 빨리 읽는 사람의 속도로 잡아서, 진짜 읽으면 기다릴 일이 거의 없어요. 글자 크기와는 상관없어요. 시간은 화면이 아니라 서버가 재요. 산 전자책이 DRM 없는 EPUB · PDF · TXT면 올려서 같은 리더로 읽고, 올린 파일은 올린 사람만 열어요. PC에서는 종이책처럼 두 쪽을 펼쳐요.
 </td>
 </tr>
 <tr>
@@ -99,7 +99,7 @@
 <td align="center"><img src="docs/images/app/20-guide.jpg" alt="공개 사용법 페이지" width="180"></td>
 <td>
 <h3>🌐 공개 페이지 · 로그인 화면</h3>
-로그인 없이 읽는 <a href="https://haedok.vercel.app/guide">사용법</a>(8단계), <a href="https://haedok.vercel.app/docs">Docs</a>(15초 규칙 · 마일리지 표 · 업로드 한도), <a href="https://haedok.vercel.app/developers">Developer</a>(네 층 구조 · 고른 기술과 이유)가 있어요. 이 페이지의 숫자는 손으로 적지 않고 코드의 상수에서 읽어요(<code>app/public_facts.py</code>). 로그인 · 가입 화면은 책 표지 벽 배경 위에 떠 있어요.
+로그인 없이 읽는 <a href="https://haedok.vercel.app/guide">사용법</a>(8단계), <a href="https://haedok.vercel.app/docs">Docs</a>(읽기 시간 규칙 · 마일리지 표 · 업로드 한도), <a href="https://haedok.vercel.app/developers">Developer</a>(네 층 구조 · 고른 기술과 이유)가 있어요. 이 페이지의 숫자는 손으로 적지 않고 코드의 상수에서 읽어요(<code>app/public_facts.py</code>). 로그인 · 가입 화면은 책 표지 벽 배경 위에 떠 있어요.
 </td>
 </tr>
 </table>
@@ -156,7 +156,7 @@ flowchart TB
     subgraph Vercel["Vercel Python Function (api/index.py)"]
       V["1 화면<br/>Jinja2 템플릿 + 바닐라 JS<br/>app/templates · app/static"] --> R
       R["2 라우트<br/>로그인 · CSRF 확인<br/>app/web.py · app/api/ · app/chat.py · app/posts.py …"] --> S
-      S["3 서비스 — 규칙이 사는 곳<br/>15초 판정 · 스포일러 가드 · 대결 · 마일리지 · 목표 · 채팅<br/>app/services/"]
+      S["3 서비스 — 규칙이 사는 곳<br/>읽기 시간 판정 · 스포일러 가드 · 대결 · 마일리지 · 목표 · 채팅<br/>app/services/"]
     end
     S --> D
     S -->|가입 · 비밀번호 코드 메일| M["Apps Script · Brevo · Resend · SMTP"]
@@ -164,13 +164,16 @@ flowchart TB
     G["GitHub Actions(매일)"] -->|bestsellers.json 커밋| Vercel
 ```
 
-예를 들어 ‘다 읽음’ 한 번은 이렇게 지나가요: 리더가 15초를 채우면 `verified: true`만 보내요(시간은 안 보내요) → `PUT /api/v1/books/{id}/progress`가 로그인 · CSRF를 확인 → `books.record_progress()`가 쪽을 펼친 시각부터 지금까지를 재서 판정 → 인정되면 진도와 마일리지가 올라가요.
+예를 들어 ‘다 읽음’ 한 번은 이렇게 지나가요: 리더가 그 쪽의 시간을 채우면 `verified: true`만 보내요(시간은 안 보내요) → `PUT /api/v1/books/{id}/progress`가 로그인 · CSRF를 확인 → `books.record_progress()`가 쪽을 펼친 시각부터 지금까지를 재서 판정 → 인정되면 진도와 마일리지가 올라가요.
 
 ### 읽기 인증 — 시간은 서버가 재요
 
-- 쪽을 펼칠 때(`verified=false`)와 ‘다 읽음’ 요청(`verified=true`) 시각을 둘 다 서버가 `reading_events`에 적어요. 그 사이가 15초(`app/services/pace.py`의 `PAGE_DWELL_MS`)를 넘어야 인정해요.
-- 바로 다음 쪽만 인정하고, 한 쪽에 오래 켜 둔 시간은 10배(`DWELL_CAP_MULTIPLIER`)까지만 기록해요.
-- `DWELL_SCALE`은 시연용 배율이에요(0.06이면 쪽마다 0.9초). 운영은 1.0이에요.
+- 쪽을 펼칠 때(`verified=false`)와 ‘다 읽음’ 요청(`verified=true`) 시각을 둘 다 서버가 `reading_events`에 적어요. 그 사이가 그 쪽의 필요 시간(`app/services/pace.py`의 `min_dwell_ms`)을 넘어야 인정해요.
+- 필요 시간 = 한글·한자·가나 글자(공백 뺀) ÷ 분당 1000자 + 그 밖의 단어 ÷ 분당 400단어, 3~60초로 잘라요(`CJK_CHARS_PER_MIN`, `WORDS_PER_MIN`, `MIN_PAGE_MS`, `MAX_PAGE_MS`). 꽉 찬 한국어 쪽은 약 56초, 영어 쪽은 약 47초예요.
+- 근거: 성인 묵독 평균은 영어 238(논픽션)~260(픽션) 단어/분, 한국어 226 어절/분 ≈ 630음절/분(Brysbaert 2019 메타분석 × 어절당 2.7~2.9음절). 규칙 속도는 그 1.5배 — 정상 범위 위쪽(평균의 약 1.25배)보다 빠르고 훑어읽기(약 1.8배 이상)보다 느려서, 빠른 독자는 통과하고 훑어 넘기기만 걸러요. 글자 크기는 넣지 않아요(임계 글자 크기 위에서는 속도가 크기와 무관, Legge & Cheung 2004).
+- 바로 다음 쪽만 인정하고, 한 쪽에 오래 켜 둔 시간은 그 쪽 필요 시간의 10배(`DWELL_CAP_MULTIPLIER`)까지만 기록해요.
+- 규칙은 본문에서 매번 계산해서 마이그레이션이 없어요. 예전 15초 규칙으로 인정된 쪽·마일리지는 그대로예요.
+- `DWELL_SCALE`은 시연용 배율이에요(0.06이면 0.18~3.6초). 운영은 1.0이에요.
 
 ### 스포일러 가드
 
@@ -270,7 +273,7 @@ Postgres로 돌리려면 `docker compose up -d db`로 DB를 띄우고 `DATABASE_
 | `SESSION_IDLE_MINUTES` | `30` | 아무것도 안 하면 로그인이 풀리는 시간(‘로그인 상태 유지’는 30일) |
 | `COOKIE_SECURE` | `false` | HTTPS 배포에서는 `true` |
 | `ADMIN_EMAILS` | 비어 있음 | `/admin`을 열 수 있는 이메일, 쉼표로 여러 개. 비어 있으면 아무도 못 열어요. 메일이 모두 실패하면 코드를 대신 받는 주소이기도 해요 |
-| `DWELL_SCALE` | `1.0` | 15초 규칙의 배율(시연용). **운영은 1.0** |
+| `DWELL_SCALE` | `1.0` | 쪽 읽기 시간(3~60초)의 배율(시연용). **운영은 1.0** |
 | `MAX_UPLOAD_MB` | `20` | 업로드 상한. Vercel은 요청 본문을 4.5MB에서 끊으니 `4`로 둬요 |
 | `GAS_MAIL_URL` · `GAS_MAIL_SECRET` | 비어 있음 | Google Apps Script 웹 앱으로 Gmail 발송(`scripts/gas_mailer.gs`). 배포에서 1순위 |
 | `BREVO_API_KEY` · `BREVO_FROM` | 비어 있음 · 기본 발신 주소 | Brevo HTTP API. 도메인 없이 발신 주소 인증만으로 보내요(무료 300통/일) |

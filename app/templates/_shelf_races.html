@@ -17,7 +17,7 @@
 </form>
 
 <section class="rl-panel" id="newRace" aria-label="새 방 만들기" hidden>
-  <p class="muted small">책을 고르면 방과 초대 코드가 바로 생겨요. 쪽마다 15초 넘게 머문 쪽만 점수가 돼요.</p>
+  <p class="muted small">책을 고르면 방과 초대 코드가 바로 생겨요. 글자 수에 맞춘 시간만큼 머문 쪽만 점수가 돼요.</p>
   <div class="seg full" id="days" role="radiogroup" aria-label="기간">
     {% for d in durations %}<button type="button" role="radio" data-days="{{ d }}" aria-checked="{{ 'true' if d == 7 else 'false' }}" aria-pressed="{{ 'true' if d == 7 else 'false' }}">{{ d }}일</button>{% endfor %}
   </div>

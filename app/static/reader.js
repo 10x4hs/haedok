@@ -154,7 +154,7 @@ function onPage(idx) {
   paintDwell();
 }
 
-// 하단 진행: 이 쪽의 15초 고리 + 책 전체 막대(다 읽은 곳·지금 쪽) + 남은 쪽·시간
+// 하단 진행: 이 쪽의 읽기 시간 고리(서버가 준 min_dwell_ms) + 책 전체 막대(다 읽은 곳·지금 쪽) + 남은 쪽·시간
 const fmtLeft = ms => ms < 60_000 ? `약 ${Math.max(1, Math.ceil(ms / 1000))}초` : `약 ${Math.ceil(ms / 60_000)}분`;
 function paintDwell() {
   const ok = chunk <= verifiedUpTo, skip = !ok && chunk > verifiedUpTo + 1;
@@ -175,7 +175,7 @@ function paintDwell() {
   $('meMark').style.left = ((chunk + .5) / total * 100) + '%';
   $('track').setAttribute('aria-valuenow', done);
   $('track').setAttribute('aria-valuetext', `${total}쪽 중 ${done}쪽 읽음, 지금 ${chunk + 1}쪽`);
-  // 남은 시간 = 남은 쪽 × 쪽당 시간 − 지금 쪽에서 이미 머문 시간
+  // 남은 시간 ≈ 남은 쪽 × 지금 쪽의 필요 시간(쪽마다 길이가 비슷해서 어림) − 지금 쪽에서 이미 머문 시간
   const leftMs = left * per - (chunk === verifiedUpTo + 1 ? Math.min(dwellMs, per) : 0);
   const el = $('left');
   el.classList.toggle('done', !left);
