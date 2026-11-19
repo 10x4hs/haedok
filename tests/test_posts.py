@@ -256,7 +256,7 @@ async def test_visibility_self_friend_stranger(api, session_factory):
         assert f"post-{closed}" in ff and f"post-{open_}" in ff
         fa = (await f.get("/feed?tab=all")).text  # 모두 = 탐색 격자
         assert f'href="/p/{open_}"' in fa and f'href="/p/{closed}"' not in fa
-        xf = (await x.get("/feed")).text
+        xf = (await x.get("/feed?tab=friends")).text
         assert f"post-{open_}" not in xf  # 친구가 아니면 친구 탭에 없다
         assert f'href="/p/{open_}"' in (await x.get("/feed?tab=all")).text
     assert ix
@@ -424,17 +424,17 @@ async def test_feed_newest_first_with_cursor_paging(api, session_factory):
         ids = await _seed_posts(session_factory, ia, 7) + await _seed_posts(
             session_factory, i_f, 6, "friends"
         )
-        html = (await a.get("/feed")).text
+        html = (await a.get("/feed?tab=friends")).text
         shown = [int(x) for x in re.findall(r'id="post-(\d+)"', html)]
         assert shown == sorted(ids, reverse=True)[: svc.FEED_PAGE]
-        more = re.search(r'href="/feed\?before=(\d+)"', html)
+        more = re.search(r'href="/feed\?tab=friends&amp;before=(\d+)"', html)
         assert more and int(more.group(1)) == shown[-1]
         rest = [
             int(x)
-            for x in re.findall(r'id="post-(\d+)"', (await a.get(f"/feed?before={more.group(1)}")).text)
+            for x in re.findall(r'id="post-(\d+)"', (await a.get(f"/feed?tab=friends&before={more.group(1)}")).text)
         ]
         assert rest == sorted(ids, reverse=True)[svc.FEED_PAGE :]
-        assert "wide ps-more" not in (await a.get(f"/feed?before={more.group(1)}")).text  # 마지막 쪽엔 '더 보기' 없음
+        assert "wide ps-more" not in (await a.get(f"/feed?tab=friends&before={more.group(1)}")).text  # 마지막 쪽엔 '더 보기' 없음
         # 모두 탭(탐색 격자): 친구만 글은 빠진다
         all_ids = [
             int(x) for x in re.findall(r'class="ps-tile" href="/p/(\d+)"', (await a.get("/feed?tab=all")).text)

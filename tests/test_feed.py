@@ -1,4 +1,4 @@
-"""라운드 6 — 피드(/feed)가 앱의 소셜 홈: 동그라미 줄 · 작성 칸 · 친구/추천/탐색 탭 · 활동 소식 ·
+"""라운드 6 — 피드(/feed)가 앱의 소셜 홈: 동그라미 줄 · 작성 칸 · 전체/친구/탐색 탭 · 활동 소식 ·
 새 게시물 알약(/feed/new) · 이어 읽기(/feed/more) · 모두 확인했어요 · 빈 화면."""
 
 import datetime as dt
@@ -254,9 +254,9 @@ async def test_activities_do_not_repeat_across_pages(api, session_factory):
         await posts_at(session_factory, i_f, [i * 2 + 1 for i in range(psvc.FEED_PAGE + 8)])
         for i in range(8):
             await finished(session_factory, i_f, f"책장 {i}", i * 4 + 2)
-        first = (await a.get("/feed")).text
+        first = (await a.get("/feed?tab=friends")).text
         nxt = re.search(r'data-next-page="([^"]+)"', first).group(1).replace("&amp;", "&")
-        assert nxt.startswith("/feed/more?before=")
+        assert nxt.startswith("/feed/more?tab=friends&before=")
         more = (await a.get(nxt)).text
         assert "<html" not in more and 'id="post-' in more
         seen1 = re.findall(r"「(책장 \d)」", first)
@@ -280,64 +280,23 @@ async def test_new_count_and_fresh(api, session_factory):
             session_factory, i_f, [0.15], visibility="friends", tag="nf"
         )  # 친구만 — 친구니까 보인다
         await posts_at(session_factory, ia, [0.05], tag="me")  # 내 글은 세지 않는다
-        await posts_at(session_factory, ix, [0.05], tag="xx")  # 친구가 아님
-        r = await a.get(f"/feed/new?after={first}")
+        await posts_at(session_factory, ix, [0.05], tag="xx")  # 친구가 아님 — 전체 탭에서만 센다
+        await posts_at(session_factory, ix, [0.04], visibility="friends", tag="xf")  # 친구가 아닌 사람의 친구만 글
+        r = await a.get(f"/feed/new?after={first}&tab=friends")
         assert r.json() == {"count": 3} and r.headers["cache-control"] == "no-store"
-        assert (await x.get(f"/feed/new?after={first}")).json() == {
-            "count": 0
-        }  # 서연은 하린의 친구가 아니다... 민준과도 아니다
+        assert (await a.get(f"/feed/new?after={first}")).json() == {"count": 4}  # 전체(기본)
+        assert (await x.get(f"/feed/new?after={first}&tab=friends")).json() == {"count": 0}
         assert (await a.get("/feed/new?after=0")).json() == {"count": 0}
-        frag = (await a.get(f"/feed/fresh?after={first}")).text
+        frag = (await a.get(f"/feed/fresh?after={first}&tab=friends")).text
         assert "<html" not in frag and len(re.findall(r'id="post-(\d+)"', frag)) == 4  # 친구 셋 + 내 글
+        assert "새로운 사람" not in frag
+        mixed = (await a.get(f"/feed/fresh?after={first}")).text
+        ids = [int(i) for i in re.findall(r'id="post-(\d+)"', mixed)]
+        assert len(ids) == 5 and len(set(ids)) == 5  # 친구 글 먼저, 새로운 사람 글은 뒤에
+        assert mixed.index("새로운 사람") > mixed.index(f'id="post-{ids[3]}"')
         page = (await a.get("/feed")).text
         assert "data-new-pill" in page and re.search(r'data-newest="\d+"', page)
-
-
-# ---------------------------------------------------------------- 추천
-
-
-async def test_recommendations_exclude_friends_only_blocked_and_mine(api, session_factory):
-    (a, f, x), (ia, i_f, ix) = await three(api, session_factory)
-    async with done(a, f, x):
-        friend_open = await posts_at(session_factory, i_f, [3], tag="fo")
-        friend_closed = await posts_at(session_factory, i_f, [2], visibility="friends", tag="fc")
-        stranger = await posts_at(session_factory, ix, [1, 30], tag="st")
-        mine = await posts_at(session_factory, ia, [0.5], tag="mi")
-        html = (await a.get("/feed?tab=rec")).text
-        ids = [int(i) for i in re.findall(r'id="post-(\d+)"', html)]
-        assert set(ids) == set(friend_open + stranger)
-        assert not set(ids) & set(friend_closed + mine)
-        assert ids.index(stranger[1]) < ids.index(stranger[0])  # 같은 좋아요면 최근 것이 먼저
-        # 좋아요가 많으면 더 오래된 글도 앞으로 온다
-        async with session_factory() as s:
-            from app.models_posts import PostLike
-
-            for u in (ia, i_f):
-                s.add(PostLike(post_id=stranger[0], user_id=u))
-            await s.commit()
-        async with session_factory() as s:
-            ranked = await feed_svc._ranked_ids(s, ia)
-        assert (
-            ranked.index(stranger[0]) < ranked.index(friend_closed[0]) if friend_closed[0] in ranked else True
-        )
-        assert friend_closed[0] not in ranked
-        # 차단하면 추천에서도 빠진다
-        await relate(session_factory, ia, ix, status="blocked", blocker=ia)
-        ids = [int(i) for i in re.findall(r'id="post-(\d+)"', (await a.get("/feed?tab=rec")).text)]
-        assert not set(ids) & set(stranger)
-
-
-async def test_rec_paging(api, session_factory, monkeypatch):
-    monkeypatch.setattr(feed_svc, "REC_PAGE", 3)
-    (a, f, x), (ia, i_f, ix) = await three(api, session_factory)
-    async with done(a, f, x):
-        await posts_at(session_factory, ix, [1, 2, 3, 4, 5], tag="r")
-        p0 = (await a.get("/feed?tab=rec")).text
-        assert len(re.findall(r'id="post-\d+"', p0)) == 3
-        nxt = re.search(r'data-next-page="([^"]+)"', p0).group(1).replace("&amp;", "&")
-        assert nxt == "/feed/more?tab=rec&page=1"
-        p1 = (await a.get(nxt)).text
-        assert len(re.findall(r'id="post-\d+"', p1)) == 2 and "data-next-page" not in p1
+        assert 'data-tab="mix"' in page
 
 
 # ---------------------------------------------------------------- 모두 확인했어요 · 얇은 피드
@@ -374,7 +333,7 @@ async def test_thin_feed_suggests_roommates_and_popular(api, session_factory):
             s.add_all([RoomMember(room_id=room.id, user_id=ia), RoomMember(room_id=room.id, user_id=ix)])
             await s.commit()
         await posts_at(session_factory, ix, [2], tag="pop")
-        html = (await a.get("/feed")).text
+        html = (await a.get("/feed?tab=friends")).text
         assert "함께 읽은 사람" in html and f'action="/friends/{ix}/request"' in html and "토요일 방" in html
         assert "요즘 인기 있는 게시물" in html
 

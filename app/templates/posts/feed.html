@@ -1,16 +1,23 @@
 {% extends "app.html" %}
-{% from "posts/_parts.html" import grid_tile, face, plus_icon, send_sheet, comments_sheet %}
-{% from "_ui.html" import empty_state %}
+{% from "posts/_parts.html" import grid_tile, face, plus_icon, share_icon, send_sheet, comments_sheet %}
+{% from "_ui.html" import empty_state, flat_cover %}
 {% block title %}피드 — 偕讀 해독{% endblock %}
 {% block head_extra %}<link rel="stylesheet" href="/static/posts.css">{% endblock %}
 {% block content_class %}wide{% endblock %}
 {% block heading %}피드{% endblock %}
-{% block top_extra %}<a class="ps-top-plus" href="/posts/new" aria-label="새 게시물 만들기">{{ plus_icon() }}</a>{% endblock %}
+{% block top_extra %}
+{# 머리 오른쪽(인스타처럼): + 올리기 · 메시지(안 읽은 수) · 같이 읽기. 만들기는 여기(와 프로필)에만 있다 #}
+<div class="ps-top-acts">
+  <a class="ps-top-plus" href="/posts/new" aria-label="올리기 — 새 게시물">{{ plus_icon() }}<span class="ps-top-l">올리기</span></a>
+  {% if chat_on %}<a class="ps-top-plus ps-top-dm" href="/chat" aria-label="메시지{{ ', 안 읽은 메시지 ' ~ unread ~ '개' if unread else '' }}">{{ share_icon() }}<span class="ps-top-l">메시지</span>{% if unread %}<i class="ps-top-badge" data-dm-unread aria-hidden="true">{{ unread if unread < 100 else '99+' }}</i>{% endif %}</a>{% endif %}
+  {% if board_on %}<a class="ps-top-plus" href="/together" data-together aria-haspopup="dialog" aria-label="같이 읽기 — 같이 읽을 사람 찾기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="7.5" r="3"/><circle cx="16.5" cy="8.5" r="2.4"/><path d="M3 19c.6-3 2.8-5 5.5-5s4.9 2 5.5 5"/><path d="M14.6 14.2c.6-.2 1.2-.3 1.9-.3 2.2 0 4 1.6 4.5 4.6"/></svg><span class="ps-top-l">같이 읽기</span></a>{% endif %}
+</div>
+{% endblock %}
 {% block main %}
 {# 앱의 소셜 홈(Instagram · X · Facebook · Threads 를 우리 규칙으로):
-   동그라미 줄 → 작성 칸 → 탭(친구 · 추천 · 탐색, 위에 붙어 따라온다) → 게시물 · 활동 소식 → 모두 확인했어요.
-   넓은 화면은 오른쪽에 내 작은 프로필 · 함께 읽은 사람 · 인기 게시물 · 바닥글 #}
-<div class="ps ps-feed ps-home">
+   동그라미 줄 → 작성 칸 → 탭(전체 · 친구 · 탐색, 위에 붙어 따라온다) → 게시물 · 활동 소식 · 제안 모듈 → 모두 확인했어요.
+   넓은 화면은 오른쪽에 내 작은 프로필 · 같이 읽을 사람 셋 · 바닥글 #}
+<div class="ps ps-feed ps-home{{ ' has-side-rc' if side.recruits else '' }}">
   <div class="ps-home-main">
     {% if stories %}
     {% set me_story = stories[0] %}
@@ -43,8 +50,8 @@
     {% endif %}
 
     <nav class="ps-ig-tabs ps-feed-tabs" aria-label="피드 보기">
-      <a href="/feed" aria-current="{{ 'page' if tab == 'friends' else 'false' }}">친구</a>
-      <a href="/feed?tab=rec" aria-current="{{ 'page' if tab == 'rec' else 'false' }}">추천</a>
+      <a href="/feed" aria-current="{{ 'page' if tab == 'mix' else 'false' }}">전체</a>
+      <a href="/feed?tab=friends" aria-current="{{ 'page' if tab == 'friends' else 'false' }}">친구</a>
       <a href="/feed?tab=all" aria-current="{{ 'page' if tab == 'all' else 'false' }}">탐색</a>
     </nav>
     {% if msg %}<p class="form-ok" role="status">{{ msg }}</p>{% endif %}
@@ -71,7 +78,7 @@
         </div>
       </section>
     {% else %}
-      {% if tab == 'rec' %}<p class="muted small ps-lede">가입한 모두에게 공개된 게시물을 최근 · 좋아요 순으로 골랐어요. 내 활동은 추적하지 않아요.</p>{% endif %}
+      {% if tab == 'mix' %}<p class="muted small ps-lede">친구 게시물을 먼저, 사이사이에 새로운 사람들의 공개 게시물을 보여 줘요. 내 활동은 추적하지 않아요.</p>{% endif %}
       <button type="button" class="ps-pill" data-new-pill hidden><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg><span>새 게시물 <b data-new-n>0</b>개</span></button>
       {% if items %}
       <div class="ps-cards" data-stream data-tab="{{ tab }}" data-newest="{{ newest }}" aria-live="off">
@@ -79,8 +86,8 @@
       </div>
       {% elif paged %}
       <p class="muted ps-end">여기까지예요. 더 지난 게시물은 없어요.</p>
-      {% elif tab == 'rec' %}
-      {{ empty_state('book', '아직 추천할 게시물이 없어요', '가입한 모두에게 보이게 올린 게시물이 생기면 여기에 보여요.', '/posts/new', '게시물 만들기') }}
+      {% elif tab == 'mix' %}
+      {{ empty_state('book', '아직 올라온 게시물이 없어요', '읽은 책을 올리면 여기에 보여요. 먼저 올려 보세요.', '/posts/new', '첫 기록 올리기') }}
       {% else %}
       {{ empty_state('book', '아직 친구들의 게시물이 없어요', '친구가 읽은 책을 올리면 여기에 모여요. 먼저 올려 보세요.', '/posts/new', '첫 기록 올리기') }}
       {% endif %}
@@ -106,23 +113,17 @@
     {% endif %}
   </div>
 
-  <aside class="ps-home-side" aria-label="내 정보와 추천">
+  <aside class="ps-home-side" aria-label="내 정보와 같이 읽을 사람">
     <a class="ps-side-me" href="/profile">{{ face(side.me, faces, 'lg') }}<span class="ps-side-t"><b>{{ side.me.nickname }}</b><small>게시물 {{ side.posts }} · 친구 {{ side.friends }}</small></span><em>내 프로필</em></a>
-    {% if side.people %}
-    <section class="ps-side-sec" aria-labelledby="sidePeopleH">
-      <h2 id="sidePeopleH">함께 읽은 사람</h2>
+    {% if side.recruits %}
+    <section class="ps-side-sec" aria-labelledby="sideRcH">
+      <h2 id="sideRcH">같이 읽을 사람</h2>
       <ul class="ps-side-people">
-        {% for u, rooms in side.people %}
-        <li>{{ face(u, faces, 'sm') }}<span class="ps-side-t"><b>{{ u.nickname }}</b><small>{{ rooms[0] }}</small></span>
-          <form method="post" action="/friends/{{ u.id }}/request"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="ps-link-btn">친구 신청</button></form></li>
+        {% for v in side.recruits %}
+        <li><a class="ps-side-rc" href="/together/{{ v.post.id }}">{{ flat_cover(v.book.title, v.book.author, cover_of(v.book)|small_cover) }}<span class="ps-side-t"><b>{{ v.book.title }}</b><small>{{ ('하루 ' ~ v.post.pace ~ '쪽') if v.post.pace else '내 속도대로' }} · {{ v.count }}/{{ v.post.capacity }}명</small></span><em>참가</em></a></li>
         {% endfor %}
       </ul>
-    </section>
-    {% endif %}
-    {% if side.popular %}
-    <section class="ps-side-sec" aria-labelledby="sidePopH">
-      <h2 id="sidePopH">요즘 인기 게시물</h2>
-      <ul class="ps-grid ps-mini-grid">{% for t in side.popular %}{{ grid_tile(t) }}{% endfor %}</ul>
+      <a class="ps-side-all" href="/together">모집 글 모두 보기 ›</a>
     </section>
     {% endif %}
     <footer class="ps-side-foot">
@@ -132,6 +133,24 @@
   </aside>
 </div>
 {% if tab != 'all' %}{{ send_sheet(friends, csrf) }}{{ comments_sheet() }}{% endif %}
+{% if board_on %}
+<dialog class="ps-sheet" id="psTogether" aria-labelledby="psTgH">
+  <div class="ps-sheet-in">
+    <span class="ps-grab" aria-hidden="true"></span>
+    <header class="ps-sheet-h"><h2 id="psTgH">같이 읽기</h2><button type="button" class="ps-x" data-close aria-label="닫기">✕</button></header>
+    <div class="ps-sheet-body">
+      {% if together %}
+      <ul class="ps-side-people ps-tg-list">
+        {% for v in together %}
+        <li><a class="ps-side-rc" href="/together/{{ v.post.id }}">{{ flat_cover(v.book.title, v.book.author, cover_of(v.book)|small_cover) }}<span class="ps-side-t"><b>{{ v.book.title }}</b><small>{{ v.host.nickname }} · {{ ('하루 ' ~ v.post.pace ~ '쪽') if v.post.pace else '내 속도대로' }} · {{ v.count }}/{{ v.post.capacity }}명</small></span><em>참가</em></a></li>
+        {% endfor %}
+      </ul>
+      {% else %}<p class="muted small ps-send-none">지금 모집 중인 글이 없어요. 먼저 모아 보세요.</p>{% endif %}
+    </div>
+    <div class="ps-tg-foot"><a class="btn ghost" href="/together">모집 글 모두 보기</a><a class="btn primary" href="/together/new">모집 글 쓰기</a></div>
+  </div>
+</dialog>
+{% endif %}
 <script src="/static/posts.js" defer></script>
-{% if tab != 'all' %}<script src="/static/posts-feed.js" defer></script>{% endif %}
+<script src="/static/posts-feed.js" defer></script>
 {% endblock %}

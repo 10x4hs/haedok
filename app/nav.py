@@ -1,7 +1,8 @@
 """앱 아래 막대(휴대폰) · 왼쪽 레일(데스크톱)의 칸과 피드의 '새 글' 점.
 
 막대는 5칸(홈 · 탐색 · 피드 · 서재 · 메시지) — Apple HIG·Material 모두 3~5칸을 권한다.
-'나'와 '+ 만들기'는 레일에만 칸으로 있고, 휴대폰에서는 위쪽 프로필 사진 · 피드의 + 로 연다.
+'나'는 레일에만 칸으로 있고 휴대폰에서는 위쪽 프로필 사진으로 연다. 만들기는 메뉴에 두지 않는다 —
+피드 머리의 '+ 올리기'(와 프로필)에서만 연다(만들기가 두 곳이면 헷갈린다).
 조사 메모: scratchpad/v3/nav-research.md
 """
 
@@ -29,7 +30,7 @@ class NavItem:
     on: bool = False
     badge: int = 0  # 숫자 알약(메시지)
     dot: bool = False  # 작은 점(피드: 친구가 새로 올림)
-    rail_only: bool = False  # 휴대폰 막대에서는 숨긴다(나 · 만들기)
+    rail_only: bool = False  # 휴대폰 막대에서는 숨긴다(나)
 
 
 def _under(path: str, *prefixes: str) -> bool:
@@ -71,8 +72,6 @@ def nav_items(request: Request, user: User | None, path: str) -> list[NavItem]:
                 badge=chat_unread(request, user),
             )
         )
-    if posts_on:
-        items.append(NavItem("create", "/posts/new", "만들기", rail_only=True))
     items.append(NavItem("me", me_href, "나", on=mine, rail_only=True))
     return items
 

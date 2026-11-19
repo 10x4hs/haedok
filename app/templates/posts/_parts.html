@@ -79,14 +79,18 @@
 {%- endmacro %}
 
 {# ---------- 머리: 사진(고리) · 닉네임 / 그 아래 책 제목(인스타의 '위치' 자리) · 🔒 · ⋯ ---------- #}
-{% macro post_head(c, faces, me_id) -%}
+{% macro post_head(c, faces, me_id, csrf=None) -%}
 {% set p = c.post %}
 <header class="ps-head">
   <a class="ps-who-face" href="/u/{{ c.author.id }}" aria-label="{{ c.author.nickname }} 프로필" tabindex="-1">{{ face(c.author, faces, 'sm', ring=c.recent) }}</a>
   <div class="ps-who-t">
-    <a class="ps-who-n" href="/u/{{ c.author.id }}">{{ c.author.nickname }}</a>
+    <span class="ps-who-l1"><a class="ps-who-n" href="/u/{{ c.author.id }}">{{ c.author.nickname }}</a>{% if c.suggested %}<span class="ps-sug" title="아직 친구가 아닌 사람의 공개 게시물">· 새로운 사람</span>{% endif %}</span>
     <a class="ps-who-book" href="/p/{{ p.id }}" id="pt{{ p.id }}">{{ p.book_title }}{% if p.book_author %}<span> · {{ p.book_author }}</span>{% endif %}</a>
   </div>
+  {% if c.suggested and csrf and chat_enabled is defined and chat_enabled() %}
+    {% if c.rel == 'none' %}<form class="ps-follow" method="post" action="/friends/{{ c.author.id }}/request" data-follow><input type="hidden" name="csrf" value="{{ csrf }}"><button aria-label="{{ c.author.nickname }}님에게 친구 신청">친구 신청</button></form>
+    {% elif c.rel == 'outgoing' %}<span class="ps-follow-done">신청함</span>{% endif %}
+  {% endif %}
   {% if p.visibility == 'friends' %}<span class="ps-meta" title="친구만">{{ lock_icon() }}<span class="sr">친구만</span></span>{% endif %}
   <details class="ps-menu">
     <summary aria-label="게시물 메뉴"><span aria-hidden="true">⋯</span></summary>
@@ -169,7 +173,7 @@
 {% macro post_card(c, csrf, back, faces, me_id, eager=False) -%}
 {% set p = c.post %}
 <article class="ps-post" id="post-{{ p.id }}" aria-labelledby="pt{{ p.id }}">
-  {{ post_head(c, faces, me_id) }}
+  {{ post_head(c, faces, me_id, csrf) }}
   {{ post_media(c, eager) }}
   <div class="ps-body">
     {{ post_actions(c, csrf, back, '/p/' ~ p.id ~ '#comments') }}

@@ -40,12 +40,13 @@ async def test_items_in_order_and_five_on_the_phone(api):
     async with api(upstream) as c:
         await signup(c)
         html = (await c.get("/library")).text
-        assert keys(html) == ["home", "discover", "feed", "library", "chat", "create", "me"]
+        assert keys(html) == ["home", "discover", "feed", "library", "chat", "me"]
         nav = nav_of(html)
         labels = re.findall(r"<span>([^<]+)</span></a>|<span>([^<]+)</span><i", nav)
-        assert [a or b for a, b in labels] == ["홈", "탐색", "피드", "서재", "메시지", "만들기", "나"]
-        assert "--tabs:5" in nav  # 막대는 5칸(만들기 · 나는 레일에만)
-        assert 'href="/feed"' in nav and 'href="/posts/new"' in nav and 'href="/library"' in nav
+        assert [a or b for a, b in labels] == ["홈", "탐색", "피드", "서재", "메시지", "나"]
+        assert "--tabs:5" in nav  # 막대는 5칸(나는 레일에만)
+        assert 'href="/feed"' in nav and 'href="/library"' in nav
+        assert 'href="/posts/new"' not in nav and "만들기" not in nav  # 만들기는 메뉴에 없다(피드 머리의 + 올리기)
         assert 'href="/races"' not in nav  # 대결 칸은 서재로 합쳤다
         assert 'class="top-me' in html and 'href="/profile"' in html.split('class="top-me', 1)[1][:80]
 

@@ -732,8 +732,70 @@ dialog.ps-sheet[open]{display:flex;animation:ps-up .38s var(--ease) both}
   .ps-home-main{width:100%;max-width:none}
   .ps-home-side{display:grid;gap:22px;position:sticky;top:32px;padding-top:6px}
   .ps-stories{margin:0;padding:6px 2px 12px}
+  /* 오른쪽 칸에 '같이 읽을 사람'이 있으면 흐름 안의 같은 모듈 대신 다른 모듈을 보인다(같은 것을 두 번 보이지 않게) */
+  .ps-home.has-side-rc .ps-mod.k-recruit{display:none}
+  .ps-home.has-side-rc .ps-mod.ps-mod-alt{display:block}
 }
 @media (prefers-reduced-motion:reduce){
   .ps-pill{animation:none}
   .ps-top-plus,.ps-composer-t,.ps-act-item{transition:none}
 }
+
+/* ======================================================================
+ * 라운드 7 — 피드 = 소셜 허브: 머리 버튼(올리기 · 메시지 · 같이 읽기), 전체 흐름의 '추천' 표시와 친구 신청,
+ * 흐름 안의 제안 모듈(같이 읽을 사람 · 이 책 읽는 사람들 · 알 수도 있는 사람), 같이 읽기 시트.
+ * ====================================================================== */
+.ps-top-acts{display:flex;align-items:center;gap:2px;flex:none}
+.ps-top-plus{position:relative}
+.ps-top-l{display:none}
+.ps-top-dm .ic{width:24px;height:24px}
+.ps-top-badge{position:absolute;top:4px;right:2px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font:700 10px/18px var(--f-mono);font-style:normal;text-align:center;box-shadow:0 0 0 2px var(--bg)}
+@media (min-width:1100px){
+  .ps-top-acts{gap:6px}
+  .ps-top-plus{width:auto;gap:6px;padding:0 12px;font-size:14px;font-weight:600;display:flex}
+  .ps-top-l{display:inline}
+  .ps-top-badge{position:static;margin-left:2px;box-shadow:none}
+}
+/* 추천 게시물 머리: 닉네임 옆 작은 '· 추천', 오른쪽에 친구 신청 */
+.ps-who-l1{display:flex;align-items:baseline;gap:4px;min-width:0}
+.ps-sug{flex:none;font-size:12px;font-weight:500;color:var(--dim)}
+.ps-follow{margin:0;flex:none}
+.ps-follow button{min-height:44px;padding:0 6px;font-size:13px;font-weight:700;color:var(--rose-ink)}
+.ps-follow button:hover{text-decoration:underline;text-underline-offset:3px}
+.ps-follow-done{flex:none;font-size:12px;color:var(--dim)}
+/* 제안 모듈 */
+.ps-mod{min-width:0;margin:0 0 16px;padding:16px 0 14px;border-bottom:1px solid var(--line)}
+.ps-mod-alt{display:none}  /* 넓은 화면에서 오른쪽 칸이 모집 글을 보일 때만 */
+.ps-mod-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.ps-mod-h h2{margin:0;font-size:15px;font-weight:700;letter-spacing:-.02em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ps-mod-h h2 span{font-weight:500;color:var(--dim)}
+.ps-mod-h form{margin:0}
+.ps-mod-h .ps-x.sm{width:44px;height:44px}
+.ps-mod-strip{list-style:none;display:grid;grid-auto-flow:column;grid-auto-columns:132px;gap:10px;margin:0 -20px;padding:2px 20px 6px;overflow-x:auto;scrollbar-width:none;scroll-snap-type:x proximity;scroll-padding-inline:20px}
+.ps-mod-strip::-webkit-scrollbar{display:none}
+.ps-mod-strip li{scroll-snap-align:start;display:flex}
+.ps-rc{flex:1;display:grid;align-content:start;gap:4px;padding:10px;border-radius:16px;background:var(--surface);border:1px solid rgba(255,194,168,.35)}
+.ps-rc .flatbook{width:56px;margin-bottom:4px}
+.ps-rc b{font-size:13px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ps-rc .mono{font-size:11px;color:var(--dim)}
+.ps-rc-go{justify-self:start;margin-top:4px;padding:5px 12px;border-radius:999px;background:rgba(255,194,168,.14);border:1px solid rgba(255,194,168,.5);color:color-mix(in srgb,#ffc2a8 62%,var(--text));font-size:12px;font-weight:700}
+.ps-rc-new{place-content:center;justify-items:center;text-align:center;border-style:dashed;border-color:var(--line)}
+.ps-rc-new span:last-child{font-size:12px;color:var(--dim)}
+.ps-rc-plus{display:grid;place-items:center;width:40px;height:40px;border-radius:999px;background:var(--sunken);font-size:20px;color:var(--text)}
+.ps-mod-people{list-style:none;display:grid;gap:2px;margin:0;padding:0}
+.ps-mod-people li{display:flex;align-items:center;gap:12px;min-height:58px}
+.ps-mod-face{display:grid}
+.ps-mod-who{flex:1;display:grid;min-width:0}
+.ps-mod-who b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ps-mod-who small{font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ps-mod-btn{height:36px;padding:0 14px;font-size:13px}
+.ps-mod-people form{margin:0}
+@media (min-width:768px){.ps-mod-strip{margin:0;padding:2px 0 6px;scroll-padding-inline:0}}
+/* 오른쪽 칸 · 같이 읽기 시트: 모집 글 한 줄 */
+.ps-side-rc{flex:1;display:flex;align-items:center;gap:10px;min-height:56px;min-width:0}
+.ps-side-rc .flatbook{width:32px;flex:none}
+.ps-side-rc em{font-style:normal;font-size:12px;font-weight:700;color:color-mix(in srgb,#ffc2a8 62%,var(--text))}
+.ps-side-all{display:inline-flex;align-items:center;min-height:36px;font-size:13px;font-weight:600;color:var(--rose-ink)}
+.ps-tg-list{padding:10px 0}
+.ps-tg-foot{flex:none;display:flex;gap:8px;padding:10px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.ps-tg-foot .btn{flex:1;height:44px;font-size:14px}

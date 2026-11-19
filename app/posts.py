@@ -722,50 +722,67 @@ async def profile_page(
     return await _profile(request, session, user, user_id, tab, before)
 
 
-FEED_TABS = ("friends", "rec", "all")
+FEED_TABS = ("mix", "friends", "all")  # 전체(기본, 친구 + 다른 사람) · 친구 · 탐색(격자)
+HIDE_COOKIE = "feed_hide_"  # + 모듈 이름: 하루 동안 그 제안 모듈을 숨긴다(DB 표 없이)
 
 
-async def _stream(session: AsyncSession, user: User, tab: str, before: int | None, page: int) -> dict:
+def _tab(raw: str) -> str:
+    return raw if raw in FEED_TABS else "mix"  # 예전 주소 ?tab=rec 도 전체로
+
+
+def _hidden(request: Request) -> set[str]:
+    return {k for k in feed_svc.MODULES if request.cookies.get(HIDE_COOKIE + k) == "1"}
+
+
+async def _stream(
+    request: Request, session: AsyncSession, user: User, tab: str, before: int | None, cur: str | None
+) -> dict:
     """피드 한 쪽의 내용 — 처음 그릴 때와 이어 읽기 조각(/feed/more)이 같이 쓴다."""
-    out: dict = {"tab": tab, "items": [], "tiles": [], "cursor": None, "next_page": None, "count": 0}
+    out: dict = {"tab": tab, "items": [], "tiles": [], "cursor": None, "count": 0}
+    hidden = _hidden(request)
     if tab == "all":
         out["tiles"], out["cursor"] = await svc.explore(session, user.id, before)
-    elif tab == "rec":
-        cards, more = await feed_svc.recommended(session, user.id, page)
-        out["items"] = [feed_svc.Item("post", card=c) for c in cards]
-        out["next_page"] = page + 1 if more else None
-        out["count"] = len(cards)
+    elif tab == "friends":
+        page_no = 1 if before else 0
+        out["items"], out["cursor"], out["count"] = await feed_svc.friends_page(
+            session, user, before, hidden, page_no
+        )
     else:
-        out["items"], out["cursor"], out["count"] = await feed_svc.friends_page(session, user.id, before)
-    if any(i.kind == "caught" for i in out["items"]):
+        out["items"], out["cursor"], out["count"] = await feed_svc.mixed_page(session, user, cur, hidden)
+    if tab == "friends" and any(i.kind == "caught" for i in out["items"]):
         out["caught_tiles"] = await feed_svc.popular_tiles(session, user.id, 3)
     return out
 
 
 def _more_href(st: dict) -> str | None:
-    if st["tab"] == "rec":
-        return f"/feed?tab=rec&page={st['next_page']}" if st["next_page"] is not None else None
     if st["cursor"] is None:
         return None
-    return ("/feed?tab=all&" if st["tab"] == "all" else "/feed?") + f"before={st['cursor']}"
+    if st["tab"] == "mix":
+        return f"/feed?cur={st['cursor']}"
+    return f"/feed?tab={st['tab']}&before={st['cursor']}"
 
 
 @router.get("/feed", response_class=HTMLResponse)
 async def feed_page(
     request: Request,
-    tab: str = "friends",
+    tab: str = "mix",
     before: int | None = Query(None, ge=1),
-    page: int = Query(0, ge=0, le=1000),
+    cur: str | None = Query(None, max_length=40),
     session: AsyncSession = Depends(get_session),
     user: User = Depends(auth.require_user),
 ) -> HTMLResponse:
-    """피드 — 앱의 소셜 홈. 친구(최신순 + 활동 소식) · 추천(최근 + 좋아요) · 탐색(격자)."""
-    tab = tab if tab in FEED_TABS else "friends"
-    st = await _stream(session, user, tab, before, page)
-    paged = bool(before) or page > 0
-    first_friends = tab == "friends" and not paged
+    """피드 — 앱의 소셜 홈. 전체(친구 먼저 + 다른 사람의 공개 글) · 친구 · 탐색(격자).
+
+    머리: + 올리기 · 메시지(안 읽은 수) · 같이 읽기. 흐름 안에는 활동 소식과 제안 모듈."""
+    from app.chat import chat_unread
+
+    tab = _tab(tab)
+    st = await _stream(request, session, user, tab, before, cur)
+    paged = bool(before) or bool(cur)
+    first = tab != "all" and not paged
     friend_n = await svc.friend_count(session, user.id)
-    thin = first_friends and st["count"] < feed_svc.THIN
+    thin = tab == "friends" and first and st["count"] < feed_svc.THIN
+    settings = get_settings()
     return _render(
         request,
         "posts/feed.html",
@@ -775,31 +792,23 @@ async def feed_page(
         paged=paged,
         faces=await svc.face_ids(session, user.id),
         friends=await svc.share_targets(session, user.id) if tab != "all" else [],
-        stories=await feed_svc.stories(session, user) if first_friends else [],
-        chips=await feed_svc.reading_now(session, user.id) if first_friends else [],
+        stories=await feed_svc.stories(session, user) if first else [],
+        chips=await feed_svc.reading_now(session, user.id) if first else [],
         newest=max((i.card.post.id for i in st["items"] if i.kind == "post"), default=0),
         thin=thin,
-        lonely=first_friends and friend_n == 0 and st["count"] == 0,
+        lonely=first and friend_n == 0 and st["count"] == 0,
         people=await feed_svc.people(session, user.id) if thin else [],
         popular=await feed_svc.popular_tiles(session, user.id, 6) if thin else [],
         side=await feed_svc.side(session, user),
-        chat_on=get_settings().feature_chat,
+        together=await feed_svc.recruits(session, user.id, 5),
+        chat_on=settings.feature_chat,
+        board_on=settings.feature_board,
+        unread=chat_unread(request, user) if settings.feature_chat else 0,
         **_notes(request),
     )
 
 
-@router.get("/feed/more", response_class=HTMLResponse)
-async def feed_more(
-    request: Request,
-    tab: str = "friends",
-    before: int | None = Query(None, ge=1),
-    page: int = Query(0, ge=0, le=1000),
-    session: AsyncSession = Depends(get_session),
-    user: User = Depends(auth.require_user),
-) -> HTMLResponse:
-    """이어 읽기 조각(바닥에 가까워지면 자동으로) — 다음 쪽 칸들과 그다음 '더 보기' 링크."""
-    tab = tab if tab in ("friends", "rec") else "friends"
-    st = await _stream(session, user, tab, before, page)
+def _fragment(request: Request, user: User, faces: set[int], **ctx) -> HTMLResponse:
     return templates.TemplateResponse(
         request,
         "posts/_stream.html",
@@ -807,22 +816,39 @@ async def feed_more(
             "request": request,
             "user": user,
             "csrf": auth.csrf_token(request),
-            **st,
-            "more_href": _more_href(st),
-            "paged": True,
-            "faces": await svc.face_ids(session, user.id),
+            "faces": faces,
+            "chat_on": get_settings().feature_chat,
+            "board_on": get_settings().feature_board,
+            **ctx,
         },
     )
+
+
+@router.get("/feed/more", response_class=HTMLResponse)
+async def feed_more(
+    request: Request,
+    tab: str = "mix",
+    before: int | None = Query(None, ge=1),
+    cur: str | None = Query(None, max_length=40),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(auth.require_user),
+) -> HTMLResponse:
+    """이어 읽기 조각(바닥에 가까워지면 자동으로) — 다음 쪽 칸들과 그다음 '더 보기' 링크."""
+    tab = "friends" if tab == "friends" else "mix"
+    st = await _stream(request, session, user, tab, before, cur)
+    faces = await svc.face_ids(session, user.id)
+    return _fragment(request, user, faces, **st, more_href=_more_href(st), paged=True)
 
 
 @router.get("/feed/new")
 async def feed_new(
     after: int = Query(0, ge=0),
+    tab: str = "mix",
     session: AsyncSession = Depends(get_session),
     user: User = Depends(auth.require_user),
 ) -> JSONResponse:
-    """새 게시물 알약 — 친구 탭에서 after 뒤로 올라온 친구 게시물 수만(가볍게, 60초마다)."""
-    n = await feed_svc.new_count(session, user.id, after) if after else 0
+    """새 게시물 알약 — after 뒤로 올라온 게시물 수만(가볍게, 60초마다). 전체 탭은 다른 사람의 공개 글까지."""
+    n = await feed_svc.new_count(session, user.id, after, mixed=tab != "friends") if after else 0
     return JSONResponse({"count": n}, headers={"Cache-Control": "no-store"})
 
 
@@ -830,26 +856,41 @@ async def feed_new(
 async def feed_fresh(
     request: Request,
     after: int = Query(0, ge=1),
+    tab: str = "mix",
     session: AsyncSession = Depends(get_session),
     user: User = Depends(auth.require_user),
 ) -> HTMLResponse:
-    """알약을 누르면 맨 위에 끼워 넣을 새 게시물들(조각)."""
-    cards = await feed_svc.fresh(session, user.id, after)
-    return templates.TemplateResponse(
-        request,
-        "posts/_stream.html",
-        {
-            "request": request,
-            "user": user,
-            "csrf": auth.csrf_token(request),
-            "tab": "friends",
-            "items": [feed_svc.Item("post", card=c) for c in cards],
-            "more_href": None,
-            "paged": True,
-            "faces": await svc.face_ids(session, user.id),
-            "fresh": True,
-        },
+    """알약을 누르면 맨 위에 끼워 넣을 새 게시물들(조각) — 친구 글 먼저."""
+    tab = "friends" if tab == "friends" else "mix"
+    cards = await feed_svc.fresh(session, user.id, after, mixed=tab == "mix")
+    faces = await svc.face_ids(session, user.id)
+    items = [feed_svc.Item("post", card=c) for c in cards]
+    return _fragment(request, user, faces, tab=tab, items=items, more_href=None, paged=True, fresh=True)
+
+
+@router.post("/feed/hide/{key}", response_model=None)
+async def feed_hide(
+    request: Request,
+    key: str,
+    csrf: str = Form(""),
+    user: User = Depends(auth.require_user),
+) -> RedirectResponse | JSONResponse:
+    """제안 모듈의 × — 하루 동안 그 모듈을 숨긴다(쿠키 하나, 서버에 남기지 않는다)."""
+    auth.check_csrf(request, csrf)
+    if key not in feed_svc.MODULES:
+        raise HTTPException(404)
+    resp: RedirectResponse | JSONResponse = (
+        JSONResponse({"hidden": key}) if _wants_json(request) else RedirectResponse("/feed", status_code=303)
     )
+    resp.set_cookie(
+        HIDE_COOKIE + key,
+        "1",
+        max_age=86_400,
+        httponly=True,
+        samesite="lax",
+        secure=request.url.scheme == "https",
+    )
+    return resp
 
 
 # ---------------------------------------------------------------- 관리자

@@ -1,7 +1,39 @@
 {# 피드의 줄줄이 칸 — 게시물 · 활동 소식 · '모두 확인했어요' 줄 · 다음 쪽 링크.
    /feed 처음 그릴 때와 이어 읽기 조각(/feed/more) · 새 게시물 조각(/feed/fresh)이 같이 쓴다. #}
 {% from "posts/_parts.html" import post_card, face, grid_tile %}
-{% set back = '/feed' ~ ('?tab=rec' if tab == 'rec' else '') %}
+{% from "_ui.html" import flat_cover %}
+{% macro module(m, csrf, faces, chat_on, alt=False) -%}
+  <section class="ps-mod k-{{ m.key }}{{ ' ps-mod-alt' if alt else '' }}" aria-labelledby="mod-{{ m.key }}" data-mod="{{ m.key }}">
+    <header class="ps-mod-h">
+      <h2 id="mod-{{ m.key }}">{{ m.title }}{% if m.book %} <span>「{{ m.book }}」</span>{% endif %}</h2>
+      <form method="post" action="/feed/hide/{{ m.key }}" data-hide><input type="hidden" name="csrf" value="{{ csrf }}"><button class="ps-x sm" aria-label="{{ m.title }} 하루 동안 숨기기" title="하루 동안 숨기기">✕</button></form>
+    </header>
+    {% if m.key == 'recruit' %}
+    <ul class="ps-mod-strip" role="list">
+      {% for v in m.recruits %}
+      <li><a class="ps-rc" href="/together/{{ v.post.id }}">
+        {{ flat_cover(v.book.title, v.book.author, cover_of(v.book)|small_cover) }}
+        <b>{{ v.book.title }}</b>
+        <span class="mono">{{ ('하루 ' ~ v.post.pace ~ '쪽') if v.post.pace else '내 속도대로' }} · {{ v.count }}/{{ v.post.capacity }}명</span>
+        <span class="ps-rc-go">참가</span></a></li>
+      {% endfor %}
+      <li><a class="ps-rc ps-rc-new" href="/together/new"><span class="ps-rc-plus" aria-hidden="true">＋</span><b>모집 글 쓰기</b><span>같이 읽을 사람을 모아요</span></a></li>
+    </ul>
+    {% else %}
+    <ul class="ps-mod-people" role="list">
+      {% for u, rel, why in m.people %}
+      <li><a class="ps-mod-face" href="/u/{{ u.id }}" tabindex="-1" aria-hidden="true">{{ face(u, faces, 'md') }}</a>
+        <a class="ps-mod-who" href="/u/{{ u.id }}"><b>{{ u.nickname }}</b><small>{{ why }}</small></a>
+        {% if rel == 'friends' %}{% if chat_on %}<a class="btn ghost ps-mod-btn" href="/chat/dm/{{ u.id }}">메시지</a>{% endif %}
+        {% elif rel == 'none' and chat_on %}<form method="post" action="/friends/{{ u.id }}/request" data-follow><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn primary ps-mod-btn">친구 신청</button></form>
+        {% elif rel == 'outgoing' %}<span class="ps-follow-done">신청함</span>
+        {% elif rel == 'incoming' and chat_on %}<a class="btn ghost ps-mod-btn" href="/friends">받은 신청</a>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+{%- endmacro %}
+{% set back = '/feed' ~ ('?tab=friends' if tab == 'friends' else '') %}
 {% for it in items %}
   {% if it.kind == 'post' %}
   {{ post_card(it.card, csrf, back, faces, user.id, eager=loop.first and not paged) }}
@@ -24,6 +56,8 @@
     </span>
     {% if a.action %}<span class="ps-act-cta">{{ a.action }}</span>{% endif %}
   </a>
+  {% elif it.kind == 'module' %}
+  {{ module(it.module, csrf, faces, chat_on) }}{% if it.alt %}{{ module(it.alt, csrf, faces, chat_on, True) }}{% endif %}
   {% elif it.kind == 'caught' %}
   <section class="ps-caught" aria-labelledby="caughtH">
     <span class="ps-caught-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12.3 2.8 2.8L16.5 9.5"/></svg></span>
@@ -31,9 +65,9 @@
     <p>최근 3일 게시물을 다 봤어요</p>
     {% if caught_tiles %}
     <div class="ps-caught-sug">
-      <h3>추천 게시물</h3>
+      <h3>새로운 사람들의 게시물</h3>
       <ul class="ps-grid ps-mini-grid">{% for t in caught_tiles %}{{ grid_tile(t) }}{% endfor %}</ul>
-      <a href="/feed?tab=rec">추천 더 보기 ›</a>
+      <a href="/feed">전체에서 더 보기 ›</a>
     </div>
     {% endif %}
   </section>
