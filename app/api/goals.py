@@ -1,12 +1,12 @@
 """하루 목표 · 잔디 JSON API (feature "goals", 설정 FEATURE_GOALS).
 
 GET  /api/v1/me/goal?weeks=17  — 오늘 쪽수, 목표, 이번 주, 연속·보호권, 잔디
-PUT  /api/v1/me/goal {"pages": 3|5|10|20}  — 목표 바꾸기(CSRF 헤더)
+PUT  /api/v1/me/goal {"pages": 1~100}  — 목표 바꾸기(CSRF 헤더)
 기능이 꺼져 있으면 두 경로 모두 404 이고, 화면(/me, 홈)의 목표 칸도 그리지 않는다.
 """
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, StrictInt
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import check_csrf, require_api_user
@@ -37,7 +37,7 @@ PUT_LIMIT, PUT_WINDOW_S = 30, 600  # 목표 바꾸기는 10분에 30번이면 �
 
 
 class GoalIn(BaseModel):
-    pages: int
+    pages: StrictInt  # 7.0 · "7" 같은 값은 받지 않는다
 
 
 @router.get("/goal")
@@ -62,7 +62,7 @@ async def put_goal(
     try:
         goals.validate_goal(body.pages)
     except ValueError as e:
-        raise HTTPException(422, "목표는 3·5·10·20쪽 중에서 골라 주세요") from e
+        raise HTTPException(422, f"목표는 {goals.GOAL_MIN}~{goals.GOAL_MAX}쪽 사이로 정해 주세요") from e
     try:
         await ratelimit.check(
             session,

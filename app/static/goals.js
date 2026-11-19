@@ -86,22 +86,47 @@
     if (cells.length) cells[at].tabIndex = 0;
   }
 
-  function renderTiers(d) {
-    // 버튼은 한 번만 만들고 이후엔 aria-pressed 만 바꾼다 — motion.js 가 .seg 에 넣은 미끄럼 배경(.pill)을 지키려고
-    const box = $('[data-goal-tiers]');
-    d.goal.tiers.forEach((t) => {
-      let b = box.querySelector(`button[data-pages="${t.pages}"]`);
-      if (!b) {
-        b = el('button');
+  // --- 하루에 읽을 쪽: − [n] + 스테퍼, 빠른 선택 칩, 멈추면 저절로 저장 ---
+  let sec = 60, saved = null, want = null, timer = null, savedTimer = null;
+  const clamp = (n) => Math.max(1, Math.min(100, n));
+  const minutesFor = (p) => Math.max(1, Math.round((p * sec) / 60));
+
+  function paintSet(v) {
+    const input = $('[data-goal-input]');
+    if (document.activeElement !== input) input.value = String(v);
+    $('[data-goal-edit-value]').textContent = `${v}쪽`;
+    $('[data-goal-est]').textContent = `약 ${minutesFor(v)}분`;
+    section.querySelectorAll('[data-goal-step]').forEach((b) => {
+      b.disabled = b.dataset.goalStep === '-1' ? v <= 1 : v >= 100;
+    });
+    section.querySelectorAll('[data-goal-presets] button').forEach((b) => {
+      b.setAttribute('aria-pressed', String(Number(b.dataset.pages) === v));
+    });
+  }
+
+  function renderSet(d) {
+    sec = d.goal.seconds_per_page || sec;
+    saved = d.goal.pages;
+    const box = $('[data-goal-presets]');
+    if (!box.children.length) {
+      d.goal.presets.forEach((t) => {
+        const b = el('button', 'mono', String(t.pages));
         b.type = 'button';
         b.dataset.pages = t.pages;
-        b.append(`${t.pages}쪽`, el('span', '', t.name));
-        b.addEventListener('click', () => save(t.pages));
+        b.setAttribute('aria-label', `${t.pages}쪽`);
+        b.addEventListener('click', () => choose(t.pages));
         box.appendChild(b);
-      }
-      b.setAttribute('aria-label', `${t.name} ${t.pages}쪽, 약 ${t.minutes}분`);
-      b.setAttribute('aria-pressed', String(t.pages === d.goal.pages));
-    });
+      });
+    }
+    if (want === null || want === saved) paintSet(saved);
+  }
+
+  function choose(v) {
+    want = clamp(v);
+    paintSet(want);
+    $('[data-goal-saved]').textContent = '';
+    clearTimeout(timer);
+    timer = setTimeout(() => { if (want !== saved) save(want); else want = null; }, 700);
   }
 
   function render(d) {
@@ -118,11 +143,11 @@
     $('[data-goal-week]').textContent = `이번 주 ${d.week.read_days}/${d.week.total}일`;
     $('[data-goal-freezes]').textContent = `보호권 ${d.streak.freezes}/${d.streak.freeze_cap}`;
     renderGrass(d);
-    renderTiers(d);
+    renderSet(d);
   }
 
   async function save(pages) {
-    const tip = $('[data-goal-tip]');
+    const note = $('[data-goal-saved]');
     try {
       const r = await fetch(`/api/v1/me/goal?weeks=${weeksFor()}`, {
         method: 'PUT', credentials: 'same-origin',
@@ -130,20 +155,70 @@
         body: JSON.stringify({ pages }),
       });
       if (!r.ok) throw new Error(String(r.status));
-      render(await r.json());
-      tip.textContent = `하루 목표를 ${pages}쪽으로 바꿨어요`;
+      const d = await r.json();
+      if (want === pages) want = null;
+      render(d);
+      note.textContent = '저장됨';
+      clearTimeout(savedTimer);
+      savedTimer = setTimeout(() => { note.textContent = ''; }, 1800);
     } catch {
-      tip.textContent = '목표를 바꾸지 못했어요. 잠시 뒤에 다시 해 주세요';
+      note.textContent = '저장하지 못했어요';
     }
   }
 
   if (section) {
-    const edit = $('[data-goal-edit]'), tiers = $('#goal-tiers');
+    const edit = $('[data-goal-edit]'), panel = $('#goal-set');
     edit.addEventListener('click', () => {
       const open = edit.getAttribute('aria-expanded') !== 'true';
       edit.setAttribute('aria-expanded', String(open));
-      tiers.hidden = !open;
+      panel.hidden = !open;
     });
+    const help = $('[data-goal-help]'), helpBox = $('#goal-help');
+    help.addEventListener('click', () => {
+      const open = help.getAttribute('aria-expanded') !== 'true';
+      help.setAttribute('aria-expanded', String(open));
+      helpBox.hidden = !open;
+    });
+
+    // − / + : 한 번 누르면 한 쪽, 꾹 누르고 있으면 점점 빠르게 계속
+    const current = () => (want ?? saved ?? 5);
+    section.querySelectorAll('[data-goal-step]').forEach((b) => {
+      const dir = Number(b.dataset.goalStep);
+      let hold = null;
+      const stop = () => { clearTimeout(hold); hold = null; };
+      const repeat = (delay) => {
+        hold = setTimeout(() => {
+          const next = clamp(current() + dir);
+          if (next === current()) return stop();
+          choose(next);
+          repeat(Math.max(45, delay * 0.75));
+        }, delay);
+      };
+      b.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        b.setPointerCapture?.(e.pointerId);
+        choose(current() + dir);
+        repeat(380);
+      });
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((t) => b.addEventListener(t, stop));
+      b.addEventListener('contextmenu', (e) => e.preventDefault());
+      b.addEventListener('click', (e) => { if (e.detail === 0) choose(current() + dir); });  // 키보드(Enter·Space)
+    });
+
+    // 숫자 칸: 눌러서 바로 입력. 1~100 정수가 되면 저장을 예약하고, 벗어나면 칸을 떠날 때 맞춘다
+    const input = $('[data-goal-input]');
+    input.addEventListener('input', () => {
+      const n = Number(input.value);
+      if (Number.isInteger(n) && n >= 1 && n <= 100) choose(n);
+    });
+    input.addEventListener('change', () => {
+      const n = Math.round(Number(input.value));
+      if (!input.value.trim() || !Number.isFinite(n)) { paintSet(current()); input.value = String(current()); return; }
+      choose(n);
+      input.value = String(clamp(n));
+    });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') input.blur(); });
+    input.addEventListener('focus', () => input.select());
   }
 
   load(section ? weeksFor() : 1).then(render).catch(() => {

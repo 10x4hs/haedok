@@ -4,7 +4,8 @@
 - 읽기 날짜는 한국 시간 **새벽 4시**에 바뀐다. 밤늦게 읽은 쪽은 그 전날로 친다.
 - 한 쪽은 체류시간 검증을 통과한(ReadingEvent.verified) 때에만 센다. 같은 (책, 쪽)은 한 번만,
   처음 검증된 날에 센다.
-- 하루 목표는 검증된 쪽 3 / 5 / 10 / 20 중 하나(기본 5). "약 n분"은 내 쪽당 중앙값 시간
+- 하루 목표는 검증된 쪽 1~100 사이 아무 정수(기본 5). 3 / 5 / 10 / 20은 화면의 빠른 선택일 뿐이다.
+  "약 n분"은 내 쪽당 중앙값 시간
   (15~120초로 자름, 기록이 없으면 60초) × 쪽수로 낸 추정치다.
 - 잔디는 하루 1쪽 이상이면 생긴다. 진하기 5단계는 아래 level() 참고.
 - 연속 = 오늘(아직 안 읽었으면 어제)에서 거슬러 올라가며 이어진 읽은 날 수. 보호권으로 메운 날과
@@ -32,8 +33,8 @@ KST = dt.timezone(dt.timedelta(hours=9), "KST")
 DAY_SHIFT = dt.timedelta(hours=4)  # 새벽 4시에 날짜가 바뀐다
 ONE = dt.timedelta(days=1)
 
-TIERS = (3, 5, 10, 20)
-TIER_NAMES = {3: "가볍게", 5: "보통", 10: "열심", 20: "진심"}
+GOAL_MIN, GOAL_MAX = 1, 100
+PRESETS = (3, 5, 10, 20)  # 화면의 빠른 선택 — 목표는 GOAL_MIN~GOAL_MAX 아무 정수
 DEFAULT_GOAL = 5
 FREEZE_CAP = 2
 FREEZE, REPAIR = "freeze", "repair"
@@ -95,9 +96,10 @@ def estimate_minutes(pages: int, sec_per_page: int) -> int:
     return max(1, round(pages * sec_per_page / 60))
 
 
-def validate_goal(pages: int) -> int:
-    if pages not in TIERS:
-        raise ValueError(f"goal must be one of {TIERS}")
+def validate_goal(pages: object) -> int:
+    """1~100 사이 정수만. 7.0·"7"·True 처럼 정수처럼 보이는 값도 받지 않는다."""
+    if type(pages) is not int or not GOAL_MIN <= pages <= GOAL_MAX:
+        raise ValueError(f"goal must be a whole number from {GOAL_MIN} to {GOAL_MAX}")
     return pages
 
 
@@ -369,9 +371,9 @@ async def status(session: AsyncSession, user_id: int, weeks: int = WEEKS_PHONE) 
         "today": {"date": today.isoformat(), "pages": done, "level": level(done, target)},
         "goal": {
             "pages": target,
-            "tiers": [
-                {"pages": t, "name": TIER_NAMES[t], "minutes": estimate_minutes(t, sec)} for t in TIERS
-            ],
+            "min": GOAL_MIN,
+            "max": GOAL_MAX,
+            "presets": [{"pages": t, "minutes": estimate_minutes(t, sec)} for t in PRESETS],
             "minutes": estimate_minutes(target, sec),
             "seconds_per_page": sec,
             "estimated": True,

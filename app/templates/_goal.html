@@ -28,11 +28,21 @@
     </div>
   </div>
 
-  <button type="button" class="goal-edit" aria-expanded="false" aria-controls="goal-tiers" data-goal-edit>목표 바꾸기 <em aria-hidden="true">›</em></button>
-  <div class="goal-tiers" id="goal-tiers" hidden>
-    <div class="seg full" role="group" aria-label="하루 목표 쪽수" data-goal-tiers></div>
-    <p class="goal-note">분은 내 쪽당 읽기 시간으로 어림한 값이에요. 15초 넘게 머문 쪽만 세고, 새벽 4시에 하루가 바뀌어요.</p>
-    <p class="goal-note">보호권은 최대 2개까지 모여요. 읽지 못한 날이 지나면 하나가 알아서 쓰여 연속이 이어져요.</p>
+  <button type="button" class="goal-edit" aria-expanded="false" aria-controls="goal-set" data-goal-edit>하루에 읽을 쪽 <span class="goal-edit-v"><b class="mono" data-goal-edit-value></b><em aria-hidden="true">›</em></span></button>
+  <div class="goal-set" id="goal-set" hidden>
+    <div class="goal-stepper" role="group" aria-label="하루에 읽을 쪽">
+      <button type="button" class="goal-step" data-goal-step="-1" aria-label="한 쪽 줄이기">−</button>
+      <label class="goal-num"><span class="goal-sr">하루에 읽을 쪽수</span><input class="mono" type="number" inputmode="numeric" min="1" max="100" step="1" enterkeyhint="done" data-goal-input></label>
+      <span class="goal-unit" aria-hidden="true">쪽</span>
+      <button type="button" class="goal-step" data-goal-step="1" aria-label="한 쪽 늘리기">+</button>
+      <button type="button" class="goal-help" aria-expanded="false" aria-controls="goal-help" aria-label="목표 규칙 보기" data-goal-help>?</button>
+    </div>
+    <div class="goal-presets" role="group" aria-label="빠른 선택" data-goal-presets></div>
+    <p class="goal-est"><span data-goal-est></span><span class="goal-saved" role="status" data-goal-saved></span></p>
+    <div class="goal-help-box" id="goal-help" hidden>
+      <p>서버가 인정한 쪽만 세요. 하루는 새벽 4시에 바뀌어요.</p>
+      <p>보호권(최대 2개)이 쉬는 날을 메워 줘요. <a href="/docs#h-pace">자세히</a></p>
+    </div>
   </div>
 </section>
 <script src="/static/goals.js" defer></script>

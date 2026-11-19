@@ -10,7 +10,7 @@ from pathlib import Path
 
 from app import auth
 from app.core.config import get_settings
-from app.services import pace, points, races, social, uploads
+from app.services import goals, pace, points, races, social, uploads
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -67,6 +67,8 @@ def _facts() -> dict:
         "page_s": f"{page_s:g}",
         "base_page_s": pace.PAGE_DWELL_MS // 1000,
         "cap_x": pace.DWELL_CAP_MULTIPLIER,
+        "goal_range": f"{goals.GOAL_MIN}~{goals.GOAL_MAX}쪽",
+        "freeze_cap": goals.FREEZE_CAP,
         "cap_s": f"{page_s * pace.DWELL_CAP_MULTIPLIER:g}",
         "points": [
             {"key": k, "label": points.LABELS[k], "amount": v, "when": POINT_WHEN.get(k, "")}
