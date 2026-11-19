@@ -1,15 +1,19 @@
 """공개 페이지: 첫 화면(로그아웃) · /guide 사용법 · /docs 규칙 · /developers. /intro는 /guide로 옮겼다."""
 
 import re
+from pathlib import Path
 
 import pytest
 
-from app.public_facts import CLIP_V
-from app.services import pace, points, races
+from app.core.config import get_settings
+from app.public_facts import CLIP_V, FACTS, mp4_seconds
+from app.services import goals, pace, points, races
 from tests.conftest import signup
 from tests.test_api import upstream
 
 PUBLIC = ("/guide", "/docs", "/developers")
+CLIPS = ("search", "verify", "unseal", "ask", "community", "goal")  # 첫 화면 기능 순서 그대로
+STATIC = Path(__file__).resolve().parent.parent / "app" / "static"
 
 
 @pytest.mark.parametrize("path", PUBLIC)
@@ -43,14 +47,14 @@ async def test_landing_drops_the_demo_pill_and_keeps_every_cta(api):
 async def test_landing_clips_play_inline_with_posters_and_captions(api):
     async with api(upstream) as c:
         html = (await c.get("/")).text
-        for name in ("search", "verify", "unseal", "together"):
+        for name in CLIPS:
             assert f'poster="/static/clips/{name}.jpg?v={CLIP_V[name + ".jpg"]}"' in html
             assert f'src="/static/clips/{name}.mp4?v={CLIP_V[name + ".mp4"]}"' in html
             assert f'aria-describedby="clip-{name}-d"' in html
             assert (await c.get(f"/static/clips/{name}.mp4")).status_code == 200
     # 소리 없이, 보일 때만 — 저절로 재생(autoplay) 속성은 쓰지 않는다
-    videos = re.findall(r"<video data-clip[^>]*>", html)  # 41초 소개 영상(소리 있음, 직접 재생)은 따로 검사한다
-    assert len(videos) == 4
+    videos = re.findall(r"<video data-clip[^>]*>", html)  # 소개 영상(직접 재생)은 따로 검사한다
+    assert len(videos) == len(CLIPS)
     assert all(
         "muted" in v and "playsinline" in v and 'preload="none"' in v and "autoplay" not in v for v in videos
     )
@@ -88,10 +92,12 @@ async def test_docs_renders_rules_from_the_code(api):
 async def test_guide_uses_the_real_screens(api):
     async with api(upstream) as c:
         html = (await c.get("/guide")).text
-    for shot in ("1-login", "2-home", "3-explore", "4-store", "5-reader", "6-react", "7-race", "8-look"):
+    for shot in ("1-login", "2-home", "3-explore", "5-reader"):
         assert f"/static/intro/{shot}.jpg" in html
-    for step in range(1, 9):
+    for step in range(1, 8):
         assert f'id="s{step}"' in html
+    for name in ("search", "verify", "ask", "community", "goal"):
+        assert f"/static/clips/{name}.mp4?v=" in html
 
 
 async def test_developers_links_the_repo_and_counts_from_disk(api):
@@ -133,3 +139,44 @@ async def test_landing_plays_the_41s_demo_inline(api):
         html = (await c.get("/")).text
         assert 'id="demo"' in html and "/static/demo/haedok-demo.mp4?v=" in html and "<video controls" in html
         assert (await c.get("/static/demo/haedok-demo.mp4")).status_code == 200
+
+
+async def test_landing_puts_the_features_in_todays_order(api):
+    async with api(upstream) as c:
+        html = (await c.get("/")).text
+    ids = ['id="find"', 'id="verify"', 'id="unseal"', 'id="ask"', 'id="community"', 'id="goal"']
+    at = [html.index(i) for i in ids]
+    assert at == sorted(at)
+    assert f"하루 {get_settings().ai_daily_requests}번까지" in html  # AI 하루 한도는 설정에서
+    assert f"{goals.GOAL_MIN}쪽부터 {goals.GOAL_MAX}쪽까지" in html
+    for q in ("AI가 결말을 말해 버리지 않나요?", "내 글이 AI 학습에 쓰이나요?"):
+        assert q in html
+
+
+async def test_docs_states_the_ai_and_community_rules_from_the_code(api):
+    async with api(upstream) as c:
+        html = (await c.get("/docs")).text
+    assert f"하루 {get_settings().ai_daily_requests}번" in html
+    assert f"사진 {FACTS['post_photos']}장까지" in html
+    assert f"{goals.GOAL_MIN}~{goals.GOAL_MAX}쪽" in html
+    assert 'id="ai"' in html and 'id="community"' in html
+
+
+async def test_developers_explains_the_ai_layer(api):
+    async with api(upstream) as c:
+        html = (await c.get("/developers")).text
+    assert "pgvector" in html and "AI_PROVIDER=fake" in html
+    assert f"테스트 함수 {FACTS['tests']}개" in html
+
+
+def test_demo_length_on_the_page_comes_from_the_file():
+    seconds = mp4_seconds(STATIC / "demo" / "haedok-demo.mp4")
+    assert seconds is not None and 30 <= seconds <= 50
+    assert FACTS["demo_s"] == seconds
+
+
+@pytest.mark.parametrize("path", [*(f"clips/{n}.mp4" for n in CLIPS), "demo/haedok-demo.mp4"])
+def test_public_videos_have_no_sound_track(path):
+    """소개 영상은 소리 없이 — 음악 저작권 문제가 생기지 않게 오디오 트랙 자체가 없다."""
+    data = (STATIC / path).read_bytes()
+    assert b"hdlr" in data and b"soun" not in data

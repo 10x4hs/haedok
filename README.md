@@ -18,9 +18,9 @@
 
 <br>
 
-<a href="app/static/demo/haedok-demo.mp4"><img src="app/static/demo/haedok-demo-poster.jpg" alt="해독 41초 소개 영상 — 눌러서 보기" width="280"></a>
+<a href="app/static/demo/haedok-demo.mp4"><img src="app/static/demo/haedok-demo-poster.jpg" alt="해독 40초 소개 영상 — 눌러서 보기" width="280"></a>
 
-<sub>▶ 41초 영상 — 가입부터 읽기, 반응, 대결까지 한 번에 봐요 (<a href="app/static/demo/haedok-demo.mp4">haedok-demo.mp4</a>)</sub>
+<sub>▶ 40초 영상 — 책 읽기, AI에게 묻기, 감상, 사진 기록, 메시지, 하루 목표까지 한 번에 봐요(소리 없음) (<a href="app/static/demo/haedok-demo.mp4">haedok-demo.mp4</a>)</sub>
 
 </div>
 

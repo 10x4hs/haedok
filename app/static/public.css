@@ -57,22 +57,35 @@
 }
 
 /* ---------- 섹션 공통 리듬: 한 섹션에 한 가지 ---------- */
-.feat,.also,.cmp,.faq,.close{padding-block:clamp(64px,9vw,120px);border-top:1px solid var(--line)}
+.feat,.feat-ai,.cmp,.faq,.close{padding-block:clamp(64px,9vw,120px);border-top:1px solid var(--line)}
 .pub-landing .feat:first-of-type{border-top:0}
-:is(.feat,.also,.cmp,.faq,.close) h2,.dev h2{margin:0;font:700 clamp(28px,3.6vw,44px)/1.2 var(--f-ui);letter-spacing:-.035em;color:var(--text);text-wrap:balance}
+:is(.feat,.feat-ai,.cmp,.faq,.close) h2,.dev h2{margin:0;font:700 clamp(28px,3.6vw,44px)/1.2 var(--f-ui);letter-spacing:-.035em;color:var(--text);text-wrap:balance}
 
 /* 기능 하나: 짧은 문장 제목 + 한두 문장 + 큰 화면 */
 .feat{display:grid;gap:32px}
 .feat-text>p{margin:16px 0 0;max-width:32em;font-size:17px;line-height:1.7;color:var(--body);text-wrap:pretty}
-.feat-notes{list-style:none;margin:28px 0 0;padding:0;border-top:1px solid var(--line);max-width:32em}
-.feat-notes li{padding:14px 0;border-bottom:1px solid var(--line);font-size:15px;line-height:1.6;color:var(--dim)}
-.feat-notes b{display:block;margin-bottom:2px;font-size:16px;font-weight:600;color:var(--text)}
 @media (min-width:900px){
   /* 글 5 : 화면 7. 화면이 왼쪽인 섹션은 칸을 거울처럼 뒤집어, 어느 쪽이든 화면·글 폭이 같다 */
   .feat{grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(40px,6vw,88px);align-items:center}
   .feat:nth-of-type(even){grid-template-columns:minmax(0,7fr) minmax(0,5fr)}
   .feat:nth-of-type(even) .feat-text{order:2}
 }
+
+/* AI 물어보기: 가장 해독다운 기능이라 좌우 번갈이 대신 가운데에 크게. 색은 강조색 하나만 */
+.feat-ai{display:grid;gap:clamp(28px,4vw,44px);justify-items:center;text-align:center}
+.feat-ai-text{max-width:40em}
+.ai-eyebrow{margin:0 0 14px;font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--accent)}
+.feat-ai h2{font-size:clamp(32px,4.8vw,58px)}
+.feat-ai-text>p:last-child{margin:18px auto 0;max-width:30em;font-size:18px;line-height:1.7;color:var(--body);text-wrap:pretty}
+.feat-ai .clip{width:min(880px,100%)}
+.feat-ai .clip-frame{border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.feat-ai .clip figcaption{text-align:left}
+.ai-proof{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.ai-proof li{padding:12px 20px;border-radius:999px;font-size:16px;font-weight:500;color:var(--text);
+  border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+
+/* 글꼴은 Pretendard 하나로: 공개 페이지의 숫자·작은 표시도 고정폭 대신 Pretendard 표 숫자. 코드 블록만 고정폭 */
+.pub .mono{font-family:var(--f-ui);letter-spacing:0;font-variant-numeric:tabular-nums}
 
 /* ---------- 영상 액자: 유리 테두리 + 아래 작은 설명 ---------- */
 .clip{margin:0;min-width:0}
@@ -87,12 +100,6 @@
 .clip figcaption{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:14px 6px 0;font-size:14px;line-height:1.5;color:var(--dim)}
 .clip-cap b{margin-right:4px;font-weight:600;color:var(--text)}
 .clip-note{flex:none;font-size:12px;color:var(--dim)}
-
-/* ---------- 이것도 할 수 있어요: 한 줄씩 ---------- */
-.also-list{list-style:none;margin:28px 0 0;padding:0;display:grid;border-top:1px solid var(--line)}
-.also-list li{padding:16px 0;border-bottom:1px solid var(--line);color:var(--dim);font-size:15px;line-height:1.6}
-.also-list b{display:block;margin-bottom:2px;font-size:16px;font-weight:600;color:var(--text)}
-@media (min-width:760px){.also-list{grid-template-columns:1fr 1fr;column-gap:48px}}
 
 /* ---------- 표 ---------- */
 .cmp-lede,.lede{margin:16px 0 0;max-width:36em;font-size:17px;line-height:1.7;color:var(--body)}
@@ -160,11 +167,11 @@
 .step-index a{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 14px 0 8px;border-radius:999px;font-size:14px;font-weight:500;color:var(--body);
   background:var(--glass);border:1px solid var(--glass-line);transition:background .3s var(--ease),color .3s var(--ease)}
 .step-index a::before{content:counter(si);display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;
-  font:600 13px/1 var(--f-serif);color:var(--accent);background:rgba(255,255,255,.06)}
+  font:600 13px/1 var(--f-ui);color:var(--accent);background:rgba(255,255,255,.06)}
 .step-index a:hover{color:var(--text);background:rgba(255,255,255,.13)}
 .steps-list{list-style:none;margin:0;padding:0}
 .step{display:grid;gap:32px;padding-block:clamp(48px,7vw,96px);border-top:1px solid var(--line)}
-.step-n{display:block;margin-bottom:12px;font:700 56px/1 var(--f-serif);color:var(--accent)}
+.step-n{display:block;margin-bottom:12px;font:700 48px/1 var(--f-ui);letter-spacing:-.04em;color:var(--accent)}
 .step h2{margin:0;font:700 clamp(26px,3vw,36px)/1.25 var(--f-ui);letter-spacing:-.03em}
 .step-text>p{margin:14px 0 0;max-width:32em;font-size:17px;line-height:1.7;color:var(--body);text-wrap:pretty}
 .step-text>p b,.step-tips b{color:var(--text);font-weight:600}
@@ -241,36 +248,16 @@
 .trace b{color:var(--accent);font-weight:600}
 .trace span{color:var(--body)}
 @media (min-width:960px){.trace{position:sticky;top:96px}}
-.decisions{margin-top:20px}
-.decisions article{display:grid;gap:12px;padding:32px 0;border-top:1px solid var(--line)}
-.decisions article:first-child{border-top:0}
-.decisions h3{margin:0;font-size:20px;line-height:1.35;letter-spacing:-.02em}
-.decisions h4{margin:8px 0 0;font-size:13px;font-weight:600;color:var(--dim)}
-@media (min-width:900px){
-  .decisions article{grid-template-columns:minmax(0,4fr) minmax(0,8fr);column-gap:48px}
-  .decisions article>*{grid-column:2}
-  .decisions article>h3{grid-column:1;grid-row:1 / span 6}
-}
-.chose{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.chose li{position:relative;padding-left:18px;line-height:1.65;color:var(--body)}
-.chose li::before{content:"";position:absolute;left:2px;top:.7em;width:6px;height:6px;border-radius:50%;background:var(--ok)}
-.rejected{margin:0}
-.rejected div{padding:10px 0;border-top:1px dashed var(--line)}
-.rejected div:first-child{border-top:0;padding-top:2px}
-.rejected dt{font-weight:600;color:var(--text)}
-.rejected dd{margin:2px 0 0;line-height:1.6;color:var(--dim)}
-.better{margin:8px 0 0;padding:14px 16px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:15px;line-height:1.65;color:var(--dim)}
-.better b{color:var(--body);font-weight:600;margin-right:4px}
 .code{margin:20px 0 0;padding:18px 20px;border-radius:16px;overflow-x:auto;background:rgba(255,255,255,.04);border:1px solid var(--glass-line);
   font:500 13px/1.75 var(--f-mono);color:var(--text);white-space:pre}
 .code code{padding:0;background:none;font-size:inherit;overflow-wrap:normal}
-.dev h3:not(.layers h3):not(.decisions h3){margin:32px 0 0;font-size:18px}
+.dev h3:not(.layers h3){margin:32px 0 0;font-size:18px}
 .dev section>p:not(.lede){margin:16px 0 0;max-width:42em;line-height:1.7;color:var(--body)}
-.reading{list-style:none;margin:24px 0 0;padding:0;border-top:1px solid var(--line)}
-.reading li{display:grid;gap:4px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
-.reading li span{line-height:1.6;color:var(--body)}
-.reading .src{justify-self:start}
-@media (min-width:760px){.reading li{grid-template-columns:260px minmax(0,1fr);gap:20px}}
+.src-list{list-style:none;margin:24px 0 0;padding:0;border-top:1px solid var(--line)}
+.src-list li{display:grid;gap:4px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.src-list li span{line-height:1.6;color:var(--body)}
+.src-list .src{justify-self:start}
+@media (min-width:760px){.src-list li{grid-template-columns:260px minmax(0,1fr);gap:20px}}
 
 /* ---------- 움직임 줄이기 ---------- */
 @media (prefers-reduced-motion:reduce){
@@ -282,47 +269,36 @@
 @media (min-width:1100px) and (min-height:600px){.pub-landing .sc-nav{grid-column:1 / -1;grid-row:5}}
 
 /* =====================================================================
-   색 (2차): 공개 페이지는 사용자 '화면 꾸미기'가 없으니 배경 자체가 색을 갖는다.
-   색은 모두 appearance.ACCENTS에서 — 분홍(브랜드) · 하늘 · 민트 · 금빛 · 복숭아.
+   색: 강조색(분홍) 하나만. 공개 페이지는 사용자 '화면 꾸미기'가 없으니 배경 자체가 그 색을 아주 옅게 갖는다.
    채움은 14% 이하, 선은 35~60%. 글자는 늘 밝은 회색·흰색이라 대비 4.5:1 이상을 지킨다.
    ===================================================================== */
-.pub{--sky:#8fd3ff;--mint:#9be7c4;--gold:#e6c36a;--peach:#ffc2a8;--violet:#c39bff}
+.pub{--hue:var(--accent)}
 body.pub{background:transparent}  /* 고정 배경층(.fx)이 보이게 — 바탕색은 html이 깐다 */
 
-/* 고정 배경층: 왼쪽 위 분홍(책 뒤 빛과 같은 색) · 오른쪽 하늘 · 아래 금빛, 고운 입자로 색 띠를 지운다 */
-.pub .fx{--b1:rgba(255,150,185,.17);--b2:rgba(143,211,255,.10);--b3:rgba(230,195,106,.08);--base:#0a0a0a}
+/* 고정 배경층: 위쪽에 분홍 한 덩어리, 고운 입자로 색 띠를 지운다 */
+.pub .fx{--b1:rgba(255,150,185,.15);--b2:rgba(255,150,185,.04);--b3:rgba(255,255,255,.025);--base:#0a0a0a}
 .pub .fx::before{opacity:.05;mix-blend-mode:overlay;
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 
-/* 기능마다 한 가지 색: 검색=하늘, 진도 인정=민트, 감상 열림=분홍, 같이 읽기=금빛 */
-#search{--hue:var(--sky)} #verify{--hue:var(--mint)} #unseal{--hue:var(--accent)} #together{--hue:var(--gold)}
-.feat{position:relative;isolation:isolate}
-/* 섹션 뒤 은은한 색: 영상 쪽에 큰 빛 한 덩어리 (화면 폭 전체로 번지되 글 쪽은 거의 비운다) */
+.feat,.feat-ai{position:relative;isolation:isolate}
+/* 섹션 뒤 은은한 빛: 영상 쪽에 한 덩어리 (화면 폭 전체로 번지되 글 쪽은 거의 비운다) */
 .feat::before{content:"";position:absolute;z-index:-1;inset:0 calc(50% - 50vw);pointer-events:none;
-  background:radial-gradient(42% 60% at 72% 50%,color-mix(in srgb,var(--hue) 9%,transparent),transparent 72%)}
-.feat:nth-of-type(even)::before{background:radial-gradient(42% 60% at 28% 50%,color-mix(in srgb,var(--hue) 9%,transparent),transparent 72%)}
-@media (max-width:899px){.feat::before,.feat:nth-of-type(even)::before{background:radial-gradient(80% 40% at 50% 78%,color-mix(in srgb,var(--hue) 10%,transparent),transparent 72%)}}
-/* 제목 앞 작은 색 점 = 이 기능의 색 */
-.feat h2::before{content:"";display:inline-block;width:.36em;height:.36em;margin:0 .32em .16em 0;border-radius:50%;vertical-align:middle;
-  background:var(--hue);box-shadow:0 0 0 4px color-mix(in srgb,var(--hue) 16%,transparent)}
-.feat .feat-notes{border-top-color:color-mix(in srgb,var(--hue) 40%,transparent)}
+  background:radial-gradient(42% 60% at 72% 50%,color-mix(in srgb,var(--hue) 7%,transparent),transparent 72%)}
+.feat:nth-of-type(even)::before{background:radial-gradient(42% 60% at 28% 50%,color-mix(in srgb,var(--hue) 7%,transparent),transparent 72%)}
+@media (max-width:899px){.feat::before,.feat:nth-of-type(even)::before{background:radial-gradient(80% 40% at 50% 78%,color-mix(in srgb,var(--hue) 8%,transparent),transparent 72%)}}
+/* AI 섹션은 가운데에서 조금 더 밝게 — 이 페이지에서 가장 힘을 준 곳 */
+.feat-ai::before{content:"";position:absolute;z-index:-1;inset:0 calc(50% - 50vw);pointer-events:none;
+  background:radial-gradient(55% 45% at 50% 58%,color-mix(in srgb,var(--accent) 13%,transparent),transparent 72%)}
 /* 영상 액자: 색 선 + 부드러운 같은 색 빛. 안쪽은 영상 바탕(#0a0a0a)과 같은 어두운 면이라 영상 가장자리가 드러나지 않는다 */
-.feat .clip-frame{background:#0a0a0a;border-color:color-mix(in srgb,var(--hue) 45%,transparent);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 0 6px color-mix(in srgb,var(--hue) 5%,transparent),0 40px 90px -36px color-mix(in srgb,var(--hue) 34%,transparent)}
-.feat .clip-cap b{color:var(--hue)}
-.feat .clip-toggle{border-color:color-mix(in srgb,var(--hue) 50%,transparent)}
-/* 사용법 안의 영상도 같은 규칙: 진도=민트, 감상=분홍 */
-.step .clip-frame{background:#0a0a0a}
-.step:has(#clip-verify-t){--hue:var(--mint)} .step:has(#clip-unseal-t){--hue:var(--accent)}
-.step .clip-frame{border-color:color-mix(in srgb,var(--hue,#fff) 45%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 40px 90px -36px color-mix(in srgb,var(--hue,#000) 30%,transparent)}
-.step .clip-cap b{color:var(--hue,var(--text))}
+:is(.feat,.feat-ai,.step) .clip-frame{background:#0a0a0a;border-color:color-mix(in srgb,var(--hue) 40%,transparent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 0 6px color-mix(in srgb,var(--hue) 4%,transparent),0 40px 90px -36px color-mix(in srgb,var(--hue) 28%,transparent)}
+:is(.feat,.feat-ai,.step) .clip-cap b{color:var(--hue)}
+:is(.feat,.feat-ai) .clip-toggle{border-color:color-mix(in srgb,var(--hue) 50%,transparent)}
 
-/* 번갈아 깔리는 옅은 띠: '이것도 할 수 있어요'·자주 묻는 질문 */
-.also,.faq{position:relative;isolation:isolate}
-.also::before,.faq::before{content:"";position:absolute;z-index:-1;inset:0 calc(50% - 50vw);pointer-events:none;
+/* 자주 묻는 질문: 옅은 띠 */
+.faq{position:relative;isolation:isolate}
+.faq::before{content:"";position:absolute;z-index:-1;inset:0 calc(50% - 50vw);pointer-events:none;
   background:linear-gradient(180deg,transparent,rgba(255,255,255,.025) 18%,rgba(255,255,255,.025) 82%,transparent)}
-.also-list li:nth-child(1) b{color:var(--mint)} .also-list li:nth-child(2) b{color:var(--sky)}
-.also-list li:nth-child(3) b{color:var(--peach)} .also-list li:nth-child(4) b{color:var(--gold)}
 .close::before{content:"";position:absolute;z-index:-1;inset:0 calc(50% - 50vw);pointer-events:none;
   background:radial-gradient(40% 70% at 50% 60%,color-mix(in srgb,var(--accent) 12%,transparent),transparent 72%)}
 .close{position:relative;isolation:isolate}
@@ -330,28 +306,11 @@ body.pub{background:transparent}  /* 고정 배경층(.fx)이 보이게 — 바�
 /* 표 머리: 분홍을 아주 옅게 */
 .tbl thead th{background:color-mix(in srgb,var(--accent) 7%,transparent);color:#c9c2c6}
 
-/* Docs: 절마다 색 표시(제목 앞 점 + 목차 점) */
-#pace{--hue:var(--mint)} #points{--hue:var(--gold)} #spoiler{--hue:var(--accent)} #rooms{--hue:var(--sky)}
-#upload{--hue:var(--peach)} #account{--hue:var(--violet)} #faq{--hue:#b7bcc6}
-.docs section h2::before,.dev section>h2::before{content:"";display:inline-block;width:10px;height:10px;margin:0 12px .16em 0;border-radius:3px;vertical-align:middle;
-  background:var(--hue,var(--accent));box-shadow:0 0 0 4px color-mix(in srgb,var(--hue,var(--accent)) 16%,transparent)}
-.docs .rules{border-top-color:color-mix(in srgb,var(--hue,#fff) 35%,transparent)}
-.docs #points .tbl thead th{background:color-mix(in srgb,var(--gold) 10%,transparent)}
-.toc li a::before{content:"";flex:none;width:6px;height:6px;margin-right:10px;border-radius:2px;background:var(--dim)}
-.toc li:nth-child(1) a::before{background:var(--mint)} .toc li:nth-child(2) a::before{background:var(--gold)}
-.toc li:nth-child(3) a::before{background:var(--accent)} .toc li:nth-child(4) a::before{background:var(--sky)}
-.toc li:nth-child(5) a::before{background:var(--peach)} .toc li:nth-child(6) a::before{background:var(--violet)}
+/* 목차 점 · Developer 네 층 번호: 모두 같은 강조색 */
+.toc li a::before{content:"";flex:none;width:6px;height:6px;margin-right:10px;border-radius:2px;background:color-mix(in srgb,var(--accent) 70%,transparent)}
+.layer-n{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 50%,transparent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
 
-/* Developer: 절마다 색, 네 층 번호도 층마다 다른 색 */
-.dev section[aria-labelledby="h-layers"]{--hue:var(--sky)} .dev section[aria-labelledby="h-stack"]{--hue:var(--mint)}
-.dev section[aria-labelledby="h-design"]{--hue:var(--accent)} .dev section[aria-labelledby="h-run"]{--hue:var(--gold)}
-.dev section[aria-labelledby="h-read"]{--hue:var(--peach)}
-.layers li:nth-child(1) .layer-n{--hue:var(--sky)} .layers li:nth-child(2) .layer-n{--hue:var(--mint)}
-.layers li:nth-child(3) .layer-n{--hue:var(--accent)} .layers li:nth-child(4) .layer-n{--hue:var(--gold)}
-.layer-n{color:var(--hue);border-color:color-mix(in srgb,var(--hue) 50%,transparent);background:color-mix(in srgb,var(--hue) 10%,transparent)}
-.dev .stackable thead th{background:color-mix(in srgb,var(--mint) 8%,transparent)}
-
-/* 41초 데모: 세로 영상을 휴대폰 틀에 담아 화면에서 바로 재생 */
+/* 소개 영상: 세로 영상을 휴대폰 틀에 담아 화면에서 바로 재생 */
 .demo{display:grid;gap:28px;justify-items:center;text-align:center;padding-block:clamp(56px,8vw,104px);border-top:1px solid var(--line)}
 .demo h2{margin:0;font-size:clamp(26px,3.4vw,38px);letter-spacing:-.03em}
 .demo-text p{margin:12px auto 0;max-width:30em;font-size:16px;line-height:1.7;color:var(--body);text-wrap:pretty}
