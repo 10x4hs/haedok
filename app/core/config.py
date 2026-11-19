@@ -146,6 +146,9 @@ class Settings(BaseSettings):
     ai_embed_dim: int = 256  # 저장하는 벡터 길이 — 모델이 지원하면 dimensions 로 줄여 받는다
     ai_timeout_seconds: float = 20.0
     ai_daily_requests: int = 40  # 한 사람이 하루에 부를 수 있는 AI 답변 수(비용 상한)
+    ai_embed_batch: int = 64  # 임베딩 한 번에 보내는 문장 수(무료 요금제는 작게)
+    ai_retries: int = 2  # 429·503 이면 기다렸다 다시 보내는 횟수
+    ai_retry_max_seconds: float = 8.0  # 한 번에 기다리는 최대 시간(요청 화면이 오래 멈추지 않게)
     # 책에게 물어보기 · 나를 위한 다음 책 · /admin/ai (FEATURE_AI_RAG). AI 가 꺼져 있어도 입구가 숨는다
     feature_ai_rag: bool = True
     # AI 서점 도우미(/assistant) · 독서 요약(/me/recap) — AI 가 꺼져 있으면 이 값과 상관없이 숨는다

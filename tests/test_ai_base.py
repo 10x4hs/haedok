@@ -59,3 +59,23 @@ async def test_provider_error_becomes_unavailable(monkeypatch):
         with pytest.raises(ai.AIUnavailable):
             await ai.chat([{"role": "user", "content": "q"}], http=http)
     get_settings.cache_clear()
+
+
+async def test_embeddings_without_index_and_retry_on_429(monkeypatch):
+    """Gemini 는 index 0 을 빼고 보내고, 무료 한도에서는 429 를 준다 — 둘 다 견뎌야 한다."""
+    monkeypatch.setenv("AI_PROVIDER", "openai_compat")
+    monkeypatch.setenv("AI_API_KEY", "k")
+    monkeypatch.setenv("AI_RETRY_MAX_SECONDS", "0.5")
+    get_settings.cache_clear()
+    calls = {"n": 0}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return httpx.Response(429, headers={"retry-after": "0"})
+        return httpx.Response(200, json={"data": [{"embedding": [3, 4]}, {"index": 1, "embedding": [0, 2]}]})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        v = await ai.embed(["x", "y"], http=http)
+    assert calls["n"] == 2 and v[0] == [0.6, 0.8] and v[1] == [0.0, 1.0]
+    get_settings.cache_clear()

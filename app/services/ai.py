@@ -9,6 +9,7 @@ AI_PROVIDER=fake 는 키 없이 결정적으로 답하는 가짜다 — 테스�
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import math
 from dataclasses import dataclass
@@ -75,13 +76,15 @@ async def embed(texts: list[str], *, http: httpx.AsyncClient | None = None) -> l
     if s.ai_provider == "fake":
         return [_fake_vector(t, s.ai_embed_dim) for t in texts]
     out: list[list[float]] = []
-    for start in range(0, len(texts), 64):  # 공급자마다 한 번에 받는 개수 제한이 있다
-        batch = texts[start : start + 64]
+    step = max(1, s.ai_embed_batch)  # 공급자마다 한 번에 받는 개수 제한이 있다
+    for start in range(0, len(texts), step):
+        batch = texts[start : start + step]
         body = {"model": s.ai_embed_model, "input": batch, "dimensions": s.ai_embed_dim}
         data = await _post(s.ai_embed_base_url or s.ai_base_url, s.ai_embed_api_key or s.ai_api_key,
                            "/embeddings", body, http)
         try:
-            rows = sorted(data["data"], key=lambda r: r["index"])
+            # 어떤 공급자(Gemini)는 index 0 을 빼고 보낸다 — 없으면 받은 순서로 본다
+            rows = [r for _, r in sorted(enumerate(data["data"]), key=lambda t: t[1].get("index", t[0]))]
             out.extend(normalize(r["embedding"][: s.ai_embed_dim]) for r in rows)
         except (KeyError, TypeError) as e:
             raise AIUnavailable("임베딩 응답을 읽지 못했어요") from e
@@ -102,17 +105,30 @@ async def _post(base: str, key: str | None, path: str, body: dict, http: httpx.A
     s = get_settings()
     headers = {"Authorization": f"Bearer {key}"} if key else {}
     url = base.rstrip("/") + path
-    try:
-        if http is not None:
-            r = await http.post(url, json=body, headers=headers, timeout=s.ai_timeout_seconds)
-        else:
-            async with httpx.AsyncClient(timeout=s.ai_timeout_seconds) as c:
-                r = await c.post(url, json=body, headers=headers)
-    except httpx.HTTPError as e:
-        raise AIUnavailable("AI 서버에 닿지 못했어요") from e
+    for attempt in range(s.ai_retries + 1):
+        try:
+            if http is not None:
+                r = await http.post(url, json=body, headers=headers, timeout=s.ai_timeout_seconds)
+            else:
+                async with httpx.AsyncClient(timeout=s.ai_timeout_seconds) as c:
+                    r = await c.post(url, json=body, headers=headers)
+        except httpx.HTTPError as e:
+            raise AIUnavailable("AI 서버에 닿지 못했어요") from e
+        if r.status_code not in (429, 503) or attempt == s.ai_retries:
+            break
+        # 무료 요금제의 분당 한도 — 서버가 알려 준 만큼(없으면 조금씩 늘려) 기다렸다 다시 보낸다
+        await asyncio.sleep(_retry_after(r, attempt))
     if r.status_code >= 400:
         raise AIUnavailable(f"AI 서버가 {r.status_code} 를 돌려줬어요")
     return r.json()
+
+
+def _retry_after(r: httpx.Response, attempt: int) -> float:
+    try:
+        wait = float(r.headers.get("retry-after", ""))
+    except ValueError:
+        wait = 2.0 * (2**attempt)
+    return min(max(wait, 0.5), get_settings().ai_retry_max_seconds)
 
 
 # --- 가짜 공급자: 같은 입력엔 늘 같은 출력 ---------------------------------------------
