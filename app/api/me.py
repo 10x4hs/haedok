@@ -28,6 +28,8 @@ async def put_settings(
     check_csrf(request, x_csrf_token)
     merged = (user.settings or {}) | body.model_dump(exclude_none=True)
     look = appearance.resolve(merged)
-    user.settings = {k: look[k] for k in ("mode", "bg", "accent")}
+    user.settings = {k: look[k] for k in ("mode", "bg", "accent")} | (
+        {"ai_recap": user.settings["ai_recap"]} if (user.settings or {}).get("ai_recap") else {}
+    )  # AI 독서 요약 캐시(app/services/recap.py)는 남긴다
     await session.commit()
     return look

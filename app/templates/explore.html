@@ -5,6 +5,7 @@
 {% block heading %}탐색{% endblock %}
 {% block main %}
 <form class="big-search at-top" action="/search" role="search"><label class="sr" for="xq">책 검색</label><input id="xq" type="search" name="q" placeholder="제목이나 저자로 찾기" enterkeyhint="search" autocomplete="off"></form>
+{% if ai_shop_on is defined and ai_shop_on() %}{% include "ai/_entry.html" %}{% endif %}
 <nav class="chips" aria-label="서가">
   <a href="/discover?g=%EC%84%9C%EC%A0%90">서점 <span>{{ store|length }}</span></a>
   <a href="/discover?g=all">전체 <span>{{ total }}</span></a>
@@ -28,6 +29,7 @@
   {% for b in marquee + marquee %}{{ book_cover(b.title, b.author, 'sm', img=b.cover|small_cover) }}{% endfor %}
 </div></div>
 
+{% include "ai/_next_row.html" %}
 <section class="row">
   <div class="row-h"><h2>인기 순위</h2><span class="mono muted">유명 고전 + 해독 독자 수</span></div>
   <ol class="ranklist">{% for b in popular[:10] %}<li><a href="/open/{{ b.source }}/{{ b.id|urlencode }}"><span class="mono">{{ b.rank }}</span>{{ book_cover(b.title, b.author, 'xs', img=b.cover|small_cover) }}<div><b>{{ b.title }}</b><span>{{ b.author or '' }}</span></div></a></li>{% endfor %}</ol>

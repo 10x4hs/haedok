@@ -1,0 +1,44 @@
+{% from "_ui.html" import flat_cover %}
+<div class="ai-msg me first"><p class="ai-bubble">{{ t.q }}</p></div>
+<div class="ai-msg bot first" data-note="{{ t.note }}">
+  <span class="ai-ava" aria-hidden="true">{% include "ai/_spark.svg" %}</span>
+  <div class="ai-stack">
+    <p class="ai-bubble{{ ' ai-calm' if t.note in ('down', 'cap') }}">{{ t.reply }}</p>
+    {% if t.note in ('ai', 'fallback') %}<span class="ai-label">AI 답변 · 틀릴 수 있어요</span>
+    {% elif t.picks %}<span class="ai-label">검색으로 찾은 책</span>{% endif %}
+    {% if t.picks %}
+    <ul class="ais-cards" aria-label="고른 책 {{ t.picks|length }}권">
+      {% for p in t.picks %}
+      <li class="ais-card {{ p.kind }}">
+        <a class="ais-card-cover" href="{{ p.href }}" tabindex="-1" aria-hidden="true">{{ flat_cover(p.title, p.author, p.cover) }}</a>
+        <div class="ais-card-body">
+          <a class="ais-card-t" href="{{ p.href }}">{{ p.title }}</a>
+          <span class="ais-card-a">{{ p.author ~ ' · ' if p.author }}{% if p.kind == 'free' %}<b class="ai-free">무료</b>{% elif p.price %}{{ '{:,}'.format(p.price) }}원{% else %}<span title="{{ ai_unknown_price }}">서점</span>{% endif %}</span>
+          {% if p.why %}<p class="ai-why">{{ p.why }}</p>{% endif %}
+          <div class="ai-acts">
+            <a class="ai-cta" href="{{ p.href }}">{{ '무료로 읽기' if p.kind == 'free' else '서점에서 보기' }}</a>
+            {% if p.kind == 'free' %}
+            <form method="post" action="/assistant/shelve" data-ai-act="shelve" data-done="서재에 담았어요">
+              <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="source" value="{{ p.source }}"><input type="hidden" name="external_id" value="{{ p.external_id }}">
+              <button class="ai-text">서재에 담기</button>
+            </form>
+            {% elif friends %}
+            <details class="ai-share">
+              <summary class="ai-text">친구에게 보내기</summary>
+              <form method="post" action="/assistant/send" data-ai-act="send" data-done="보냈어요">
+                <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="source" value="{{ p.source }}"><input type="hidden" name="external_id" value="{{ p.external_id }}">
+                <label class="sr" for="f{{ ti }}-{{ loop.index }}">받을 친구</label>
+                <select id="f{{ ti }}-{{ loop.index }}" name="friend_id">{% for f in friends %}<option value="{{ f.id }}">{{ f.nickname }}</option>{% endfor %}</select>
+                <button class="ai-mini">보내기</button>
+              </form>
+            </details>
+            {% endif %}
+          </div>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if t.followup %}<p class="ai-bubble ai-follow">{{ t.followup }}</p>{% endif %}
+  </div>
+</div>

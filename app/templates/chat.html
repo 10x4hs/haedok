@@ -1,9 +1,11 @@
 {% extends "app.html" %}
 {% from "chat_parts/_list.html" import list_pane %}
 {% from "_ui.html" import icon %}
-{% block title %}메시지 — 偕讀 해독{% endblock %}
-{% block body_class %}app chat-shell chat-at-list{% endblock %}
+{% block title %}메시지 — 커뮤니티 · 偕讀 해독{% endblock %}
+{% block body_class %}app chat-shell cm-chat chat-at-list{% endblock %}
 {% block content_class %}chat{% endblock %}
+{% block heading %}커뮤니티{% endblock %}
+{% block top_extra %}{% include "_community.html" %}{% endblock %}
 {% block main %}
 <link rel="stylesheet" href="/static/chat.css">
 <div class="ch-app ch-scope">

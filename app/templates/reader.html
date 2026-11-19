@@ -7,6 +7,7 @@
   <a href="/library" class="pill-btn" id="back" aria-label="뒤로">{{ icon('back') }}</a>
   <h1 class="r-title"><b>{{ book.title }}</b><span>{{ book.author or '' }}</span></h1>
   {% if videos %}<button class="pill-btn" id="vidBtn" aria-label="책 소개 영상">▶</button>{% endif %}
+  {% if ai_rag_on() %}{% include "ai/_ask_button.html" %}{% endif %}
   <button class="pill-btn" id="aa" aria-label="보기 설정" aria-expanded="false">Aa</button>
 </header>
 <div class="r-sheet glass" id="sheet" hidden>
@@ -96,6 +97,8 @@
     <ul class="react-list" id="reactList"></ul>
   </section>
 </div>
+{% if ai_rag_on() %}{% include "ai/_ask_sheet.html" %}{% endif %}
+{% if ai_reader_on() %}{% include "ai/_reader_ai.html" %}{% endif %}
 <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
 <script src="/static/app.js"></script>
 <script src="/static/palette.js"></script>

@@ -32,11 +32,11 @@ app/
   auth.py              세션 · BCrypt · CSRF · 6자리 코드(HMAC 지문) · 비밀번호 재설정
   intro.py             공개 페이지 /guide · /docs · /developers (+ /intro → /guide 308)
   public_facts.py      공개 페이지의 숫자를 코드 상수에서 읽는다(15초, 마일리지 표, 업로드 한도, 테스트·마이그레이션 수)
-  board.py             /together (모집 글 목록·쓰기·참가·나가기·닫기·신고) · /admin/together
-  chat.py              /friends · /chat · /chat/dm/{id} · /chat/room/{id} · /admin/chat-reports
+  board.py             /community/together(예전 /together는 308) (모집 글 목록·쓰기·참가·나가기·닫기·신고) · /admin/together
+  chat.py              /friends · /community/messages(예전 /chat은 308) · /chat/dm/{id} · /chat/room/{id} · /admin/chat-reports
                        · 메뉴의 안 읽음 점(ChatMenuDot 미들웨어)
   mileage.py           /mileage (보호권·리워드 교환·요청 거두기) · /admin/rewards
-  posts.py             /feed(친구 · 모두) · /posts/new · /p/{id} · /u/{id} · /profile(+ /profile/edit) · /media/p/{id}/{n}.jpg
+  posts.py             /community(피드: 전체 · 친구 · 탐색, 예전 /feed는 308) · /posts/new · /p/{id} · /u/{id} · /profile(+ /profile/edit) · /media/p/{id}/{n}.jpg
                        · /admin/posts
   admin.py             /admin (현황·사용자·대결방·메일) — 기능별 관리 화면은 각 라우터에
   seo.py · pwa.py      robots·sitemap·OG / manifest·service worker·assetlinks
@@ -61,10 +61,10 @@ v3 기능은 `app/core/config.py`의 설정 하나로 끈다. 끄면 메뉴·링
 | 설정(환경 변수) | 기능 |
 |---|---|
 | `feature_goals` (`FEATURE_GOALS`) | 하루 목표·잔디·연속 — `/api/v1/me/goal`, 홈·내 정보의 목표 칸 |
-| `feature_board` (`FEATURE_BOARD`) | 같이 읽을 사람 모집 `/together` |
-| `feature_chat` (`FEATURE_CHAT`) | 친구·채팅 `/friends` · `/chat` |
+| `feature_board` (`FEATURE_BOARD`) | 같이 읽을 사람 모집 `/community/together` |
+| `feature_chat` (`FEATURE_CHAT`) | 친구·채팅 `/friends` · `/community/messages` |
 | `feature_mileage` (`FEATURE_MILEAGE`) | 마일리지 상점 `/mileage` · `/admin/rewards` (적립 자체는 계속된다) |
-| `feature_posts` (`FEATURE_POSTS`) | 게시물 `/feed` · `/posts/new` · `/p/{id}` · `/u/{id}` |
+| `feature_posts` (`FEATURE_POSTS`) | 게시물 `/community` · `/posts/new` · `/p/{id}` · `/u/{id}` |
 
 ## 핵심 결정
 

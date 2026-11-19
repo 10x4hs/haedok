@@ -2,7 +2,7 @@
 {% from "_ui.html" import book_cover, avatar %}
 {% block title %}{{ v.book.title }} 같이 읽기 — 偕讀 해독{% endblock %}
 {% block content_class %}split{% endblock %}
-{% block heading %}<small><a href="/together">‹ 같이 읽기</a></small>{{ v.book.title }}{% endblock %}
+{% block heading %}<small><a href="/community/together">‹ 같이 읽기</a></small>{{ v.book.title }}{% endblock %}
 {% block main %}
 <section class="race-hero glass-card tg-hero">
   <div class="race-cover">{{ book_cover(v.book.title, v.book.author, img=cover_of(v.book)) }}</div>

@@ -1,0 +1,35 @@
+{% extends "admin/_layout.html" %}
+{% block admin_title %}AI{% endblock %}
+{% block admin %}
+<link rel="stylesheet" href="/static/ai.css">
+<section class="row">
+  <div class="row-h"><h2>설정 점검</h2></div>
+  <ul class="admin-list checks">
+  {% for name, value, good in checks %}
+    <li><div><b>{{ name }}</b><span>{{ value }}</span></div><em class="dot {{ 'ok' if good else 'warn' }}" aria-label="{{ '정상' if good else '확인 필요' }}"></em></li>
+  {% endfor %}
+  </ul>
+  <p class="muted small">키 값은 보여 주지 않아요. 저장소: {{ 'Postgres · pgvector' if dialect == 'postgresql' else 'SQLite · 파이썬 코사인' }}</p>
+</section>
+
+<section class="row">
+  <div class="row-h"><h2>책 벡터</h2><span class="mono muted">{{ '{:,}'.format(progress.done) }} / {{ '{:,}'.format(progress.total) }}</span></div>
+  <div class="ai-progress glass-card">
+    <span class="meter" role="progressbar" aria-label="책 벡터 채운 비율" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ progress.pct }}"><i style="width:{{ progress.pct }}%"></i></span>
+    <p class="hint">카탈로그(바로 읽는 고전)와 서점 책의 제목 · 저자 · 갈래 · 연도를 임베딩해요. 한 번 누르면 {{ batch }}권씩, 이미 채운 책은 건너뛰어요.</p>
+    <form method="post" action="/admin/ai/fill">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="btn primary"{% if not ai_on or progress.done >= progress.total %} disabled{% endif %}>{{ '모두 채웠어요' if progress.done >= progress.total else batch ~ '권 채우기' }}</button>
+    </form>
+    {% if not ai_on %}<p class="hint">AI_PROVIDER와 AI_API_KEY를 설정하면 채울 수 있어요.</p>{% endif %}
+  </div>
+</section>
+
+<section class="row">
+  <div class="row-h"><h2>본문 조각</h2></div>
+  <ul class="admin-list">
+    <li><div><b>{{ '{:,}'.format(pieces) }}조각 · {{ piece_books }}권</b><span>누가 그 책에 처음 물어볼 때, 그 사람이 읽은 쪽까지만 만들어요(한 번에 120조각).</span></div></li>
+    <li><div><b>남아 있는 문답 {{ '{:,}'.format(asked) }}개</b><span>사람마다 책마다 최근 5개만 남아요.</span></div></li>
+  </ul>
+</section>
+{% endblock %}

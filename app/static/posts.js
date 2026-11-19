@@ -45,12 +45,7 @@
       else line.append(b(friend), t('님이 좋아합니다'));
     } else if (count) {
       line.append(t('좋아요 '), b(String(count), true), t('개'));
-    } else {
-      const z = document.createElement('span');
-      z.dataset.likeZero = '';
-      z.textContent = '가장 먼저 좋아요를 눌러 보세요';
-      line.append(z);
-    }
+    }  // 0개면 비운다(인스타그램처럼 안내 문장을 두지 않는다)
   }
 
   // want=1 은 '켜기만'(그림 두 번 탭) — 몇 번 보내도 같다

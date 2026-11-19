@@ -70,7 +70,7 @@
 
 {% if together is defined and together is not none %}
 <section class="rl-sec" aria-labelledby="recruitH">
-  <div class="row-h"><h2 id="recruitH">모집 중</h2><a href="/together">전체 보기 ›</a></div>
+  <div class="row-h"><h2 id="recruitH">모집 중</h2><a href="/community/together">전체 보기 ›</a></div>
   {% if together %}
   <ul class="rl-list">{% for v in together %}{{ post_row(v) }}{% endfor %}</ul>
   {% else %}

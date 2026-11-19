@@ -216,9 +216,9 @@ async def world(out: Path) -> None:
         await shot(h, out, "/races", "w-races", wait=1500)
         race = await h.get_attribute('a[href^="/races/"]', "href")
         await shot(h, out, race, "w-race", wait=2500)
-        await shot(h, out, "/together", "w-together", wait=1500)
+        await shot(h, out, "/community/together", "w-together", wait=1500)
         await shot(h, out, "/friends", "w-friends", wait=1500)
-        await shot(h, out, "/chat", "w-chat", wait=1500)
+        await shot(h, out, "/community/messages", "w-chat", wait=1500)
         room = race.replace("/races/", "/chat/room/")  # 맨 위 대결방 = seed_chat이 대화를 채운 방
         dm = await h.get_attribute('a[href^="/chat/dm/"]', "href")
         await shot(h, out, room, "w-chat-room", wait=2500)
@@ -228,7 +228,7 @@ async def world(out: Path) -> None:
         await shot(h, out, "/leaderboard", "w-leaderboard", wait=1500)
 
         # --- 게시물(seed_posts → seed_posts_ig): 친구 소식 · 프로필 격자 · 게시물과 댓글 · 올리기 1단계
-        await shot(h, out, "/feed", "w-feed", wait=2000)
+        await shot(h, out, "/community", "w-feed", wait=2000)
         # 하린의 「데미안」 — 사진 세 장, 댓글 · 답글
         card = await h.evaluate(
             "[...document.querySelectorAll('article[id^=post-]')]"
@@ -250,7 +250,7 @@ async def world(out: Path) -> None:
         print("shot w-comments")
         await shot(h, out, "/profile", "w-profile", wait=2000)
         await shot(h, out, post, "w-post", wait=2000)
-        await shot(h, out, "/feed?tab=all", "w-explore-posts", wait=2000)
+        await shot(h, out, "/community?tab=all", "w-explore-posts", wait=2000)
         if PHOTOS:
             await h.goto(f"{BASE}/posts/new", wait_until="domcontentloaded")
             await h.wait_for_timeout(800)

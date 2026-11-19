@@ -1,7 +1,7 @@
 {# 게시물 목록 — /feed 의 '친구'와 내 프로필의 '소식' 탭이 같이 쓴다. more_base: 다음 쪽 주소의 앞부분 #}
 {% from "posts/_parts.html" import post_card %}
 {% from "_ui.html" import empty_state %}
-{% set more_base = more_base if more_base is defined else '/feed?' %}
+{% set more_base = more_base if more_base is defined else '/community?' %}
 {% if cards %}
 <div class="ps-cards">
   {% for c in cards %}{{ post_card(c, csrf, request.url.path ~ ('?' ~ request.url.query if request.url.query else ''), faces, user.id, eager=loop.first and not paged) }}{% endfor %}

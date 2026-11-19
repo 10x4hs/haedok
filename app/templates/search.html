@@ -23,5 +23,6 @@
 {% endif %}
 {% if q and not (in_catalog or readable or store_hits or others) %}{{ empty_state('search', '찾은 책이 없어요', '제목이나 저자 이름을 조금 다르게 써 보세요. 내 파일이라면 직접 올릴 수도 있어요.', '/upload', '내 파일 올리기') }}
 {% elif not q %}{{ empty_state('search', '어떤 책을 찾을까요?', '제목이나 저자를 넣으면 서가와 공개 도서관에서 함께 찾아요.') }}{% endif %}
+{% if (not q or not (in_catalog or readable or store_hits or others)) and ai_shop_on is defined and ai_shop_on() %}{% with ai_q=q, ai_hint=('제목이 기억나지 않으면 어떤 책인지 말로 설명해 보세요' if q else none) %}{% include "ai/_entry.html" %}{% endwith %}{% endif %}
 {% if errors %}<p class="muted mono">응답 없는 소스: {{ errors.keys()|join(', ') }}</p>{% endif %}
 {% endblock %}

@@ -1,0 +1,64 @@
+{# 읽는 중의 AI — 문단에서 묻기 · AI 노트(✦ 표시) · 지난 이야기 · 등장인물 · 생각해 볼 질문.
+   동작은 /static/reader-ai.js. 답은 책에게 물어보기 시트(_ask_sheet.html)에 뜬다. 서버가 읽은 쪽까지만 보낸다. #}
+<link rel="stylesheet" href="/static/ai-reader.css">
+<div id="aiReader" hidden data-book="{{ book.id }}" data-csrf="{{ csrf }}" data-total="{{ book.total_chunks }}"
+     data-verified="{{ entry.verified_chunk }}" data-away="{{ '1' if ai_reader_away(entry.updated_at) else '0' }}"></div>
+
+{# 1. 반응 시트 안의 '✦ AI에게' 줄 — reader-ai.js 가 인용 아래로 옮긴다 #}
+<div class="ai-row" id="aiRow" hidden>
+  <span class="ai-row-h"><span class="ai-star" aria-hidden="true">✦</span> AI에게</span>
+  <div class="ai-acts" role="group" aria-label="이 문단을 AI에게">
+    <button type="button" data-act="explain">이 부분 쉽게 설명</button>
+    <button type="button" data-act="word" aria-expanded="false" aria-controls="aiWordForm">이 단어 뜻</button>
+    <button type="button" data-act="summary">여기까지 요약</button>
+  </div>
+  <form class="react-form ai-word" id="aiWordForm" hidden>
+    <label class="sr" for="aiWord">궁금한 낱말</label>
+    <input id="aiWord" maxlength="30" placeholder="문단 속 낱말" autocomplete="off" enterkeyhint="send">
+    <button class="btn primary">뜻 보기</button>
+  </form>
+</div>
+
+{# 1'. 글을 길게 눌러(끌어) 고르면 그 위에 뜨는 막대 #}
+<div class="ai-sel glass" id="aiSel" role="toolbar" aria-label="고른 글을 AI에게" hidden>
+  <span class="ai-sel-h"><span class="ai-star" aria-hidden="true">✦</span> AI에게</span>
+  <button type="button" data-act="explain">쉽게 설명</button>
+  <button type="button" data-act="word">단어 뜻</button>
+  <button type="button" data-act="summary">여기까지 요약</button>
+</div>
+
+{# 2. 문단의 ✦ 를 누르면 다시 여는 AI 노트 #}
+<div class="sheet-wrap" id="aiNote" data-lenis-prevent hidden>
+  <section class="sheet glass ask-sheet ai-note-sheet" role="dialog" aria-modal="true" aria-labelledby="aiNoteTitle" tabindex="-1">
+    <header class="sheet-h"><h2 id="aiNoteTitle"><span class="ai-star" aria-hidden="true">✦</span> 내 AI 노트</h2><button type="button" class="x" data-close aria-label="닫기">×</button></header>
+    <p class="ask-scope">나만 봐요 · 공유하면 한 줄만 반응이 돼요</p>
+    <ol class="ask-list page" id="aiNoteList"></ol>
+    <p class="hint" id="aiNoteMsg" role="status"></p>
+  </section>
+</div>
+
+{# 3a. 하루 넘게 쉬었다 펼치면: 지난 이야기 #}
+<section class="ai-top glass" id="aiRecap" hidden aria-labelledby="aiRecapH">
+  <header><h2 id="aiRecapH"><span class="ai-star" aria-hidden="true">✦</span> 지난 이야기</h2><span class="muted" id="aiRecapUpto"></span><button type="button" class="x" id="aiRecapX" aria-label="지난 이야기 닫기">×</button></header>
+  <p id="aiRecapText" aria-live="polite">읽은 쪽까지 되짚는 중…</p>
+  <footer><span class="ask-label">AI 요약 · 틀릴 수 있어요</span><button type="button" class="link-btn" id="aiRecapChars">등장인물 보기</button></footer>
+</section>
+
+{# 3c. 10쪽마다: 생각해 볼 질문 하나 #}
+<section class="ai-top glass" id="aiReflect" hidden aria-labelledby="aiReflectH">
+  <header><h2 id="aiReflectH"><span class="ai-star" aria-hidden="true">✦</span> AI 질문 하나</h2><span class="muted" id="aiReflectUpto"></span><button type="button" class="x" id="aiReflectX" aria-label="질문 닫기">×</button></header>
+  <p id="aiReflectText" aria-live="polite"></p>
+  <button type="button" class="btn ghost" id="aiReflectGet">질문 받기</button>
+  <form class="react-form" id="aiReflectForm" hidden>
+    <label class="sr" for="aiReflectIn">내 생각</label>
+    <input id="aiReflectIn" maxlength="140" placeholder="내 생각 한 줄" autocomplete="off" enterkeyhint="send">
+    <button class="btn primary">남기기</button>
+  </form>
+</section>
+
+{# 책에게 물어보기 시트 위쪽의 빠른 동작 — reader-ai.js 가 시트 안으로 옮긴다 #}
+<div class="ai-quick" id="aiQuick" role="group" aria-label="읽은 곳까지 AI 정리" hidden>
+  <button type="button" data-book-act="recap"><span class="ai-star" aria-hidden="true">✦</span> 지난 이야기</button>
+  <button type="button" data-book-act="characters"><span class="ai-star" aria-hidden="true">✦</span> 등장인물</button>
+</div>
+<script src="/static/reader-ai.js" defer></script>

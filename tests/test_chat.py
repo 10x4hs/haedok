@@ -229,10 +229,10 @@ async def test_admin_sees_reports(trio, monkeypatch):
 async def test_conversation_list_never_leaks_sealed_text(trio):
     h, m, room = trio["h"], trio["m"], trio["room"]
     await post(h, f"/api/v1/chat/room/{room}/messages", text=SECRET, mode="book")
-    page = await m.get("/chat", params={"tab": "room"})
+    page = await m.get("/community/messages", params={"tab": "room"})
     assert page.status_code == 200
     assert SECRET not in page.text and "잠긴 메시지" in page.text
-    assert SECRET in (await trio["s"].get("/chat", params={"tab": "room"})).text  # 다 읽은 친구에겐 미리보기
+    assert SECRET in (await trio["s"].get("/community/messages", params={"tab": "room"})).text  # 다 읽은 친구에겐 미리보기
 
 
 async def test_unread_counts_and_menu_dot(trio):
@@ -241,12 +241,12 @@ async def test_unread_counts_and_menu_dot(trio):
     assert 'data-chat-unread' not in (await m.get("/me")).text
     for t in ("하나", "둘"):
         await post(h, url, text=t, mode="chat")
-    listing = (await m.get("/chat", params={"tab": "room"})).text
+    listing = (await m.get("/community/messages", params={"tab": "room"})).text
     assert re.search(r'data-unread="2"', listing)
     assert 'data-chat-unread' in (await m.get("/me")).text  # 메뉴의 점
     assert 'data-chat-unread' not in (await h.get("/me")).text  # 내가 보낸 건 안 읽은 수가 아니다
     await m.get(url, params={"channel": "chat"})  # 대화를 열면 읽음
-    assert 'data-unread="2"' not in (await m.get("/chat", params={"tab": "room"})).text
+    assert 'data-unread="2"' not in (await m.get("/community/messages", params={"tab": "room"})).text
     assert 'data-chat-unread' not in (await m.get("/me")).text
 
 
@@ -305,7 +305,7 @@ async def test_dm_only_between_accepted_friends(api, session_factory):
     assert sent.status_code == 201 and "page" not in sent.json()  # 개인 채팅에는 도장이 없다
     got = (await b.get(f"/api/v1/chat/dm/{a_id}/messages")).json()["items"][0]
     assert got["body"] == "결말은 ||스포 조심||"  # ||가리기||는 예의일 뿐 본문은 온다
-    listing = await b.get("/chat")
+    listing = await b.get("/community/messages")
     assert "스포 조심" not in listing.text and "[스포일러]" in listing.text  # 미리보기는 가린다
 
     # 차단하면 대화도 끝난다(양쪽 모두)
@@ -340,7 +340,7 @@ async def test_friend_request_rate_limit(api, session_factory):
 async def test_flag_off_hides_everything(trio, monkeypatch):
     monkeypatch.setattr(get_settings(), "feature_chat", False)
     h, room = trio["h"], trio["room"]
-    assert (await h.get("/chat")).status_code == 404
+    assert (await h.get("/community/messages")).status_code == 404
     assert (await h.get("/friends")).status_code == 404
     assert (await h.get(f"/api/v1/chat/room/{room}/messages")).status_code == 404
     assert (await post(h, f"/api/v1/chat/room/{room}/messages", text="x", mode="chat")).status_code == 404
@@ -352,5 +352,5 @@ async def test_flag_off_hides_everything(trio, monkeypatch):
 async def test_entry_points_when_on(trio):
     h, room = trio["h"], trio["room"]
     me = (await h.get("/me")).text
-    assert me.count('href="/chat"') == 1 and me.count('href="/friends"') == 1
+    assert 'data-nav="community"' in me and me.count('href="/friends"') == 1  # 메시지는 커뮤니티 칸 안
     assert f'href="/chat/room/{room}"' in (await h.get(f"/races/{room}")).text

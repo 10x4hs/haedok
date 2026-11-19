@@ -248,7 +248,7 @@ async def test_host_close_and_delete_and_others_cannot(api, session_factory, boa
         assert (
             (await host.post(f"/together/{alone}/delete", data={"csrf": ht}))
             .headers["location"]
-            .startswith("/together?")
+            .startswith("/community/together?")
         )
         await host.post(f"/together/{shared}/delete", data={"csrf": ht})
         assert (await host.get(f"/together/{alone}")).status_code == 404
@@ -286,7 +286,7 @@ async def test_anonymous_is_refused(api, session_factory, board_on):
     async with api(upstream) as host, api(upstream) as anon:
         await signup(host)
         pid = await post_id_of(await make_post(host))
-        for path in ("/together", "/together/new", f"/together/{pid}"):
+        for path in ("/community/together", "/together/new", f"/together/{pid}"):
             r = await anon.get(path)
             assert r.status_code == 303 and "/login" in r.headers["location"]
         for action in ("join", "leave", "close", "delete", "report"):
@@ -314,7 +314,7 @@ async def test_board_lists_only_open_posts_newest_first(api, board_on):
         closed = await post_id_of(await make_post(host, pitch="마감한 글"))
         t = csrf((await host.get(f"/together/{closed}")).text)
         await host.post(f"/together/{closed}/close", data={"csrf": t})
-        page = (await viewer.get("/together")).text
+        page = (await viewer.get("/community/together")).text
     assert "마감한 글" not in page
     assert page.index("두 번째 글") < page.index("첫 번째 글")
     assert f'href="/together/{first}"' in page and f'href="/together/{second}"' in page
@@ -325,7 +325,7 @@ async def test_board_lists_only_open_posts_newest_first(api, board_on):
 async def test_empty_board_invites_first_post(api, board_on):
     async with api(upstream) as c:
         await signup(c)
-        page = (await c.get("/together")).text
+        page = (await c.get("/community/together")).text
     assert "아직 모집 중인 글이 없어요" in page and 'href="/together/new"' in page
 
 
@@ -335,15 +335,15 @@ async def test_known_people_shown_on_card(api, board_on):
         await signup(host, email="host@example.com", nickname="호스트")
         await signup(a, email="a@example.com", nickname="가")
         pid = await post_id_of(await make_post(host))
-        assert "아는 사람" not in (await a.get("/together")).text
+        assert "아는 사람" not in (await a.get("/community/together")).text
         # 초대 코드로 호스트와 다른 방을 한 번 같이 했다
         page = await host.get("/races")
         r = await host.post("/races/start/wikisource/긴글", data={"csrf": csrf(page.text), "days": "3"})
         code = re.search(r'id="code">([A-Z0-9]{6})<', (await host.get(r.headers["location"])).text).group(1)
         prev = await a.get(f"/join/{code}")
         await a.post(f"/join/{code}", data={"csrf": csrf(prev.text)})
-        assert "아는 사람 1명" in (await a.get("/together")).text
-        assert f'href="/together/{pid}"' in (await a.get("/together")).text
+        assert "아는 사람 1명" in (await a.get("/community/together")).text
+        assert f'href="/together/{pid}"' in (await a.get("/community/together")).text
 
 
 async def test_report_creates_row_and_admin_lists_it(api, session_factory, board_on, monkeypatch):
@@ -368,7 +368,7 @@ async def test_report_creates_row_and_admin_lists_it(api, session_factory, board
         assert "모집 신고" in (await adm.get("/admin")).text
         at = csrf(listing.text)
         await adm.post(f"/admin/together/{pid}/close", data={"csrf": at})
-        assert "광고 글" not in (await a.get("/together")).text
+        assert "광고 글" not in (await a.get("/community/together")).text
     async with session_factory() as s:
         assert await s.scalar(select(func.count()).select_from(RecruitReport)) == 1
         assert (await s.get(RecruitPost, pid)).status == "closed"
@@ -388,7 +388,7 @@ async def test_races_page_shows_section_and_action(api, board_on):
     assert page.index('id="mineH"') < page.index('id="recruitH"')  # 내 방이 먼저, 모집 중은 그 아래
     assert page.count('class="rl-row rl-post"') == 3  # 많아야 3개
     assert "내 글" not in page  # 이미 들어가 있는 내 글은 빼고 보여 준다
-    assert 'href="/together"' in page
+    assert 'href="/community/together"' in page
 
 
 async def test_flag_off_404_and_no_section(api, monkeypatch):
@@ -408,7 +408,7 @@ async def test_flag_off_404_and_no_section(api, monkeypatch):
 async def test_flag_off_404_for_anonymous_too(api, monkeypatch):
     monkeypatch.setattr(get_settings(), "feature_board", False)
     async with api(upstream) as anon:
-        assert (await anon.get("/together")).status_code == 404
+        assert (await anon.get("/community/together")).status_code == 404
 
 
 async def test_row_draws_seats_and_known_mark_only_when_true(api, session_factory, board_on):
@@ -420,7 +420,7 @@ async def test_row_draws_seats_and_known_mark_only_when_true(api, session_factor
         pid = await post_id_of(await make_post(host, capacity=3))
         await a.post(f"/together/{pid}/join", data={"csrf": csrf((await a.get(f"/together/{pid}")).text)})
         # 나(b)는 아직 방장·가와 같은 방을 해 본 적이 없다
-        page = (await b.get("/together")).text
+        page = (await b.get("/community/together")).text
         assert 'aria-label="3명 중 2명, 1자리 남음"' in page
         assert page.count('class="rl-seat"') == 1 and page.count('class="avatar') >= 3  # 얼굴 둘 + 방장
         assert 'class="rl-chip rl-known"' not in page and "아는 사람" not in page
@@ -430,9 +430,9 @@ async def test_row_draws_seats_and_known_mark_only_when_true(api, session_factor
         code = re.search(r'id="code">([A-Z0-9]{6})<', (await host.get(r.headers["location"])).text).group(1)
         prev = await b.get(f"/join/{code}")
         await b.post(f"/join/{code}", data={"csrf": csrf(prev.text)})
-        page = (await b.get("/together")).text
+        page = (await b.get("/community/together")).text
         assert 'class="rl-chip rl-known"' in page and "아는 사람 1명" in page
         # 다 차면 '다 찼어요' 칩과 흐린 표지(is-shut) — 색에만 기대지 않는다
         await b.post(f"/together/{pid}/join", data={"csrf": csrf((await b.get(f"/together/{pid}")).text)})
-        full = (await a.get("/together")).text
+        full = (await a.get("/community/together")).text
         assert 'aria-label="3명 중 3명, 자리가 다 찼어요"' in full and 'class="rl-seat"' not in full

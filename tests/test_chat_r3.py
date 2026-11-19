@@ -1,4 +1,4 @@
-"""채팅 3차 — 메인 내비의 '메시지' 탭, 대화 화면 셸, 개인 채팅 머리의 상태 한 줄(공개 범위)."""
+"""채팅 3차 — 커뮤니티 안의 '메시지' 갈래(안 읽은 수), 대화 화면 셸, 개인 채팅 머리의 상태 한 줄(공개 범위)."""
 
 import datetime as dt
 
@@ -8,17 +8,20 @@ from app.services import chat
 from tests.test_chat import befriend, login_as, post, trio, uid  # noqa: F401
 
 
-async def test_messages_tab_in_main_nav_with_unread_count(trio):  # noqa: F811
+async def test_messages_live_in_community_with_unread_count(trio):  # noqa: F811
     h, m = trio["h"], trio["m"]
     page = (await m.get("/me")).text
     nav = page.split('<nav class="tabbar"')[1].split("</nav>")[0]
-    assert 'href="/chat"' in nav and "<span>메시지</span>" in nav and "--tabs:5" in nav  # 홈 · 탐색 · 피드 · 서재 · 메시지 (나는 레일에만)
-    assert nav.index("서재") < nav.index("메시지") < nav.index("<span>나</span>")  # 서재와 나 사이
+    assert "<span>메시지</span>" not in nav and "<span>커뮤니티</span>" in nav and "--tabs:4" in nav
     menu = page.split('id="menu"')[1]
     assert "채팅" not in menu.split("</nav>")[0]  # 햄버거 메뉴의 중복 항목은 없앴다
     await post(h, f"/api/v1/chat/room/{trio['room']}/messages", text="안녕", channel="chat")
-    nav = (await m.get("/me")).text.split('<nav class="tabbar"')[1].split("</nav>")[0]
-    assert "data-chat-unread" in nav and "안 읽은 메시지 1개" in nav
+    page = (await m.get("/community/messages")).text
+    nav = page.split('<nav class="tabbar"')[1].split("</nav>")[0]
+    assert "data-chat-unread" in nav and "커뮤니티, 안 읽은 메시지 1개" in nav  # 커뮤니티 칸의 숫자
+    sub = page.split('<nav class="cm-nav"')[1].split("</nav>")[0]
+    assert 'data-cm="messages" data-tip="메시지" aria-current="page" aria-label="메시지, 안 읽은 메시지 1개"' in sub
+    assert '<i class="cm-badge" aria-hidden="true">1</i>' in sub
 
 
 async def test_flag_off_removes_tab(trio, monkeypatch):  # noqa: F811
@@ -29,7 +32,8 @@ async def test_flag_off_removes_tab(trio, monkeypatch):  # noqa: F811
 
 async def test_thread_is_an_app_shell_without_page_title(trio):  # noqa: F811
     html = (await trio["h"].get(f"/chat/room/{trio['room']}")).text
-    assert "chat-shell chat-at-thread" in html
+    assert "chat-shell cm-chat chat-at-thread" in html
+    assert '<h1 class="top-title">커뮤니티</h1>' in html and 'data-tip="메시지" aria-current="page"' in html
     assert 'class="ch-thead"' in html and 'class="ch-compose"' in html
     assert 'class="ch-backdrop' in html  # 방은 책 표지 배경(아주 옅게)
 

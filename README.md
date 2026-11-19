@@ -56,13 +56,13 @@
 <td align="center"><img src="docs/images/app/8-me.jpg" alt="내 정보 — 오늘 3/5쪽 목표 고리와 17주 잔디" width="180"></td>
 <td>
 <h3>🌱 하루 목표 · 잔디</h3>
-하루 목표를 3 · 5 · 10 · 20쪽 중에 고르면, 인정된 쪽이 쌓인 날마다 잔디가 생기고 연속 기록이 이어져요. 하루는 한국 시간 <b>새벽 4시</b>에 바뀌어요(밤늦게 읽은 쪽은 그 전날로 쳐요). 못 읽은 날은 기록 보호권(최대 2개)이 자동으로 메우고, 한 달에 한 번은 다음 날 두 배를 읽어 빠진 하루를 이을 수 있어요.
+하루에 읽을 쪽 수를 1~100쪽 사이에서 정하면(3 · 5 · 10 · 20은 빠른 선택), 인정된 쪽이 쌓인 날마다 잔디가 생기고 연속 기록이 이어져요. 하루는 한국 시간 <b>새벽 4시</b>에 바뀌어요(밤늦게 읽은 쪽은 그 전날로 쳐요). 못 읽은 날은 기록 보호권(최대 2개)이 자동으로 메우고, 한 달에 한 번은 다음 날 두 배를 읽어 빠진 하루를 이을 수 있어요.
 </td>
 </tr>
 <tr>
 <td align="center"><img src="docs/images/app/13-together.jpg" alt="같이 읽을 사람 모집 게시판" width="180"></td>
 <td>
-<h3>🙋 같이 읽을 사람 모집 (<code>/together</code>)</h3>
+<h3>🙋 같이 읽을 사람 모집 (커뮤니티 › 같이 읽기, <code>/community/together</code>)</h3>
 같이 읽을 친구가 없으면 모집 글을 띄워요. 책 · 하루 쪽 수 · 정원 · 한 줄 소개를 적으면 글 하나가 대결방 하나가 되고, 누르면 바로 참가해요. 마지막 자리를 동시에 눌러도 한 명만 들어가요.
 </td>
 </tr>
@@ -116,7 +116,7 @@
 | **댓글 · 답글** | **모두(탐색)** | **새 게시물 — 사진 고르기** | | |
 | <img src="docs/images/app/27-comments.jpg" alt="댓글 시트 — 답글을 펼친 모습" width="150"> | <img src="docs/images/app/29-explore-posts.jpg" alt="모두의 게시물 격자" width="150"> | <img src="docs/images/app/28-create.jpg" alt="새 게시물 1단계 — 사진 세 장을 고르고 4:5로 자르기" width="150"> | | |
 
-**아래 막대는 다섯 칸**(홈 · 탐색 · 피드 · 서재 · 메시지)이고, **PC · 태블릿에서는** 같은 순서의 왼쪽 사이드바에 + 만들기 · 나가 더해지고, 리더는 두 쪽을 펼치고, 채팅은 목록과 대화가, 게시물은 사진과 댓글이 나란히 보여요.
+**아래 막대는 네 칸**(홈 · 탐색 · 커뮤니티 · 서재)이에요. **커뮤니티** 안은 인스타그램처럼 **피드 · 메시지 · 같이 읽기**로 나뉘고, 안 읽은 메시지 수는 커뮤니티 칸에 떠요. 새 게시물은 피드의 '내 기록 +' 동그라미와 프로필의 +에서 만들어요. **PC · 태블릿에서는** 같은 순서의 왼쪽 사이드바에 나가 더해지고, 리더는 두 쪽을 펼치고, 채팅은 목록과 대화가, 게시물은 사진과 댓글이 나란히 보여요.
 
 | PC 홈 | PC 리더 · 같이 읽는 친구 |
 |:---:|:---:|
@@ -210,10 +210,10 @@ Vercel 함수는 인스턴스마다 메모리가 따로라, 메모리 브로커(
 | 변수 | 끄면 사라지는 것 |
 |---|---|
 | `FEATURE_GOALS` | 하루 목표 · 잔디 · 연속(`/api/v1/me/goal`, 홈 · 내 정보의 목표 칸) |
-| `FEATURE_BOARD` | 같이 읽을 사람 모집(`/together`) |
-| `FEATURE_CHAT` | 친구 · 채팅(`/friends`, `/chat`) |
+| `FEATURE_BOARD` | 같이 읽을 사람 모집(`/community/together`, 예전 `/together`) |
+| `FEATURE_CHAT` | 친구 · 채팅(`/friends`, `/community/messages`, 예전 `/chat`) |
 | `FEATURE_MILEAGE` | 마일리지 상점(`/mileage`, `/admin/rewards`) — 적립은 계속돼요 |
-| `FEATURE_POSTS` | 읽은 책 게시물(`/feed`, `/posts/new`, `/p/{id}`, `/u/{id}`, `/profile`, 사진 주소) — 나는 `/me`로 |
+| `FEATURE_POSTS` | 읽은 책 게시물(`/community`, 예전 `/feed`, `/posts/new`, `/p/{id}`, `/u/{id}`, `/profile`, 사진 주소) — 나는 `/me`로 |
 
 ### 꼭 지키는 규칙 세 가지
 
@@ -355,10 +355,10 @@ app/
   main.py             FastAPI 앱 · 미들웨어(CSP · 세션 · 로그) · 오류 화면 · 라우터 등록
   web.py              화면 라우트(랜딩 · 가입/인증 · 홈 · 탐색 · 서점 · 리더 · 서재 · 대결 · 내 정보)
   intro.py            공개 페이지 /guide · /docs · /developers  (public_facts.py가 숫자를 코드에서 읽어요)
-  board.py            모집 게시판 /together
-  chat.py             친구 /friends · 채팅 /chat
+  board.py            모집 게시판 /community/together(예전 /together)
+  chat.py             친구 /friends · 채팅 /community/messages(예전 /chat)
   mileage.py          마일리지 /mileage · 관리자 리워드
-  posts.py            게시물 /feed · /posts/new · /p/{id} · /u/{id} · /profile · 사진 /media/p/{id}/{n}.jpg
+  posts.py            게시물 /community(예전 /feed) · /posts/new · /p/{id} · /u/{id} · /profile · 사진 /media/p/{id}/{n}.jpg
   admin.py            /admin (현황 · 사용자 · 대결방 · 메일 · 신고)
   auth.py             세션 · BCrypt · CSRF · 6자리 코드 · 비밀번호 재설정
   seo.py · pwa.py     robots · sitemap · OG / manifest · service worker · assetlinks

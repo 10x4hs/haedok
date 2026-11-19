@@ -25,7 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16-alpine
+        # pgvector 확장이 든 Postgres 16 — 마이그레이션 a77d6e1f3f07 이 CREATE EXTENSION vector 를 한다
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: haedok
           POSTGRES_PASSWORD: haedok

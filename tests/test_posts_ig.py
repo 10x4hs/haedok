@@ -297,7 +297,7 @@ async def test_comment_like_reply_delete_report(api, session_factory):
         html = (await a.get(f"/p/{pid}")).text
         assert "답글 2개 보기" in html
         assert html.index(f'id="c{top}"') < html.index(f'id="c{r1}"') < html.index(f'id="c{r2}"')
-        assert "댓글 3개 모두 보기" in (await a.get("/feed")).text
+        assert "댓글 3개 모두 보기" in (await a.get("/community")).text
         # 댓글 좋아요: 켜고 끈다
         r = await a.post(f"/p/{pid}/comments/{top}/like", data={"csrf": ta}, headers=J)
         assert r.json() == {"liked": True, "count": 1}
@@ -368,7 +368,7 @@ async def test_send_to_friend_creates_one_dm_only_for_friends(api, session_facto
     async with done(a, f, x):
         pid = pid_of(await upload(a, [TINY], n=1))
         ta = await token(a)
-        page = (await a.get("/feed")).text
+        page = (await a.get("/community")).text
         assert (
             'id="psSend"' in page and f'value="{i_f}"' in page and f'value="{ix}"' not in page
         )  # 시트엔 친구만
@@ -465,14 +465,14 @@ async def test_explore_shows_only_everyone_visible_posts_with_big_tiles(api, ses
     async with done(a, f, x):
         open_ids = [pid_of(await upload(a, [TINY] if i % 2 else [], n=i)) for i in range(8)]
         closed = pid_of(await upload(a, [], visibility="friends", n=99))
-        page = (await f.get("/feed?tab=all")).text  # 친구여도 '모두'에는 친구만 글이 없다
+        page = (await f.get("/community?tab=all")).text  # 친구여도 '모두'에는 친구만 글이 없다
         html = page.split('class="ps-explore"', 1)[1].split("</ul>", 1)[0]  # 오른쪽 칸의 인기 게시물은 빼고
         ids = [int(i) for i in re.findall(r'class="ps-tile" href="/p/(\d+)"', html)]
         assert ids == sorted(open_ids, reverse=True) and closed not in ids
         assert html.count('class="ps-big l"') == 1 and html.count('class="ps-big r"') == 1  # 0번 칸 · 7번 칸
         assert 'class="ps-explore"' in page
         await relate(session_factory, ix, ia, status="blocked", blocker=ix)
-        assert "ps-tile" not in (await x.get("/feed?tab=all")).text
+        assert "ps-tile" not in (await x.get("/community?tab=all")).text
 
 
 async def test_book_search_json(api, session_factory):

@@ -1,0 +1,63 @@
+{% extends "app.html" %}
+{% from "_ui.html" import book_cover %}
+{% block title %}책에게 물어보기 · {{ book.title }} — 偕讀 해독{% endblock %}
+{% block body_class %}app ai-page{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/ai.css"><script src="/static/ai-page.js" defer></script>{% endblock %}
+{% block heading %}<small><a href="/books/{{ book.id }}">‹ {{ book.title }}</a></small>책에게 물어보기{% endblock %}
+{% block main %}
+<section class="ask-book glass-card">
+  {{ book_cover(book.title, book.author, 'sm', img=cover_of(book)|small_cover) }}
+  <div>
+    <b>{{ book.title }}</b>
+    <span class="muted">{{ book.author or '' }}</span>
+    <p class="ask-scope">{% if read_upto %}{{ read_upto }}쪽까지 읽은 곳에서만 답해요{% else %}아직 다 읽은 쪽이 없어요{% endif %}</p>
+  </div>
+</section>
+{% if notice %}<p class="hint ask-notice">{{ notice }}</p>{% endif %}
+{% if flash %}<p class="form-err ask-flash" role="alert">{{ flash }}</p>{% endif %}
+
+<form class="react-form ask-form" method="post" action="/books/{{ book.id }}/ask">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label class="sr" for="askQ">질문</label>
+  <input id="askQ" name="question" maxlength="300" placeholder="이 책에 대해 물어보기" autocomplete="off" enterkeyhint="send" required{% if not read_upto %} disabled{% endif %}>
+  <button class="btn primary"{% if not read_upto %} disabled{% endif %}>묻기</button>
+</form>
+
+<section class="row ask-history" aria-labelledby="askHistH">
+  <div class="row-h"><h2 id="askHistH" title="최근 5개까지 남아요">최근 문답</h2></div>
+  {% if items %}
+  <ol class="ask-list page">
+    {% for it in items %}
+    <li class="ask-q"{% if loop.first %} id="latest"{% endif %}><p>{{ it.question }}</p></li>
+    <li class="ask-a{{ '' if it.found else ' none' }}">
+      <span class="ask-label">AI 답변 · 틀릴 수 있어요</span>
+      <p>{{ it.answer }}</p>
+      {% if it.pages %}<span class="ask-pages">{% for p in it.pages %}<em>{{ p }}쪽</em>{% endfor %}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  <form method="post" action="/books/{{ book.id }}/ask/clear" class="ask-clear-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="link-btn">내 문답 기록 지우기</button>
+  </form>
+  {% else %}
+  <p class="muted">예: “주인공은 왜 그렇게 했어요?”</p>
+  {% endif %}
+</section>
+{% if ai_notes %}
+<section class="row ask-history" aria-labelledby="aiNotesH">
+  <div class="row-h"><h2 id="aiNotesH">내 AI 노트</h2><span class="muted">나만 봐요</span></div>
+  <ol class="ask-list page">
+    {% for n in ai_notes %}
+    <li class="ask-q"><p>✦ {{ n.label }}{% if n.quote %} · “{{ n.quote|truncate(60, true, '…') }}”{% endif %}</p></li>
+    <li class="ask-a">
+      <span class="ask-label">{{ n.chunk + 1 }}쪽 · AI 노트{{ ' · 반응으로 공유함' if n.shared else '' }}</span>
+      <p>{{ n.answer }}</p>
+      {% if n.pages %}<span class="ask-pages">{% for p in n.pages %}<em>{{ p }}쪽</em>{% endfor %}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
+<p class="ask-scope">읽은 쪽 안의 글만 AI에게 보내요</p>
+{% endblock %}

@@ -454,6 +454,6 @@
   }
   form.addEventListener('submit', e => { e.preventDefault(); submit(); });
 
-  goto(Number(new URLSearchParams(location.search).get('q') ? 2 : 1));
+  goto((p => (p.get('q') || p.get('step') === '2') ? 2 : 1)(new URLSearchParams(location.search)));
   if (form.querySelector('input[name="book"]:checked')) book();
 })();
