@@ -1,6 +1,6 @@
 {
  "source": "Yes24 분야별 베스트 (소설·인문·에세이)",
- "updated": "2026-11-18",
+ "updated": "2026-11-19",
  "books": [
   {
    "id": "y197068949",
@@ -47,17 +47,6 @@
    "category": "인문"
   },
   {
-   "id": "y195225852",
-   "title": "옥스브리지의 철학 수업",
-   "author": "고요엘",
-   "publisher": "상상스퀘어",
-   "price": 25200,
-   "cover": "https://image.yes24.com/goods/195225852/XL",
-   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EC%98%A5%EC%8A%A4%EB%B8%8C%EB%A6%AC%EC%A7%80%EC%9D%98+%EC%B2%A0%ED%95%99+%EC%88%98%EC%97%85",
-   "rank": 2,
-   "category": "인문"
-  },
-  {
    "id": "y197648352",
    "title": "서늘한 대화",
    "author": "정재승",
@@ -65,6 +54,17 @@
    "price": 19800,
    "cover": "https://image.yes24.com/goods/197648352/XL",
    "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EC%84%9C%EB%8A%98%ED%95%9C+%EB%8C%80%ED%99%94",
+   "rank": 2,
+   "category": "인문"
+  },
+  {
+   "id": "y195225852",
+   "title": "옥스브리지의 철학 수업",
+   "author": "고요엘",
+   "publisher": "상상스퀘어",
+   "price": 25200,
+   "cover": "https://image.yes24.com/goods/195225852/XL",
+   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EC%98%A5%EC%8A%A4%EB%B8%8C%EB%A6%AC%EC%A7%80%EC%9D%98+%EC%B2%A0%ED%95%99+%EC%88%98%EC%97%85",
    "rank": 3,
    "category": "인문"
   },
@@ -80,17 +80,6 @@
    "category": "에세이"
   },
   {
-   "id": "y140125515",
-   "title": "한 말씀만 하소서",
-   "author": "박완서",
-   "publisher": "세계사",
-   "price": 15300,
-   "cover": "https://image.yes24.com/goods/140125515/XL",
-   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%ED%95%9C+%EB%A7%90%EC%94%80%EB%A7%8C+%ED%95%98%EC%86%8C%EC%84%9C",
-   "rank": 2,
-   "category": "에세이"
-  },
-  {
    "id": "y196781015",
    "title": "오래 곁에 두어 좋은 말",
    "author": "나민애",
@@ -98,6 +87,17 @@
    "price": 16920,
    "cover": "https://image.yes24.com/goods/196781015/XL",
    "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EC%98%A4%EB%9E%98+%EA%B3%81%EC%97%90+%EB%91%90%EC%96%B4+%EC%A2%8B%EC%9D%80+%EB%A7%90",
+   "rank": 2,
+   "category": "에세이"
+  },
+  {
+   "id": "y140125515",
+   "title": "한 말씀만 하소서",
+   "author": "박완서",
+   "publisher": "세계사",
+   "price": 15300,
+   "cover": "https://image.yes24.com/goods/140125515/XL",
+   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%ED%95%9C+%EB%A7%90%EC%94%80%EB%A7%8C+%ED%95%98%EC%86%8C%EC%84%9C",
    "rank": 3,
    "category": "에세이"
   }

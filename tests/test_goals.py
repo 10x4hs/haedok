@@ -99,12 +99,24 @@ def test_minutes_estimate_uses_median_clamped():
     assert goals.estimate_minutes(3, 15) == 1
 
 
-def test_goal_validation_only_accepts_tiers():
-    for ok in (3, 5, 10, 20):
+def test_goal_accepts_any_whole_number_from_1_to_100():
+    for ok in (1, 3, 4, 7, 15, 20, 99, 100):
         assert goals.validate_goal(ok) == ok
-    for bad in (0, 1, 4, 6, 15, 21, 100, -5):
+    for bad in (0, -5, 101, 1000, 7.5, 7.0, "7", None, True):
         with pytest.raises(ValueError):
             goals.validate_goal(bad)
+
+
+def test_levels_follow_a_custom_goal():
+    # 목표 7쪽: 0 → 0, 1~3 → 1, 4~6 → 2(절반 이상), 7~13 → 3, 14+ → 4(두 배)
+    assert [goals.level(p, 7) for p in (0, 1, 3, 4, 6, 7, 13, 14, 30)] == [0, 1, 1, 2, 2, 3, 3, 4, 4]
+    assert [goals.level(p, 1) for p in (0, 1, 2)] == [0, 3, 4]
+    assert [goals.level(p, 100) for p in (49, 50, 100, 200)] == [1, 2, 3, 4]
+
+
+def test_presets_are_quick_picks_without_names():
+    assert goals.PRESETS == (3, 5, 10, 20)
+    assert (goals.GOAL_MIN, goals.GOAL_MAX) == (1, 100)
 
 
 def _days(*ds) -> dict:
@@ -263,6 +275,28 @@ async def test_freeze_not_spent_without_a_streak(session_factory, gclock):
         assert st["streak"]["freezes"] == 2 and st["streak"]["days"] == 0
 
 
+async def test_repair_needs_twice_a_custom_goal(session_factory, gclock):
+    async with session_factory() as s:
+        r = await _reader(s)
+        await goals.set_goal(s, r.user.id, 7)
+        await r.read(kst(2026, 11, 2, 12), 7)
+        gclock.set(kst(2026, 11, 3, 12))
+        await goals.status(s, r.user.id)
+        gclock.set(kst(2026, 11, 4, 9))  # 3일은 쉬었다
+        st = await goals.status(s, r.user.id)
+        assert st["streak"]["repair"] == {"open": True, "pages": 14}
+        await r.read(kst(2026, 11, 4, 10), 13)  # 두 배에 한 쪽 모자람
+        gclock.set(kst(2026, 11, 4, 11))
+        st = await goals.status(s, r.user.id)
+        assert {c["date"]: c["kind"] for c in st["heatmap"]["days"]}["2026-11-03"] != "repair"
+        await r.read(kst(2026, 11, 4, 12), 1)  # 14쪽
+        gclock.set(kst(2026, 11, 4, 13))
+        st = await goals.status(s, r.user.id)
+        kinds = {c["date"]: c["kind"] for c in st["heatmap"]["days"]}
+        assert kinds["2026-11-03"] == "repair" and st["streak"]["days"] == 2
+        assert st["today"]["level"] == 4 and st["goal"]["pages"] == 7
+
+
 async def test_repair_restores_streak_once_per_month(session_factory, gclock):
     async with session_factory() as s:
         r = await _reader(s)
@@ -309,9 +343,11 @@ async def test_set_goal_changes_levels(session_factory, gclock):
         assert (await goals.status(s, r.user.id))["today"]["level"] == 3
         await goals.set_goal(s, r.user.id, 3)
         assert (await goals.status(s, r.user.id))["today"]["level"] == 4
+        await goals.set_goal(s, r.user.id, 7)  # 아무 정수 — 6쪽은 7의 절반 이상
+        assert (await goals.status(s, r.user.id))["today"]["level"] == 2
         with pytest.raises(ValueError):
-            await goals.set_goal(s, r.user.id, 7)
-        assert (await s.get(ReadingGoal, r.user.id)).daily_pages == 3
+            await goals.set_goal(s, r.user.id, 101)
+        assert (await s.get(ReadingGoal, r.user.id)).daily_pages == 7
 
 
 # --- API · 화면 ---
@@ -345,9 +381,15 @@ async def test_api_get_put_and_real_reading_counts(api, session_factory, clock, 
         h = {"X-CSRF-Token": token}
         r = await c.put("/api/v1/me/goal", json={"pages": 10}, headers=h)
         assert r.status_code == 200 and r.json()["goal"]["pages"] == 10
-        for bad in (4, 0, 25):
+        r = await c.put("/api/v1/me/goal", json={"pages": 7}, headers=h)
+        assert r.status_code == 200 and r.json()["goal"]["pages"] == 7
+        assert r.json()["goal"]["min"] == 1 and r.json()["goal"]["max"] == 100
+        assert [t["pages"] for t in r.json()["goal"]["presets"]] == [3, 5, 10, 20]
+        assert r.json()["streak"]["repair"]["pages"] == 14
+        for bad in (0, 101, -1, 7.5, 7.0, "7", None):
             r = await c.put("/api/v1/me/goal", json={"pages": bad}, headers=h)
-            assert r.status_code == 422
+            assert r.status_code == 422, bad
+        assert (await c.get("/api/v1/me/goal")).json()["goal"]["pages"] == 7
         assert (await c.put("/api/v1/me/goal", json={"pages": 3})).status_code == 403  # CSRF 없음
         assert (await c.get("/api/v1/me/goal?weeks=99")).status_code == 422
         wide = (await c.get("/api/v1/me/goal?weeks=26")).json()
