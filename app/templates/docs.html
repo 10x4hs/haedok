@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_public.html" import public_head, public_nav, public_footer %}
 {% block title %}Docs — 偕讀 해독{% endblock %}
-{% block description %}해독(偕讀)의 규칙을 정확히 적었어요: 진도 인정, 마일리지, 스포일러 가드, 같이 읽기 방, 파일 올리기, 메일 인증.{% endblock %}
+{% block description %}해독(偕讀)의 규칙: 진도 인정, 스포일러 가드, 읽은 쪽까지만 답하는 AI, 커뮤니티, 하루 목표, 마일리지, 파일 올리기, 계정.{% endblock %}
 {% block body_class %}landing pub{% endblock %}
 {% block head_extra %}{{ public_head() }}{% endblock %}
 
@@ -11,15 +11,17 @@
 <main id="main" class="pub-wrap docs">
     <header class="page-head">
       <h1>해독의 규칙</h1>
-      <p>여기 적힌 숫자는 서버 코드에서 바로 읽어 와요. 규칙이 바뀌면 이 문서도 같이 바뀌어요.</p>
+      <p>숫자는 모두 서버 코드에서 읽어 와요. 규칙이 바뀌면 이 문서도 같이 바뀌어요.</p>
     </header>
     <nav class="toc" aria-labelledby="toc-h">
       <h2 id="toc-h" class="toc-h">이 문서에서</h2>
       <ol>
-        <li><a href="#pace">진도 인정 규칙</a></li>
-        <li><a href="#points">마일리지</a></li>
+        <li><a href="#pace">진도 인정</a></li>
         <li><a href="#spoiler">스포일러 가드</a></li>
-        <li><a href="#rooms">같이 읽기 방과 초대 코드</a></li>
+        <li><a href="#ai">AI</a></li>
+        <li><a href="#community">커뮤니티</a></li>
+        <li><a href="#goal">하루 목표와 잔디</a></li>
+        <li><a href="#points">마일리지</a></li>
         <li><a href="#upload">내 파일 올리기</a></li>
         <li><a href="#account">계정과 메일 인증</a></li>
         <li><a href="#faq">자주 묻는 질문</a></li>
@@ -27,21 +29,62 @@
     </nav>
 
     <section id="pace" aria-labelledby="h-pace">
-      <h2 id="h-pace">진도 인정 규칙</h2>
-      <p>한 쪽을 ‘다 읽음’으로 인정하는 건 서버예요. 휴대폰이 보낸 시간은 쓰지 않아요.</p>
+      <h2 id="h-pace">진도 인정</h2>
       <ul class="rules">
-        <li><b>쪽마다 {{ facts.page_s }}초.</b> 쪽을 펼친 시각과 ‘다 읽음’ 요청이 온 시각을 서버가 적고, 그 사이가 {{ facts.page_s }}초를 넘어야 인정해요. 글자 수나 화면 크기와 상관없이 모든 쪽이 같아요.</li>
-        <li><b>순서대로만.</b> 지금까지 인정된 쪽의 바로 다음 쪽만 인정받을 수 있어요. 앞 쪽을 다 읽은 뒤에 펼친 기록만 세서, 여러 쪽을 미리 펼쳐 두고 한꺼번에 인정받을 수 없어요.</li>
-        <li><b>기록되는 시간은 {{ facts.cap_x }}배까지.</b> 한 쪽에 남는 읽은 시간은 {{ facts.cap_s }}초({{ facts.page_s }}초의 {{ facts.cap_x }}배)까지만 쳐요. 창을 켜 둔 채 자리를 비워도 시간이 부풀지 않아요.</li>
-        <li><b>가려진 화면은 세지 않아요.</b> 리더는 다른 앱이나 탭으로 가 있는 동안 고리를 멈춰요.</li>
-        <li><b>다시 보내도 처음부터 안 세요.</b> 같은 쪽을 여러 번 펼쳤다면 가장 이른 펼침부터 재요.</li>
-        {# 통합 뒤 보강: 하루 목표·잔디 #}<li><b>하루 목표와 잔디.</b> 목표는 하루 {{ facts.goal_range }} 사이에서 정하고, 하루는 한국 시간 새벽 4시에 바뀌어요. 못 읽은 날은 보호권(최대 {{ facts.freeze_cap }}개)이 메워 줘요.</li>
+        <li><b>쪽마다 {{ facts.page_s }}초.</b> 쪽을 펼친 시각과 ‘다 읽음’ 요청이 온 시각을 서버가 적어, 그 사이가 {{ facts.page_s }}초를 넘어야 인정해요. 휴대폰이 보낸 시간은 쓰지 않아요.</li>
+        <li><b>순서대로만.</b> 인정된 마지막 쪽의 바로 다음 쪽만 인정받아요. 미리 여러 쪽을 펼쳐 두고 한꺼번에 받을 수 없어요.</li>
+        <li><b>기록되는 시간은 {{ facts.cap_x }}배까지.</b> 한 쪽에 남는 시간은 {{ facts.cap_s }}초까지만 쳐요. 다른 앱이나 탭에 가 있는 동안은 세지 않아요.</li>
+      </ul>
+    </section>
+
+    <section id="spoiler" aria-labelledby="h-spoiler">
+      <h2 id="h-spoiler">스포일러 가드</h2>
+      <ul class="rules">
+        <li><b>읽은 쪽까지만 열려요.</b> 같은 방 친구의 감상은 내가 그 쪽을 다 읽은 뒤에 내용이 와요. 그 전에는 개수만 받아요.</li>
+        <li><b>방 채팅도 같아요.</b> ‘# 책 이야기’ 메시지는 보낸 사람이 읽은 쪽이 찍히고, 나도 거기까지 읽어야 열려요.</li>
+        <li><b>감상의 모양.</b> 이모지({{ facts.emojis|join(' ') }}) 하나나 {{ facts.max_comment }}자까지의 한 줄이에요. 아직 펼치지 않은 쪽에는 남길 수 없어요.</li>
+      </ul>
+    </section>
+
+    <section id="ai" aria-labelledby="h-ai">
+      <h2 id="h-ai">AI</h2>
+      <p>책에게 물어보기, 문단에서 묻기, 맞춤 추천, AI 서점 도우미, 독서 요약에 AI를 써요.</p>
+      <ul class="rules">
+        <li><b>읽은 쪽까지만.</b> AI에게는 내가 다 읽은 쪽의 본문만 보내요. 뒤쪽 조각은 고를 때 한 번, 보내기 전에 한 번 더 걸러요. 문단에서 묻기는 지금 쪽의 고른 문단까지만 보내요.</li>
+        <li><b>없으면 없다고.</b> 읽은 부분에 가까운 내용이 없으면 답을 만들지 않고 ‘아직 읽은 부분에는 그 내용이 없어요’라고 해요.</li>
+        <li><b>근거 쪽.</b> 답에 붙은 (3쪽) 같은 표시는 실제로 보낸 쪽만 남겨요. AI가 지어낸 쪽 번호는 지워요.</li>
+        <li><b>하루 {{ facts.ai_daily }}번.</b> 질문하거나 AI 기능을 쓸 때마다 하나씩 세요. 문답은 책마다 최근 {{ facts.ai_keep }}개만 남고, 지울 수 있어요.</li>
+        <li><b>개인 파일은 본인만.</b> 내가 올린 파일은 나만 물어볼 수 있어요. 이때 파일 내용 일부가 AI 서비스로 보내진다고 먼저 알려 줘요.</li>
+        <li><b>AI 노트는 나만.</b> 리더에서 받은 답을 저장한 노트는 나만 봐요. ‘반응으로 공유’를 누를 때만 한 줄이 감상이 되고, 그때도 스포일러 가드를 거쳐요.</li>
+        <li><b>보내는 것.</b> 질문과 읽은 쪽의 본문 조각, 서점 도우미에게 한 말, 독서 요약에 쓰는 내 글이에요. 다른 사람의 글은 보내지 않고, 해독은 이것으로 AI를 학습시키지 않아요.</li>
+      </ul>
+    </section>
+
+    <section id="community" aria-labelledby="h-community">
+      <h2 id="h-community">커뮤니티</h2>
+      <p>아래 막대의 커뮤니티에 피드 · 메시지 · 같이 읽기가 있어요.</p>
+      <ul class="rules">
+        <li><b>사진 게시물.</b> 책 한 권에 사진 {{ facts.post_photos }}장까지와 한 줄을 올려요. 사진은 하루 {{ facts.photo_daily }}장까지, 같은 책은 하루에 한 번이에요.</li>
+        <li><b>위치는 남기지 않아요.</b> 사진의 위치·기기 정보(EXIF)는 브라우저와 서버에서 두 번 지워요.</li>
+        <li><b>공개 범위.</b> {{ facts.post_visibility|join(' · ') }} 중에 골라요. 내가 올린 개인 파일 책은 게시물이 될 수 없어요.</li>
+        <li><b>메시지.</b> 친구와 1:1로, 같은 방 사람과는 방에서 이야기해요. 한 번에 {{ facts.max_message }}자까지예요. 차단하면 서로의 게시물이 보이지 않고 개인 메시지도 보낼 수 없어요.</li>
+        <li><b>같이 읽기 방.</b> 정원 {{ facts.max_members }}명, 기간은 {{ facts.durations|join('·') }}일 중에 골라요. 모집 글로 모으면 마지막 자리를 동시에 눌러도 한 명만 들어가요.</li>
+        <li><b>초대 코드 {{ facts.code_len }}자리.</b> 헷갈리는 글자(0·O·1·I·L)는 빼고 만들어요. 순위는 서버가 인정한 쪽 수로 매겨요.</li>
+      </ul>
+    </section>
+
+    <section id="goal" aria-labelledby="h-goal">
+      <h2 id="h-goal">하루 목표와 잔디</h2>
+      <ul class="rules">
+        <li><b>{{ facts.goal_min }}~{{ facts.goal_max }}쪽.</b> 하루에 읽을 쪽 수를 이 사이의 아무 수로 정해요. 인정받은 쪽만 세요.</li>
+        <li><b>하루는 새벽 4시에 바뀌어요.</b> 한국 시간 기준이라 밤늦게 읽은 쪽은 그 전날로 쳐요.</li>
+        <li><b>보호권 {{ facts.freeze_cap }}개까지.</b> 연속으로 읽다가 하루 빠지면 보호권이 저절로 메워 줘요.</li>
       </ul>
     </section>
 
     <section id="points" aria-labelledby="h-points">
       <h2 id="h-points">마일리지</h2>
-      <p>같은 일로 두 번 받지 않아요. 날짜는 모두 한국 시간 기준이고, 주간 순위는 월요일 0시에 새로 시작해요. 모은 마일리지는 마일리지 상점에서 보상으로 바꿔요.{# 통합 뒤 보강: 마일리지 상점 #}</p>
+      <p>같은 일로 두 번 받지 않아요. 모은 마일리지는 마일리지 상점에서 보상으로 바꿔요.</p>
       <div class="tbl">
         <table>
           <thead><tr><th scope="col">무엇을 하면</th><th scope="col" class="num">마일리지</th><th scope="col">조건</th></tr></thead>
@@ -54,49 +97,19 @@
       </div>
     </section>
 
-    <section id="spoiler" aria-labelledby="h-spoiler">
-      <h2 id="h-spoiler">스포일러 가드</h2>
-      <p>친구 감상 때문에 이야기를 미리 알게 되는 일이 없게 서버가 막아요.</p>
-      <ul class="rules">
-        <li><b>같은 방 사람끼리만.</b> 감상은 그 책으로 같은 대결방에 있는 사람끼리 보여요.</li>
-        <li><b>읽은 쪽까지만 열려요.</b> 내가 인정받은 마지막 쪽보다 뒤에 있는 감상은 내용 없이 개수만 받아요. 지금 읽고 있는 쪽도 ‘다 읽음’ 전까지는 닫혀 있어요.</li>
-        <li><b>내 감상은 늘 보여요.</b> 내가 남긴 것은 어느 쪽에 있든 보여요.</li>
-        <li><b>지금 읽는 쪽까지만 남겨요.</b> 아직 펼치지 않은 뒤쪽에는 감상을 달 수 없어요.</li>
-        {# 통합 뒤 보강: 방 채팅 #}<li><b>방 채팅도 같아요.</b> 방 채팅 메시지도 감상처럼 내가 읽은 쪽까지만 열려요.</li>
-        <li><b>감상의 모양.</b> 이모지({{ facts.emojis|join(' ') }}) 하나나 {{ facts.max_comment }}자까지의 한 줄 글이에요.</li>
-      </ul>
-    </section>
-
-    <section id="rooms" aria-labelledby="h-rooms">
-      <h2 id="h-rooms">같이 읽기 방과 초대 코드</h2>
-      <ul class="rules">
-        <li><b>방 열기.</b> 대결 탭에서 서가의 책과 기간({{ facts.durations|join('·') }}일)을 고르면 방이 열려요. 내가 올린 파일로는 방을 열 수 없어요.</li>
-        <li><b>초대 코드 {{ facts.code_len }}자리.</b> 헷갈리는 글자(0·O·1·I·L)는 빼고 만들어요. 대소문자와 띄어쓰기는 가리지 않아요.</li>
-        <li><b>들어오는 길 두 가지.</b> 초대 링크(<code>/join/코드</code>)를 열거나, 대결 탭에 코드를 넣어요. 링크 미리보기는 로그인 없이도 보여요.</li>
-        <li><b>정원 {{ facts.max_members }}명.</b> 다 찼거나 기간이 끝난 방에는 들어갈 수 없어요.</li>
-        <li><b>순위.</b> 서버가 인정한 쪽 수로 매겨요.</li>
-        {# 통합 뒤 보강: 친구·채팅·모집 게시판 #}<li><b>친구와 모집.</b> 친구를 맺으면 개인 채팅을 할 수 있고, 같이 읽을 사람은 모집 게시판에서 찾아요. 셋 다 <b>커뮤니티</b>(피드 · 메시지 · 같이 읽기) 안에 있어요.</li>
-        <li><b>같이 읽는 중.</b> 리더를 펼친 친구의 지금 쪽이 보여요. 소식이 1분 넘게 없으면 목록에서 빠져요.</li>
-      </ul>
-    </section>
-
     <section id="upload" aria-labelledby="h-upload">
       <h2 id="h-upload">내 파일 올리기</h2>
       <ul class="rules">
-        <li><b>형식.</b> DRM 없는 {{ facts.formats|join(' · ') }} 파일이에요. DRM은 풀어 주지 않아요.</li>
-        <li><b>크기.</b> 파일 하나에 {{ facts.max_upload_mb }}MB까지예요. EPUB은 압축을 풀었을 때 {{ facts.max_unzipped_mb }}MB, PDF는 {{ "{:,}".format(facts.max_pdf_pages) }}쪽까지 읽어요.</li>
-        <li><b>올린 사람만 읽어요.</b> 본문은 나에게만 열리고, 친구와 나누는 건 위치·진도·감상뿐이에요.</li>
+        <li><b>형식과 크기.</b> DRM 없는 {{ facts.formats|join(' · ') }} 파일, 하나에 {{ facts.max_upload_mb }}MB까지예요. DRM은 풀어 주지 않아요.</li>
+        <li><b>올린 사람만 읽어요.</b> 친구와 나누는 건 위치·진도·감상뿐이에요.</li>
       </ul>
     </section>
 
     <section id="account" aria-labelledby="h-account">
       <h2 id="h-account">계정과 메일 인증</h2>
       <ul class="rules">
-        <li><b>{{ facts.code_digits }}자리 코드.</b> 가입하면 메일로 코드를 보내요. 코드는 {{ facts.code_min }}분 동안 쓸 수 있어요.</li>
-        <li><b>{{ facts.code_attempts }}번까지.</b> 틀린 코드를 {{ facts.code_attempts }}번 넣으면 그 코드는 더 못 써요. 새 코드를 받아 주세요.</li>
-        <li><b>다시 보내기는 {{ facts.resend_s }}초 뒤.</b> 메일을 너무 자주 보내지 않게 기다려요.</li>
-        <li><b>비밀번호는 {{ facts.min_password }}자 이상.</b> 잊어버리면 같은 방식의 메일 코드로 다시 정해요.</li>
-        <li><b>로그인 유지.</b> ‘로그인 상태 유지’를 고르면 {{ facts.remember_days }}일 동안 다시 로그인하지 않아도 돼요.</li>
+        <li><b>{{ facts.code_digits }}자리 코드.</b> {{ facts.code_min }}분 동안 쓸 수 있고, {{ facts.code_attempts }}번 틀리면 새 코드를 받아야 해요. 다시 보내기는 {{ facts.resend_s }}초 뒤예요.</li>
+        <li><b>비밀번호는 {{ facts.min_password }}자 이상.</b> ‘로그인 상태 유지’를 고르면 {{ facts.remember_days }}일 동안 다시 로그인하지 않아도 돼요.</li>
         <li><b>코드는 원문으로 저장하지 않아요.</b> 서버 비밀키를 섞은 지문(HMAC)만 남겨요.</li>
       </ul>
     </section>
@@ -105,10 +118,10 @@
       <h2 id="h-faq">자주 묻는 질문</h2>
       <div class="faq-list">
         <details><summary>쪽을 빨리 넘기면 진도가 올라가요?</summary><p>넘어가긴 하지만 진도는 안 올라가요. 쪽마다 {{ facts.page_s }}초가 지나야 ‘다 읽음’이 되고, 순서대로만 인정돼요.</p></details>
+        <details><summary>AI가 결말을 말해 버리지 않나요?</summary><p>AI에게는 내가 다 읽은 쪽의 본문만 보내요. 그 안에 답이 없으면 ‘아직 읽은 부분에는 그 내용이 없어요’라고 해요. AI 답은 틀릴 수 있어요.</p></details>
+        <details><summary>내 글이 AI 학습에 쓰이나요?</summary><p>해독은 내 글로 AI를 학습시키지 않아요. AI 서비스로 보내는 것은 위 <a href="#ai">AI</a>의 ‘보내는 것’이 전부예요.</p></details>
         <details><summary>친구 감상이 ‘🔒’로만 보여요.</summary><p>아직 그 쪽을 다 읽지 않아서예요. 그 쪽에서 ‘다 읽음’을 받으면 바로 열려요.</p></details>
         <details><summary>올린 파일이 친구에게도 보여요?</summary><p>아니요. 본문은 올린 사람만 열 수 있어요. 친구에게는 내가 어디쯤 읽는지와 남긴 감상만 보여요.</p></details>
-        <details><summary>인증 메일이 안 와요.</summary><p>스팸함을 먼저 봐 주세요. 없으면 {{ facts.resend_s }}초 뒤에 다시 보내기를 눌러요. 코드는 {{ facts.code_min }}분 뒤에 만료돼요.</p></details>
-        <details><summary>대결이 끝나면 어떻게 돼요?</summary><p>새 사람은 들어올 수 없어요. 다 읽은 기록과 받은 마일리지는 그대로 남아요.</p></details>
       </div>
     </section>
 </main>

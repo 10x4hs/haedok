@@ -10,7 +10,20 @@ from pathlib import Path
 
 from app import auth
 from app.core.config import get_settings
-from app.services import goals, pace, points, races, social, uploads
+from app.services import (
+    chat,
+    goals,
+    pace,
+    points,
+    post_photos,
+    posts,
+    races,
+    rag,
+    reader_ai,
+    social,
+    uploads,
+    vectors,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -55,8 +68,23 @@ def clip_versions(sub: str = "clips") -> dict[str, str]:
     return {p.name: hashlib.sha1(p.read_bytes()).hexdigest()[:8] for p in sorted(folder.glob("*.*"))}
 
 
+def mp4_seconds(path: Path) -> int | None:
+    """MP4 의 mvhd 상자에서 길이(초, 반올림)를 읽는다 — 화면의 'n초로 먼저 보기'가 실제 영상과 같게."""
+    try:
+        data = path.read_bytes()
+    except OSError:
+        return None
+    i = data.find(b"mvhd")
+    if i < 0:
+        return None
+    num = lambda a, b: int.from_bytes(data[i + a : i + b], "big")  # noqa: E731
+    scale, length = (num(24, 28), num(28, 36)) if data[i + 4] == 1 else (num(16, 20), num(20, 24))
+    return round(length / scale) if scale else None
+
+
 CLIP_V = clip_versions()
-DEMO_V = clip_versions("demo")  # 41초 소개 영상
+DEMO_V = clip_versions("demo")  # 첫 화면 소개 영상
+DEMO_S = mp4_seconds(ROOT / "app" / "static" / "demo" / "haedok-demo.mp4")
 
 
 def _facts() -> dict:
@@ -68,6 +96,8 @@ def _facts() -> dict:
         "base_page_s": pace.PAGE_DWELL_MS // 1000,
         "cap_x": pace.DWELL_CAP_MULTIPLIER,
         "goal_range": f"{goals.GOAL_MIN}~{goals.GOAL_MAX}쪽",
+        "goal_min": goals.GOAL_MIN,
+        "goal_max": goals.GOAL_MAX,
         "freeze_cap": goals.FREEZE_CAP,
         "cap_s": f"{page_s * pace.DWELL_CAP_MULTIPLIER:g}",
         "points": [
@@ -90,6 +120,17 @@ def _facts() -> dict:
         "resend_s": auth.RESEND_COOLDOWN_S,
         "min_password": auth.MIN_PASSWORD_CHARS,
         "remember_days": auth.REMEMBER_DAYS,
+        "ai_daily": s.ai_daily_requests,
+        "ai_keep": rag.KEEP,
+        "ai_question": rag.MAX_QUESTION,
+        "ai_top_k": rag.TOP_K,
+        "ai_part_chars": vectors.PART_CHARS,
+        "ai_actions": list(reader_ai.ACTIONS.values()),
+        "post_photos": post_photos.MAX_PHOTOS,
+        "photo_daily": post_photos.DAILY_PHOTOS,
+        "post_visibility": list(posts.VISIBILITY.values()),
+        "max_message": chat.MAX_BODY,
+        "demo_s": DEMO_S,
         "tests": _count_tests(),
         "migrations": _count_migrations(),
         "js_files": js_files,

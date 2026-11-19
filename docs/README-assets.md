@@ -7,7 +7,7 @@ README에 들어가는 이미지는 세 종류예요. 스크린샷은 손으로 
 | 소셜 배너 1200×630 (영어 README) | `docs/images/banner.png` | `scripts/readme_assets.sh` |
 | 앱 · 관리자 스크린샷 | `docs/images/app/*.jpg` · `docs/images/admin/*.jpg` | `scripts/readme_shots.sh` (아래) |
 | 게시물 예시 사진(합성) | 촬영 때마다 `$OUT/photos` | `scripts/readme_photos.py` (아래) |
-| 41초 소개 영상 · 포스터 | `app/static/demo/haedok-demo.mp4` · `haedok-demo-poster.jpg` | 랜딩에 쓰는 파일을 README가 링크해요 |
+| 40초 소개 영상 · 포스터 | `app/static/demo/haedok-demo.mp4` · `haedok-demo-poster.jpg` | 랜딩에 쓰는 파일을 README가 링크해요 |
 
 한국어 README 맨 위 그림은 GitHub에 올린 이미지(user-attachments)라 저장소 밖에 있어요.
 

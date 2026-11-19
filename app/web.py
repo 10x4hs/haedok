@@ -125,7 +125,7 @@ templates.env.filters["small_cover"] = small_cover
 templates.env.globals["cover"] = cover
 templates.env.globals["cover_of"] = cover_of
 templates.env.globals["clip_v"] = CLIP_V  # 공개 페이지 영상 주소의 ?v= (app/templates/_public.html)
-templates.env.globals["demo_v"] = DEMO_V  # 첫 화면 41초 영상 주소의 ?v=
+templates.env.globals["demo_v"] = DEMO_V  # 첫 화면 소개 영상 주소의 ?v=
 templates.env.globals["APPEARANCE"] = appearance
 seo.install(templates.env)  # canonical·OG 주소
 
