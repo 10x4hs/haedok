@@ -25,7 +25,8 @@
     });
     fit();
     const st = $('[data-ai-state]');
-    store.set(st && st.value);
+    // 대화가 있을 때만 기억한다 — 빈 첫 화면이 기억해 둔 대화를 지우면 되살리기가 안 된다('새 대화'가 지운다)
+    if (st && st.value) store.set(st.value);
     if (newBtn) newBtn.hidden = !st || !st.value;
   }
 

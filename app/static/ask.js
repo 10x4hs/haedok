@@ -56,9 +56,9 @@
       if (!r.ok) throw new Error(r.status);
       const data = await r.json();
       render(data.items || []);
-      if (data.read_upto > 0) $('askScope').textContent = `${data.read_upto}쪽까지 읽었어요. 거기까지만 보고 답해요.`;
+      if (data.read_upto > 0) $('askScope').textContent = `${data.read_upto}쪽까지 읽은 곳에서만 답해요`;
       else {
-        $('askScope').textContent = '아직 다 읽은 쪽이 없어요. 몇 쪽 읽고 나서 물어봐 주세요.';
+        $('askScope').textContent = '몇 쪽 읽고 나면 물어볼 수 있어요';
       }
       loaded = true;
     } catch {
