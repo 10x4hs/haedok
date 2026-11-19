@@ -103,27 +103,28 @@ _PAREN = re.compile(r"\s*\(([^()]*?\d+\s*쪽[^()]*)\)")
 _BARE = re.compile(r"(\d+)\s*쪽")
 
 
+_SENT = re.compile(r"[^.!?。\n]*(?:[.!?。]+|\n|$)")
+
+
 def clean_cites(text: str, allowed: set[int]) -> tuple[str, list[int]]:
-    """(12쪽) · (3쪽, 5쪽) 가운데 보낸 쪽만 남긴다. 괄호 밖의 지어낸 쪽 번호도 지운다."""
+    """보낸 쪽만 근거로 남긴다. 보내지 않은 쪽 번호가 나온 문장은 통째로 지운다.
+
+    번호만 '어느 쪽'으로 바꾸면 그 문장(뒤 내용일 수 있는 스포일러)이 그대로 남는다 —
+    모델이 지어낸 쪽은 읽지 않은 곳일 수 있으니, 그 쪽을 말한 문장째로 버린다.
+    """
     cited: list[int] = []
-
-    def paren(m: re.Match) -> str:
-        nums = [int(n) for n in re.findall(r"\d+", m.group(1))]
-        keep = [n for n in nums if n in allowed]
-        cited.extend(keep)
-        return f" ({', '.join(f'{n}쪽' for n in keep)})" if keep else ""
-
-    text = _PAREN.sub(paren, text)
-
-    def bare(m: re.Match) -> str:
-        n = int(m.group(1))
-        if n in allowed:
-            cited.append(n)
-            return m.group(0)
-        return "어느 쪽"
-
-    text = _BARE.sub(bare, text)
-    return text.strip(), sorted(set(cited))
+    kept: list[str] = []
+    for sent in _SENT.findall(text):
+        if not sent.strip():
+            continue
+        nums = [int(n) for n in _BARE.findall(sent)]
+        if any(n not in allowed for n in nums):
+            continue  # 지어낸 쪽이 하나라도 있으면 문장째 버린다
+        cited.extend(nums)
+        kept.append(sent)
+    out = "".join(kept)
+    out = _PAREN.sub(lambda m: f" ({m.group(1).strip()})", out)  # 괄호 앞 공백 정리
+    return re.sub(r"[ \t]{2,}", " ", out).strip(), sorted(set(cited))
 
 
 # --- 묻기 ---------------------------------------------------------------------------------

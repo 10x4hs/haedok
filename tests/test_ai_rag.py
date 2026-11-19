@@ -485,3 +485,12 @@ async def test_build_script_fills_in_batches_and_is_idempotent(tmp_path, fake_ai
     assert "+100권" in out and "+50권" in out
     assert await script.run(url, None, check=True) == 0
     assert f"150 / {len(vectors.catalogue_items()):,}" in capsys.readouterr().out
+
+
+def test_sentence_with_an_invented_page_is_dropped_whole():
+    """지어낸 쪽(99쪽)을 말한 문장은 번호만 바꾸지 않고 통째로 버린다 — 뒤 내용이 새지 않게."""
+    text, cited = rag.clean_cites("김첨지는 운이 좋았어요 (1쪽). 끝에는 99쪽에서 울어요 (99쪽). 비가 왔어요 (2쪽, 3쪽).", {1, 2, 3})
+    assert "울어요" not in text and "99" not in text and "어느 쪽" not in text
+    assert "운이 좋았어요 (1쪽)" in text and "비가 왔어요 (2쪽, 3쪽)" in text
+    assert cited == [1, 2, 3]
+    assert rag.clean_cites("끝에는 99쪽에서 울어요 (99쪽).", {1, 2, 3}) == ("", [])
