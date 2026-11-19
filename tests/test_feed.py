@@ -101,7 +101,7 @@ async def test_community_header_stories_and_no_composer(api, session_factory):
         assert "무엇을 읽고 있나요?" not in html and "ps-composer" not in html and "ps-chip" not in html
         assert f"/posts/new?book=b%3A{bid}" not in html  # 책 칩도 없다
         top = html.split('<header class="top">', 1)[1].split("</header>", 1)[0]
-        assert "/posts/new" not in top and "/chat" not in top and "/together" not in top
+        assert "/posts/new" not in top and 'href="/chat' not in top and 'href="/together' not in top  # 갈래 아이콘뿐
         assert "ps-top-plus" not in html and "data-together" not in html and 'id="psTogether"' not in html
         assert html.count('href="/posts/new"') == 1  # 만들기 입구는 '내 기록 +' 하나
         # 책을 고른 채로 여는 주소는 그대로 동작한다
@@ -292,11 +292,11 @@ async def test_new_count_and_fresh(api, session_factory):
         assert (await a.get("/feed/new?after=0")).json() == {"count": 0}
         frag = (await a.get(f"/feed/fresh?after={first}&tab=friends")).text
         assert "<html" not in frag and len(re.findall(r'id="post-(\d+)"', frag)) == 4  # 친구 셋 + 내 글
-        assert "새로운 사람" not in frag
+        assert "추천 게시물" not in frag
         mixed = (await a.get(f"/feed/fresh?after={first}")).text
         ids = [int(i) for i in re.findall(r'id="post-(\d+)"', mixed)]
         assert len(ids) == 5 and len(set(ids)) == 5  # 친구 글 먼저, 새로운 사람 글은 뒤에
-        assert mixed.index("새로운 사람") > mixed.index(f'id="post-{ids[3]}"')
+        assert mixed.index("추천 게시물") > mixed.index(f'id="post-{ids[3]}"')
         page = (await a.get("/community")).text
         assert "data-new-pill" in page and re.search(r'data-newest="\d+"', page)
         assert 'data-tab="mix"' in page

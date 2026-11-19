@@ -8,9 +8,9 @@
 {% block body_class %}app chat-shell cm-chat chat-at-thread{% endblock %}
 {% block content_class %}chat{% endblock %}
 {% block heading %}커뮤니티{% endblock %}
+{% block top_extra %}{% include "_community.html" %}{% endblock %}
 {% block main %}
 <link rel="stylesheet" href="/static/chat.css">
-{% include "_community.html" %}
 <div class="ch-app ch-scope in-thread">
   {{ list_pane(tab, convs, unread, bubbles, current=conv.href) }}
 

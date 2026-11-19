@@ -106,10 +106,10 @@ async def test_default_tab_friends_first_then_new_people(api, session_factory):
         assert ids.count(mine[0]) == 1  # 내 글은 친구 갈래에서 한 번만(새로운 사람 갈래에는 없다)
         for pid in other:
             head = article(html, pid)
-            assert "새로운 사람" in head and f'action="/friends/{ix}/request"' in head
+            assert "추천 게시물" in head and f'action="/friends/{ix}/request"' in head  # 화면에는 친구 신청 단추만
         for pid in friend + mine:
             head = article(html, pid)
-            assert "새로운 사람" not in head and "/request" not in head  # 이미 친구 · 나에게는 친구 신청 없음
+            assert "추천 게시물" not in head and "/request" not in head  # 이미 친구 · 나에게는 친구 신청 없음
         # 친구 탭 = 친구(와 나)만
         only = stream_ids((await a.get("/community?tab=friends")).text)
         assert only == friend_lane[: psvc.FEED_PAGE]

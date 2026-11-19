@@ -5,6 +5,7 @@
 {% block head_extra %}<link rel="stylesheet" href="/static/posts.css">{% endblock %}
 {% block content_class %}wide{% endblock %}
 {% block heading %}커뮤니티{% endblock %}
+{% block top_extra %}{% include "_community.html" %}{% endblock %}
 {% block main %}
 {# 커뮤니티의 피드 갈래(Instagram · X · Facebook · Threads 를 우리 규칙으로):
    커뮤니티 갈래(피드 · 메시지 · 같이 읽기, 위에 붙어 따라온다) → 동그라미 줄('내 기록 +' = 새 게시물) →
@@ -12,7 +13,6 @@
    넓은 화면은 오른쪽에 내 작은 프로필 · 같이 읽을 사람 셋 · 바닥글. 따로 만드는 칸 · 머리 단추는 두지 않는다. #}
 <div class="ps ps-feed ps-home{{ ' has-side-rc' if side.recruits else '' }}">
   <div class="ps-home-main">
-    {% include "_community.html" %}
     {% if stories %}
     {% set me_story = stories[0] %}
     <ul class="ps-stories" aria-label="동그라미 — 24시간 안에 올렸거나 지금 읽는 친구에게 고리가 있어요" data-stories>
@@ -43,7 +43,6 @@
     {% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
 
     {% if tab == 'all' %}
-      <p class="muted small ps-lede">가입한 모두에게 보이게 올린 읽은 책이에요. 눌러서 열어 보세요.</p>
       {% if tiles %}
       <ul class="ps-explore" aria-label="모두의 게시물">{% for t in tiles %}{{ grid_tile(t, ('ps-big ' ~ ('l' if (loop.index0 // 5) % 2 == 0 else 'r')) if t.big else '') }}{% endfor %}</ul>
       {% if more_href %}<a class="btn ghost wide ps-more" href="{{ more_href }}">더 보기</a>{% endif %}
@@ -63,7 +62,6 @@
         </div>
       </section>
     {% else %}
-      {% if tab == 'mix' %}<p class="muted small ps-lede">친구 게시물을 먼저, 사이사이에 새로운 사람들의 공개 게시물을 보여 줘요. 내 활동은 추적하지 않아요.</p>{% endif %}
       <button type="button" class="ps-pill" data-new-pill hidden><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg><span>새 게시물 <b data-new-n>0</b>개</span></button>
       {% if items %}
       <div class="ps-cards" data-stream data-tab="{{ tab }}" data-newest="{{ newest }}" aria-live="off">

@@ -43,12 +43,21 @@
 <meta name="csrf" content="{{ csrf }}">
 <link rel="stylesheet" href="/static/app.css">
 <link rel="stylesheet" href="/static/looks.css">
+{% if community is defined %}<link rel="stylesheet" href="/static/community.css">{% endif %}
+{# 화면 전환(View Transitions): POST 폼 뒤처럼 브라우저가 전환을 건너뛰면 promise 가 거절되는데, 아무도 받지 않으면
+   콘솔에 'Transition was aborted because of invalid state' 가 남는다. 건너뛴 전환은 그냥 조용히 넘긴다. #}
+<script nonce="{{ csp_nonce }}">(() => { const quiet = e => { const t = e.viewTransition; if (t) ['ready', 'finished', 'updateCallbackDone'].forEach(k => t[k] && t[k].catch(() => {})); }; addEventListener('pageswap', quiet); addEventListener('pagereveal', quiet); })();</script>
 {% block head_extra %}{% endblock %}
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% block body_class %}{% endblock %}{{ ' cm' if community is defined else '' }}"{% if community is defined %} data-cm="{{ community }}"{% endif %}>
 <div class="fx" id="fx" data-bg="{{ look.bg if look else 'plain' }}" aria-hidden="true"></div>
 <script src="/static/fx.js" defer></script>
 <script src="/static/motion.js" defer></script>
 {% block body %}{% endblock %}
+{% if community is defined %}
+{# 커뮤니티: 아이콘으로 갈래를 바꿔 돌아오면 그 갈래에서 보던 자리로(첫 화면을 그리기 전에) — community.js 가 적어 둔다 #}
+<script nonce="{{ csp_nonce }}">(() => { try { const here = location.pathname + location.search; if (sessionStorage.getItem('cm-go') !== here) return; sessionStorage.removeItem('cm-go'); const y = +(sessionStorage.getItem('cm-y:' + here) || 0); if (y > 0) scrollTo(0, y); } catch (_) {} })();</script>
+<script src="/static/community.js" defer></script>
+{% endif %}
 </body>
 </html>

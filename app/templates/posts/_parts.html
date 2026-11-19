@@ -84,7 +84,7 @@
 <header class="ps-head">
   <a class="ps-who-face" href="/u/{{ c.author.id }}" aria-label="{{ c.author.nickname }} 프로필" tabindex="-1">{{ face(c.author, faces, 'sm', ring=c.recent) }}</a>
   <div class="ps-who-t">
-    <span class="ps-who-l1"><a class="ps-who-n" href="/u/{{ c.author.id }}">{{ c.author.nickname }}</a>{% if c.suggested %}<span class="ps-sug" title="아직 친구가 아닌 사람의 공개 게시물">· 새로운 사람</span>{% endif %}</span>
+    <span class="ps-who-l1"><a class="ps-who-n" href="/u/{{ c.author.id }}">{{ c.author.nickname }}</a>{% if c.suggested %}<span class="sr">추천 게시물</span>{% endif %}</span>
     <a class="ps-who-book" href="/p/{{ p.id }}" id="pt{{ p.id }}">{{ p.book_title }}{% if p.book_author %}<span> · {{ p.book_author }}</span>{% endif %}</a>
   </div>
   {% if c.suggested and csrf and chat_enabled is defined and chat_enabled() %}
@@ -150,15 +150,13 @@
 {{ like_line(c) }}
 {%- endmacro %}
 
-{# 좋아요 줄: 친구가 눌렀으면 'OO님 외 n명이 좋아합니다', 아니면 '좋아요 n개' #}
+{# 좋아요 줄: 친구가 눌렀으면 'OO님 외 n명이 좋아합니다', 아니면 '좋아요 n개', 없으면 비운다(인스타그램처럼) #}
 {% macro like_line(c) -%}
 <p class="ps-likes" data-like-line data-friend="{{ c.friend_liker or '' }}">
 {%- if c.likes and c.friend_liker -%}
   <b>{{ c.friend_liker }}</b>님{% if c.likes > 1 %} 외 <b data-like-count>{{ c.likes - 1 }}</b>명이{% else %}이{% endif %} 좋아합니다
 {%- elif c.likes -%}
   좋아요 <b data-like-count>{{ c.likes }}</b>개
-{%- else -%}
-  <span data-like-zero>가장 먼저 좋아요를 눌러 보세요</span>
 {%- endif -%}
 </p>
 {%- endmacro %}

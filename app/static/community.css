@@ -1,41 +1,124 @@
-/* 커뮤니티 — 한 칸 안의 갈래(피드 · 메시지 · 같이 읽기). templates/_community.html
-   갈래 줄은 서재의 내 책 · 대결 줄(.shelf-tabs)과 같은 말투: 밑줄 + 진한 글씨. 피드 안의 거르기(전체 · 친구 · 탐색)는
-   한 단계 아래라 작은 알약으로 조용하게 — 같은 크기의 탭 줄이 두 개 생기지 않게. */
-.cm-tabs{display:flex;margin:0 0 4px;border-bottom:1px solid var(--line)}
-.cm-tabs a{flex:1;position:relative;display:flex;align-items:center;justify-content:center;gap:6px;min-height:46px;margin-bottom:-1px;border-bottom:2px solid transparent;font-size:15px;font-weight:600;color:color-mix(in srgb,var(--text) 62%,transparent);white-space:nowrap;transition:color .3s var(--ease),border-color .3s var(--ease)}
-.cm-tabs a:hover{color:var(--text)}
-.cm-tabs a[aria-current="page"]{color:var(--text);font-weight:700;border-bottom-color:var(--text)}
-.cm-tabs a:focus-visible{outline:2px solid var(--accent);outline-offset:-4px;border-radius:10px}
-.cm-badge{min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font:700 10px/18px var(--f-mono);font-style:normal;text-align:center}
+/* 커뮤니티(피드 · 메시지 · 같이 읽기) — base.html 이 커뮤니티 화면에서만 <head> 에 건다(body.cm).
+ *
+ * 인스타그램 앱의 절제를 따른다:
+ * - 위 막대 하나: 왼쪽 '커뮤니티'(17px — 화면 제목이 아니라 구역 이름), 오른쪽 갈래 아이콘 셋. 내려도 위에 붙어 있다.
+ * - 색은 하나: 브랜드 분홍(--accent)은 누르는 것 · 선택된 아이콘 · 하트에만. 나머지는 글자색과 회색.
+ * - 글자는 Pretendard 하나, 크기 세 단계(13 · 15 · 17), 굵기 둘(400 · 600). 숫자는 고정폭 숫자(tabular-nums).
+ * - 움직임은 짧고 조용하게(150–220ms, --ease). 화면을 바꿀 때는 위 막대 · 아래 막대가 제자리에 있고 내용만 스민다.
+ */
 
-/* 피드: 갈래 줄은 위에 붙어 따라온다(오른쪽 위 메뉴 단추 자리는 비운다) */
-.ps-feed .cm-tabs{position:sticky;top:0;z-index:7;margin:0 -20px 4px;padding:0 64px 0 20px;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%)}
-@media (min-width:768px){.ps-feed .cm-tabs{margin:0 0 4px;padding:0}}
+/* ---------------------------------------------------------------- 위 막대 */
+body.cm .top{position:sticky;top:0;z-index:30;min-height:56px;padding:calc(6px + env(safe-area-inset-top)) 72px 6px 16px;gap:4px;
+  transition:background-color .2s var(--ease),box-shadow .2s var(--ease)}
+body.cm .top.is-scrolled{background:color-mix(in srgb,var(--bg) 84%,transparent);-webkit-backdrop-filter:blur(16px) saturate(140%);backdrop-filter:blur(16px) saturate(140%);box-shadow:0 1px 0 var(--line)}
+body.cm .top-title{font:600 17px/1.2 var(--f-ui);letter-spacing:-.02em}
+body.cm .top .menu-pill{top:calc(6px + env(safe-area-inset-top))}
+body.cm .top-me{width:44px;height:44px}
+body.cm .top-me .nv-av.avatar{width:28px;height:28px}
 
-/* 피드 거르기: 작은 알약(누르는 자리는 44px) */
-.ps-filter{display:flex;gap:8px;margin:6px 0 10px}
-.ps-filter a{position:relative;display:inline-flex;align-items:center;height:32px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600;color:var(--dim);background:var(--sunken);transition:background .3s var(--ease),color .3s var(--ease)}
-.ps-filter a::after{content:"";position:absolute;inset:-6px -4px}
+.cm-nav{display:flex;align-items:center;gap:2px;flex:none}
+.cm-nav a{position:relative;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;color:color-mix(in srgb,var(--text) 72%,transparent);transition:color .18s var(--ease),background-color .18s var(--ease)}
+.cm-nav a:hover{color:var(--text);background:var(--sunken)}
+.cm-nav a:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.cm-nav .ic{width:24px;height:24px;transition:transform .18s var(--ease)}
+.cm-nav a:active .ic{transform:scale(.92)}
+.cm-nav .cm-f{display:none}
+.cm-nav a[aria-current="page"]{color:var(--accent-strong)}
+.cm-nav a[aria-current="page"] .cm-f{display:inline}
+.cm-nav a[aria-current="page"] .cm-o{display:none}
+.cm-badge{position:absolute;top:3px;right:1px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font:600 10px/17px var(--f-ui);font-style:normal;font-variant-numeric:tabular-nums;text-align:center;box-shadow:0 0 0 2px var(--bg)}
+/* 넓은 화면 · 마우스: 아이콘 이름 풍선 */
+@media (hover:hover) and (pointer:fine){
+  .cm-nav a::after{content:attr(data-tip);position:absolute;top:calc(100% + 4px);left:50%;transform:translate(-50%,-3px);padding:4px 8px;border-radius:8px;background:var(--text);color:var(--bg);font:600 13px/1.2 var(--f-ui);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s var(--ease),transform .15s var(--ease)}
+  .cm-nav a:hover::after,.cm-nav a:focus-visible::after{opacity:1;transform:translate(-50%,0)}
+}
+@media (min-width:768px) and (min-height:520px){
+  body.cm .top{padding:calc(14px + env(safe-area-inset-top)) 96px 14px 40px}
+  body.cm .top .menu-pill{top:calc(14px + env(safe-area-inset-top))}
+  .cm-nav{gap:6px}
+}
+@media (min-width:1100px){
+  /* 오른쪽 칸은 위 막대(72px) 아래에 붙는다 */
+  body.cm .ps-home-side{top:88px}
+}
+
+/* ---------------------------------------------------------------- 화면 바꾸기(View Transitions)
+   위 막대 · 아래 막대는 이름을 붙여 제자리에 두고, 내용(cm-main)만 짧게 사라졌다 나타난다 — 하얗게 · 까맣게 깜빡이지 않는다. */
+body.cm .top{view-transition-name:cm-bar}
+body.cm .content{view-transition-name:cm-main}
+::view-transition-group(cm-bar){animation-duration:.2s;animation-timing-function:var(--ease)}
+::view-transition-group(cm-main){animation:none}
+::view-transition-old(cm-main),::view-transition-new(cm-main){width:100%;height:auto;object-fit:none;object-position:top center}
+::view-transition-old(cm-main){animation:cm-out .15s var(--ease) both}
+::view-transition-new(cm-main){animation:cm-in .22s var(--ease) both}
+::view-transition-old(root){animation:cm-out .15s var(--ease) both}
+::view-transition-new(root){animation:cm-in .22s var(--ease) both}
+@keyframes cm-out{to{opacity:0}}
+@keyframes cm-in{from{opacity:0}}
+
+/* ---------------------------------------------------------------- 피드 거르기(인스타그램 '팔로잉 · 추천' 높이): 글자만, 고른 것만 진하게 */
+.ps-filter{display:flex;gap:4px;margin:2px -10px 6px}
+.ps-filter a{position:relative;display:inline-flex;align-items:center;min-height:44px;padding:0 10px;font:400 15px/1 var(--f-ui);color:var(--dim);transition:color .18s var(--ease)}
 .ps-filter a:hover{color:var(--text)}
-.ps-filter a[aria-current="page"]{background:var(--text);color:var(--bg)}
-.ps-filter a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ps-filter a[aria-current="page"]{color:var(--text);font-weight:600}
+.ps-filter a:focus-visible{outline:2px solid var(--accent);outline-offset:-6px;border-radius:10px}
 
-/* 메시지: 채팅 앱 셸을 커뮤니티 머리 + 갈래 줄 아래에 둔다(남은 높이를 채운다) */
+/* ---------------------------------------------------------------- 색: 분홍은 하나(브랜드 색), 나머지는 중립 */
+body.cm .ps,body.cm dialog.ps-sheet{--rose:var(--accent-strong)}
+body.cm .ps-stars i.on{color:var(--text)}
+body.cm .ps-status-t{color:var(--dim);font-weight:400}
+body.cm .ps-act-item{--k-fill:var(--text);--k-ink:var(--bg);--k-soft:transparent;--k-line:var(--line);background:transparent}
+body.cm .ps-act-cta,body.cm .ps-act-item.k-recruit .ps-act-cta{color:var(--text);font-weight:600}
+body.cm .ps-rc{background:transparent;border-color:var(--line)}
+body.cm .ps-rc-go{background:transparent;border-color:var(--line);color:var(--text);font-weight:600}
+body.cm .ps-side-rc em{color:var(--text);font-weight:600}
+body.cm .ps-story-live{background:var(--text);color:var(--bg)}
+body.cm .rl-known{background:var(--sunken);border-color:transparent;color:var(--body)}
+body.cm .rl-row:hover{background:var(--sunken)}
+
+/* ---------------------------------------------------------------- 글자: Pretendard 하나 · 13/15/17 · 400/600 · 숫자 고정폭 */
+body.cm .mono,body.cm .rl-more{font-family:var(--f-ui);font-size:13px;letter-spacing:0;font-variant-numeric:tabular-nums}
+body.cm .ps-who-n,body.cm .ps-act-item b,body.cm .ps-likes b,body.cm .ps-cap b{font-weight:600}
+body.cm .ps-who-n{font-size:15px}
+body.cm .ps-who-book,body.cm .ps-likes,body.cm .ps-act-t,body.cm .ps-act-t time,body.cm .ps-post time,body.cm .ps-story-n,body.cm .ps-follow-done,body.cm .ps-mod-who small{font-size:13px}
+body.cm .ps-follow button{font-size:13px;font-weight:600;color:var(--accent-strong)}
+body.cm .ps-mod-h h2{font-size:15px;font-weight:600}
+body.cm .ps-mod-who b{font-size:15px;font-weight:600}
+body.cm .ps-rc b{font-size:13px;font-weight:600}
+body.cm .ps-side-t b{font-size:15px;font-weight:600}
+body.cm .ps-side-t small,body.cm .ps-side-all,body.cm .ps-side-sec h2{font-size:13px}
+body.cm .ps-side-sec h2{font-weight:600}
+body.cm .rl-t{font-size:15px;font-weight:600}
+body.cm .rl-t span,body.cm .rl-ago,body.cm .rl-pitch,body.cm .rl-min,body.cm .rl-host,body.cm .rl-chip{font-size:13px}
+body.cm .rl-chip,body.cm .rl-pace{font-weight:600}
+body.cm .row-h h2{font-size:17px;font-weight:600}
+body.cm .ps-likes,body.cm .rl-ago,body.cm .ps-post time,body.cm .cm-badge,body.cm .ch-conv time{font-variant-numeric:tabular-nums}
+
+/* 같이 읽기: '모집 글 쓰기'는 목록 머리 오른쪽의 작은 글자 단추 */
+.row-h .tg-new{display:inline-flex;align-items:center;gap:4px;min-height:44px;margin-left:auto;padding:0 4px;font:600 15px/1 var(--f-ui);color:var(--accent-strong)}
+.tg-new .ic{width:18px;height:18px}
+body.cm .rl-sec .row-h{align-items:center;gap:8px}
+
+/* ---------------------------------------------------------------- 메시지: 채팅 앱 셸을 위 막대 아래에 둔다(남은 높이를 채운다) */
 body.chat-shell.cm-chat .top{display:flex}
 body.cm-chat .phone{display:flex;flex-direction:column;height:100dvh;min-height:0}
 body.cm-chat .content.chat{flex:1;min-height:0;display:flex;flex-direction:column;width:100%}
 body.cm-chat .ch-app{flex:1;height:auto;min-height:0}
-body.cm-chat .cm-tabs{flex:none;margin:0;padding:0 8px}
 body.cm-chat .ch-lhead{height:52px}
+body.cm-chat .ch-lhead h2{font:600 17px/1 var(--f-ui)}
 @media (max-width:767px),(max-height:519px){
-  /* 휴대폰에서 대화를 열면 대화만(인스타그램 DM 처럼) — 머리 · 갈래 줄 · 아래 막대를 숨긴다 */
-  body.chat-shell.cm-chat.chat-at-thread .top,body.cm-chat.chat-at-thread .cm-tabs{display:none}
+  /* 휴대폰에서 대화를 열면 대화만(인스타그램 DM 처럼) — 위 막대 · 아래 막대를 숨긴다 */
+  body.chat-shell.cm-chat.chat-at-thread .top{display:none}
 }
 @media (min-width:768px) and (min-height:520px){
-  /* 넓은 화면: 머리 · 갈래 줄을 대화 두 칸의 왼쪽 끝에 맞춘다 */
-  body.cm-chat .top{max-width:none;margin:0;padding-left:20px}
-  body.cm-chat .cm-tabs{padding:0;justify-content:flex-start}
-  body.cm-chat .cm-tabs a{flex:none;padding:0 20px}
+  /* 대화 두 칸은 화면 폭을 다 쓰니 막대도 다 쓴다(일반 화면의 760px 가운데 정렬보다 우선) */
+  body.cm-chat .top{max-width:none!important;margin:0!important;padding-left:20px;box-shadow:0 1px 0 var(--line)}
 }
-@media (prefers-reduced-motion:reduce){.cm-tabs a,.ps-filter a{transition:none}}
-.ps-story-me .ps-story-plus{pointer-events:none}  /* + 는 표시일 뿐 — 누르면 아래 동그라미 링크(/posts/new)가 받는다 */
+
+/* + 는 표시일 뿐 — 누르면 아래 동그라미 링크(/posts/new)가 받는다 */
+.ps-story-me .ps-story-plus{pointer-events:none}
+
+@media (prefers-reduced-motion:reduce){
+  body.cm .top,.cm-nav a,.cm-nav .ic,.ps-filter a,.cm-nav a::after{transition:none}
+  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
+}

@@ -1,12 +1,25 @@
-{# 커뮤니티 갈래(인스타그램처럼 한 칸 안에서 나뉜다) — 피드 · 메시지 · 같이 읽기.
-   라우트가 community 값('feed' · 'messages' · 'together')을 넘기고 화면이 include 한다.
-   켜진 기능만 보인다(app/nav.py community_sections). 메시지 칸에는 안 읽은 수. #}
-<link rel="stylesheet" href="/static/community.css">
+{# 커뮤니티 머리의 갈래 아이콘(인스타그램 앱처럼 위 막대 오른쪽) — 피드 · 메시지 · 같이 읽기.
+   라우트가 community 값('feed' · 'messages' · 'together')을 넘기고, 화면은 이 조각을 top_extra 에 넣는다.
+   켜진 기능만 보인다(app/nav.py community_sections). 메시지에는 안 읽은 수. 글자 탭 줄은 없다.
+   선택 = 채운 아이콘(브랜드 색), 나머지는 빈 아이콘. 넓은 화면은 마우스를 올리면 이름 풍선. #}
 {% set cm_items = community_sections(request, user if user is defined else None) %}
 {% if cm_items|length > 1 %}
-<nav class="cm-tabs" aria-label="커뮤니티">
+<nav class="cm-nav" aria-label="커뮤니티">
   {% for key, href, label, n in cm_items %}
-  <a href="{{ href }}" data-cm="{{ key }}"{% if community == key %} aria-current="page"{% endif %}{% if n %} aria-label="{{ label }}, 안 읽은 메시지 {{ n }}개"{% endif %}>{{ label }}{% if n %}<i class="cm-badge" aria-hidden="true">{{ n|badge_text }}</i>{% endif %}</a>
+  <a href="{{ href }}" data-cm="{{ key }}" data-tip="{{ label }}"{% if community == key %} aria-current="page"{% endif %} aria-label="{{ label }}{{ ', 안 읽은 메시지 ' ~ n ~ '개' if n else '' }}">
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    {%- if key == 'feed' %}
+      <g class="cm-o"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></g>
+      <g class="cm-f" fill="currentColor"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></g>
+    {%- elif key == 'messages' %}
+      <g class="cm-o"><path d="M21 3.5 10.2 13.8"/><path d="M21 3.5 14.4 20.5l-4.2-6.7L3.5 9.6z"/></g>
+      <g class="cm-f"><path fill="currentColor" d="M21 3.5 14.4 20.5l-4.2-6.7L3.5 9.6z"/><path d="M21 3.5 10.2 13.8" stroke="var(--bg)"/></g>
+    {%- else %}
+      <g class="cm-o"><circle cx="8" cy="6.3" r="2.4"/><circle cx="16" cy="6.3" r="2.4"/><path d="M3 13.6c3-1.2 6-1 9 .8 3-1.8 6-2 9-.8v6c-3-1.2-6-1-9 .8-3-1.8-6-2-9-.8z"/><path d="M12 14.4v6"/></g>
+      <g class="cm-f"><circle cx="8" cy="6.3" r="2.6" fill="currentColor"/><circle cx="16" cy="6.3" r="2.6" fill="currentColor"/><path fill="currentColor" d="M3 13.6c3-1.2 6-1 9 .8 3-1.8 6-2 9-.8v6c-3-1.2-6-1-9 .8-3-1.8-6-2-9-.8z"/><path d="M12 14.4v6" stroke="var(--bg)"/></g>
+    {%- endif %}
+    </svg>{% if n %}<i class="cm-badge" aria-hidden="true">{{ n|badge_text }}</i>{% endif %}
+  </a>
   {% endfor %}
 </nav>
 {% endif %}

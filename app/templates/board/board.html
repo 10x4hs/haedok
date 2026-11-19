@@ -2,23 +2,21 @@
 {% from "board/_card.html" import post_row %}
 {% block title %}같이 읽기 — 커뮤니티 · 偕讀 해독{% endblock %}
 {% block heading %}커뮤니티{% endblock %}
+{% block top_extra %}{% include "_community.html" %}{% endblock %}
 {% block main %}
 <link rel="stylesheet" href="/static/racelist.css">
-{% include "_community.html" %}
 <div class="rl">
-<p class="rl-lede">읽고 싶은 고전을 띄워 두면 누구나 참가할 수 있어요. 하루 몇 쪽이면 충분해요.</p>
 {% if msg %}<p class="form-ok" role="status">{{ msg }}</p>{% endif %}
 {% if error %}<p class="form-err" role="alert">{{ error }}</p>{% endif %}
-<div class="rl-actions"><a class="btn primary" href="/together/new">모집 글 쓰기</a></div>
 
 <section class="rl-sec" aria-labelledby="tgListH">
-  <div class="row-h"><h2 id="tgListH">모집 중</h2>{% if posts %}<span class="mono muted">{{ posts|length }}</span>{% endif %}</div>
+  <div class="row-h"><h2 id="tgListH">모집 중</h2>{% if posts %}<span class="mono muted">{{ posts|length }}</span>{% endif %}<a class="tg-new" href="/together/new"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>모집 글 쓰기</a></div>
   {% if posts %}
   <ul class="rl-list">{% for v in posts %}{{ post_row(v) }}{% endfor %}</ul>
   {% else %}
   <div class="rl-empty">
     <b>아직 모집 중인 글이 없어요</b>
-    <p>‘모집 글 쓰기’에서 고전 한 권과 하루 분량을 정하면 첫 글이 올라가요. 하루 5쪽, 5분이면 같이 끝까지 갈 수 있어요.</p>
+    <p>고전 한 권과 하루 분량을 정해 첫 글을 올려 보세요.</p>
   </div>
   {% endif %}
 </section>

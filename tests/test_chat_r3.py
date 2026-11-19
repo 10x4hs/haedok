@@ -19,8 +19,8 @@ async def test_messages_live_in_community_with_unread_count(trio):  # noqa: F811
     page = (await m.get("/community/messages")).text
     nav = page.split('<nav class="tabbar"')[1].split("</nav>")[0]
     assert "data-chat-unread" in nav and "커뮤니티, 안 읽은 메시지 1개" in nav  # 커뮤니티 칸의 숫자
-    sub = page.split('<nav class="cm-tabs"')[1].split("</nav>")[0]
-    assert 'data-cm="messages" aria-current="page" aria-label="메시지, 안 읽은 메시지 1개"' in sub
+    sub = page.split('<nav class="cm-nav"')[1].split("</nav>")[0]
+    assert 'data-cm="messages" data-tip="메시지" aria-current="page" aria-label="메시지, 안 읽은 메시지 1개"' in sub
     assert '<i class="cm-badge" aria-hidden="true">1</i>' in sub
 
 
@@ -33,7 +33,7 @@ async def test_flag_off_removes_tab(trio, monkeypatch):  # noqa: F811
 async def test_thread_is_an_app_shell_without_page_title(trio):  # noqa: F811
     html = (await trio["h"].get(f"/chat/room/{trio['room']}")).text
     assert "chat-shell cm-chat chat-at-thread" in html
-    assert '<h1 class="top-title">커뮤니티</h1>' in html and 'data-cm="messages" aria-current="page"' in html
+    assert '<h1 class="top-title">커뮤니티</h1>' in html and 'data-tip="메시지" aria-current="page"' in html
     assert 'class="ch-thead"' in html and 'class="ch-compose"' in html
     assert 'class="ch-backdrop' in html  # 방은 책 표지 배경(아주 옅게)
 

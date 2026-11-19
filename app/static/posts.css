@@ -769,3 +769,6 @@ dialog.ps-sheet[open]{display:flex;animation:ps-up .38s var(--ease) both}
 .ps-side-rc .flatbook{width:32px;flex:none}
 .ps-side-rc em{font-style:normal;font-size:12px;font-weight:700;color:color-mix(in srgb,#ffc2a8 62%,var(--text))}
 .ps-side-all{display:inline-flex;align-items:center;min-height:36px;font-size:13px;font-weight:600;color:var(--rose-ink)}
+
+/* 좋아요가 없으면 줄을 비운다 */
+.ps-likes:empty{display:none}
