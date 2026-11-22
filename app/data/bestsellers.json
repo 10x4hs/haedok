@@ -1,6 +1,6 @@
 {
  "source": "Yes24 분야별 베스트 (소설·인문·에세이)",
- "updated": "2026-11-21",
+ "updated": "2026-11-22",
  "books": [
   {
    "id": "y197068949",
@@ -47,17 +47,6 @@
    "category": "인문"
   },
   {
-   "id": "y192474512",
-   "title": "세네카, 오늘을 빼앗기고 있는 당신에게",
-   "author": "루키우스 안나이우스 세네카",
-   "publisher": "논픽션",
-   "price": 16200,
-   "cover": "https://image.yes24.com/goods/192474512/XL",
-   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EC%84%B8%EB%84%A4%EC%B9%B4%2C+%EC%98%A4%EB%8A%98%EC%9D%84+%EB%B9%BC%EC%95%97%EA%B8%B0%EA%B3%A0+%EC%9E%88%EB%8A%94+%EB%8B%B9%EC%8B%A0%EC%97%90%EA%B2%8C",
-   "rank": 2,
-   "category": "인문"
-  },
-  {
    "id": "y199833174",
    "title": "공부의 종말",
    "author": "로랑 알렉상드르, 올리비에 바보",
@@ -65,6 +54,17 @@
    "price": 19800,
    "cover": "https://image.yes24.com/goods/199833174/XL",
    "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EA%B3%B5%EB%B6%80%EC%9D%98+%EC%A2%85%EB%A7%90",
+   "rank": 2,
+   "category": "인문"
+  },
+  {
+   "id": "y192474512",
+   "title": "세네카, 오늘을 빼앗기고 있는 당신에게",
+   "author": "루키우스 안나이우스 세네카",
+   "publisher": "논픽션",
+   "price": 16200,
+   "cover": "https://image.yes24.com/goods/192474512/XL",
+   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EC%84%B8%EB%84%A4%EC%B9%B4%2C+%EC%98%A4%EB%8A%98%EC%9D%84+%EB%B9%BC%EC%95%97%EA%B8%B0%EA%B3%A0+%EC%9E%88%EB%8A%94+%EB%8B%B9%EC%8B%A0%EC%97%90%EA%B2%8C",
    "rank": 3,
    "category": "인문"
   },
