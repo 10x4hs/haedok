@@ -5,7 +5,7 @@ aiosqlite==0.22.1
     # via haedok
 alembic==1.20.1
     # via haedok
-annotated-doc==0.0.6
+annotated-doc==0.0.7
     # via fastapi
 annotated-types==0.8.0
     # via pydantic
@@ -28,7 +28,7 @@ certifi==2026.10.23
     #   sentry-sdk
 click==8.5.1
     # via uvicorn
-fastapi==0.162.5
+fastapi==0.165.0
     # via haedok
 greenlet==3.5.6
     # via sqlalchemy
@@ -60,29 +60,29 @@ markupsafe==3.0.4
     #   mako
 opentelemetry-api==1.45.2
     # via fastapi
-pydantic==2.14.3
+pydantic==2.14.4
     # via
     #   fastapi
     #   pydantic-settings
-pydantic-core==2.50.4
+pydantic-core==2.50.5
     # via pydantic
-pydantic-settings==2.16.2
+pydantic-settings==2.16.3
     # via haedok
-pypdf==7.0.1
+pypdf==7.1.1
     # via haedok
 python-dotenv==1.2.4
     # via
     #   pydantic-settings
     #   uvicorn
-python-multipart==0.0.33
+python-multipart==0.0.34
     # via haedok
 pyyaml==6.0.3
     # via uvicorn
 sentry-sdk==2.75.0
     # via haedok
-soupsieve==4.1
+soupsieve==4.1.2
     # via beautifulsoup4
-sqlalchemy==2.1.8
+sqlalchemy==2.1.9
     # via
     #   alembic
     #   haedok
