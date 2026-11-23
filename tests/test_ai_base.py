@@ -79,3 +79,14 @@ async def test_embeddings_without_index_and_retry_on_429(monkeypatch):
         v = await ai.embed(["x", "y"], http=http)
     assert calls["n"] == 2 and v[0] == [0.6, 0.8] and v[1] == [0.0, 1.0]
     get_settings.cache_clear()
+
+
+@pytest.mark.parametrize("resp", [httpx.Response(200, text="<html>oops</html>"), httpx.Response(200, json=[1, 2])])
+async def test_unreadable_200_becomes_unavailable(monkeypatch, resp):
+    monkeypatch.setenv("AI_PROVIDER", "openai_compat")
+    monkeypatch.setenv("AI_API_KEY", "k")
+    get_settings.cache_clear()
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r: resp)) as http:
+        with pytest.raises(ai.AIUnavailable):
+            await ai.chat([{"role": "user", "content": "q"}], http=http)
+    get_settings.cache_clear()

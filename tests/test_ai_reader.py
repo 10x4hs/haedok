@@ -347,3 +347,10 @@ async def test_drafts_are_bounded(api, session_factory, fake_ai, sent):
     async with session_factory() as s:
         assert await s.scalar(select(func.count()).select_from(AINote)) == reader_ai.DRAFTS_KEPT
     await c.aclose()
+
+
+def test_characters_with_non_list_value_does_not_crash():
+    from app.services import reader_ai as _r
+
+    assert _r.parse_characters('{"characters": 5}', "영수가 왔다") == []
+    assert _r.parse_characters('{"characters": true}', "영수가 왔다") == []

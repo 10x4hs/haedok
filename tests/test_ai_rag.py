@@ -494,3 +494,12 @@ def test_sentence_with_an_invented_page_is_dropped_whole():
     assert "운이 좋았어요 (1쪽)" in text and "비가 왔어요 (2쪽, 3쪽)" in text
     assert cited == [1, 2, 3]
     assert rag.clean_cites("끝에는 99쪽에서 울어요 (99쪽).", {1, 2, 3}) == ("", [])
+
+
+def test_page_tag_after_the_period_belongs_to_that_sentence():
+    """‘…배신해요. (40쪽)’처럼 마침표 뒤에 붙은 쪽 표시도 그 문장의 근거다 — 다음 문장으로 넘어가 필터를 피하면 안 된다."""
+    text, cited = rag.clean_cites("그는 착해요. (3쪽) 그는 결국 친구를 배신해요. (40쪽)", {3})
+    assert "배신" not in text and "40" not in text
+    assert text == "그는 착해요. (3쪽)" and cited == [3]
+    text, _ = rag.clean_cites("그는 결국 친구를 배신해요.(40쪽) 끝.", {3})
+    assert "배신" not in text and text == "끝."

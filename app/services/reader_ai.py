@@ -387,6 +387,7 @@ def parse_characters(text: str, seen_in: str) -> list[dict]:
     try:
         data = json.loads(text[text.index("{") : text.rindex("}") + 1])
         raw = data.get("characters") or []
+        raw = raw if isinstance(raw, list) else []
         items = [
             {"name": str(c.get("name", "")), "line": str(c.get("line", ""))}
             for c in raw

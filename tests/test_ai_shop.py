@@ -40,7 +40,7 @@ def ai_on(monkeypatch):
 
 @pytest.fixture
 def no_vectors(monkeypatch):
-    monkeypatch.setattr(shop_ai, "vectors", None)
+    monkeypatch.setattr(shop_ai, "recs", None)
 
 
 class Spy:
@@ -327,7 +327,7 @@ async def test_vectors_come_first_and_are_deduped(api, ai_on, monkeypatch, sessi
         seen["for_user"] = user_id
         raise RuntimeError("임베딩 없음")  # 한쪽이 실패해도 낱말 검색으로 이어진다
 
-    monkeypatch.setattr(shop_ai, "vectors", SimpleNamespace(similar_books=similar_books, for_user=for_user))
+    monkeypatch.setattr(shop_ai, "recs", SimpleNamespace(similar_books=similar_books, for_user=for_user))
     c = api(no_net)
     await signup(c)
     uid = await user_id(session_factory)
@@ -586,3 +586,41 @@ async def test_changing_look_keeps_recap_cache(api, ai_on, frozen, monkeypatch, 
     r = await c.put("/api/v1/me/settings", json={"mode": "light"}, headers={"X-CSRF-Token": token})
     assert r.status_code == 200
     assert "요약이에요." in (await c.get("/me/recap?month=2026-11")).text
+
+
+def test_vector_candidates_use_the_real_recs_module():
+    """비슷한 책 · 내 취향은 app.services.recs 에 있다 — 없는 모듈을 부르면 운영에서 조용히 꺼진다."""
+    from app.services import recs
+
+    assert shop_ai.recs is recs
+    assert callable(recs.similar_books) and callable(recs.for_user)
+
+
+async def test_over_cap_user_does_not_trigger_embedding(api, ai_on, monkeypatch):
+    """한도가 찬 사람의 질문은 임베딩(질문 → 벡터)도 부르지 않는다."""
+    monkeypatch.setenv("AI_DAILY_REQUESTS", "1")
+    get_settings.cache_clear()
+    calls = []
+
+    async def similar_books(session, text, k=8, exclude_user=None):
+        calls.append(text)
+        return []
+
+    async def for_user(session, user_id, k=12):
+        return []
+
+    monkeypatch.setattr(shop_ai, "recs", SimpleNamespace(similar_books=similar_books, for_user=for_user))
+    monkeypatch.setattr(ai, "chat", Spy({"reply": "r", "picks": [], "followup": None}))
+    c = api(no_net)
+    await signup(c)
+    await ask(c, "소설")
+    assert calls == ["소설"]
+    r = await ask(c, "슬픈 사랑 이야기")
+    assert "오늘은 여기까지 물어볼 수 있어요" in r.text
+    assert calls == ["소설"]
+
+
+def test_isbn_store_book_has_no_price():
+    """ISBN 으로 찾은 책(카카오)의 price 는 종이책 값이다 — 전자책 서점 가격처럼 보여 주지 않는다."""
+    c = shop_ai._from_store({"id": "9788937460449", "title": "데미안", "price": 12000})
+    assert c is not None and c.price is None

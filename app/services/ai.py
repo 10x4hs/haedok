@@ -120,7 +120,13 @@ async def _post(base: str, key: str | None, path: str, body: dict, http: httpx.A
         await asyncio.sleep(_retry_after(r, attempt))
     if r.status_code >= 400:
         raise AIUnavailable(f"AI 서버가 {r.status_code} 를 돌려줬어요")
-    return r.json()
+    try:
+        data = r.json()
+    except ValueError as e:
+        raise AIUnavailable("AI 응답이 JSON 이 아니에요") from e
+    if not isinstance(data, dict):
+        raise AIUnavailable("AI 응답 모양이 달라요")
+    return data
 
 
 def _retry_after(r: httpx.Response, attempt: int) -> float:

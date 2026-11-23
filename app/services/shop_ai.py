@@ -29,13 +29,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import ratelimit
 from app.core.config import get_settings
 from app.models import User
-from app.services import ai, bookstore
+from app.services import ai, bookstore, recs
 from app.services.search import FULLTEXT_SOURCES
-
-try:  # 벡터 검색은 다른 작업에서 들어온다 — 없으면 낱말 검색만으로 돈다
-    from app.services import vectors
-except ImportError:  # pragma: no cover - 합쳐진 뒤에는 늘 있다
-    vectors = None
 
 log = logging.getLogger(__name__)
 
@@ -135,7 +130,11 @@ def _store_item(item_id: str) -> dict | None:
 
 
 def price_of(item: dict | None) -> int | None:
-    """서점 데이터의 값만. 0 · 음수 · 숫자가 아닌 값은 '모름'."""
+    """서점 데이터의 값만. 0 · 음수 · 숫자가 아닌 값은 '모름'.
+
+    ISBN 으로 찾은 책(카카오)의 price 는 종이책 판매가라 전자책 서점 가격으로 보여 주지 않는다."""
+    if bookstore.is_isbn(str((item or {}).get("id") or "")):
+        return None
     p = (item or {}).get("price")
     return p if isinstance(p, int) and not isinstance(p, bool) and p > 0 else None
 
@@ -218,7 +217,7 @@ def _from_ref(ref) -> Candidate | None:
                          "author": item.get("author") or getattr(ref, "author", None),
                          "cover": item.get("cover") or getattr(ref, "cover", None)}, reason)  # fmt: skip
         if c is not None:
-            c.price = price_of(item)  # BookRef 의 값이 아니라 서점 데이터의 값만
+            c.price = price_of({**item, "id": ext})  # BookRef 의 값이 아니라 서점 데이터의 값만
         return c
     return None
 
@@ -313,15 +312,15 @@ async def candidates(
     from app import web
 
     found: list[Candidate] = []
-    if vectors is not None:
-        for call in (
-            lambda: vectors.similar_books(session, text, k=10, exclude_user=user.id),
-            lambda: vectors.for_user(session, user.id, k=8),
-        ):
-            try:
+    calls = [lambda: recs.for_user(session, user.id, k=8)]  # 저장된 벡터만 — AI 호출 없음
+    if not await over_cap(session, user):  # 질문 임베딩은 AI 호출이라 한도가 남았을 때만
+        calls.insert(0, lambda: recs.similar_books(session, text, k=10, exclude_user=user.id))
+    for call in calls:
+        try:
+            async with session.begin_nested():  # 실패해도 바깥 트랜잭션은 살아 있게(Postgres)
                 found += [c for ref in await call() if (c := _from_ref(ref))]
-            except Exception:  # noqa: BLE001 - 임베딩이 안 되면 낱말 검색으로
-                log.warning("assistant vector search failed")
+        except Exception:  # noqa: BLE001 - 임베딩이 안 되면 낱말 검색으로
+            log.warning("assistant vector search failed", exc_info=True)
     found += await keyword_books(session, client, user, text)
     found += _popular_fill()
 
@@ -428,6 +427,11 @@ def messages_for(turns: list[Turn], q: str, cands: list[Candidate]) -> list[dict
 
 
 # --------------------------------------------------------------------------- 한 차례
+
+
+async def over_cap(session: AsyncSession, user: User) -> bool:
+    """오늘 한도를 이미 다 썼나(세지 않고 보기만)."""
+    return await ratelimit.used(session, f"ai-day:{user.id}", DAY_S) >= get_settings().ai_daily_requests
 
 
 async def spend(session: AsyncSession, user: User) -> None:
