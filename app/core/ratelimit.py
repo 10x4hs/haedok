@@ -57,6 +57,19 @@ async def hit(session: AsyncSession, key: str, limit: int, window_s: int) -> int
     return int(count or 0)
 
 
+async def used(session: AsyncSession, key: str, window_s: int) -> int:
+    """key의 지금 창 횟수(올리지 않고 보기만)."""
+    now = _now()
+    start = datetime.fromtimestamp(now - (now % window_s), UTC)
+    row = (await session.execute(
+        select(rate_limits.c.count, rate_limits.c.window_start).where(rate_limits.c.key == key)
+    )).first()
+    if row is None:
+        return 0
+    ws = row.window_start if row.window_start.tzinfo else row.window_start.replace(tzinfo=UTC)
+    return int(row.count) if ws == start else 0
+
+
 async def check(session: AsyncSession, key: str, limit: int, window_s: int, message: str) -> None:
     """한도를 넘으면 RateLimited. 넘지 않으면 조용히 지나간다."""
     count = await hit(session, key, limit, window_s)

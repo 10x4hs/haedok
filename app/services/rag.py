@@ -103,7 +103,8 @@ _PAREN = re.compile(r"\s*\(([^()]*?\d+\s*쪽[^()]*)\)")
 _BARE = re.compile(r"(\d+)\s*쪽")
 
 
-_SENT = re.compile(r"[^.!?。\n]*(?:[.!?。]+|\n|$)")
+# 문장 끝 부호 뒤에 바로 붙은 괄호(‘…해요. (40쪽)’)는 그 문장의 근거라 앞 문장에 붙인다
+_SENT = re.compile(r"[^.!?。\n]*(?:[.!?。]+(?:[ \t]*\([^()\n]*\))?|\n|$)")
 
 
 def clean_cites(text: str, allowed: set[int]) -> tuple[str, list[int]]:
