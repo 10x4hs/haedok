@@ -1,6 +1,6 @@
 {
  "source": "Yes24 분야별 베스트 (소설·인문·에세이)",
- "updated": "2026-11-22",
+ "updated": "2026-11-24",
  "books": [
   {
    "id": "y197068949",
@@ -80,17 +80,6 @@
    "category": "에세이"
   },
   {
-   "id": "y196781015",
-   "title": "오래 곁에 두어 좋은 말",
-   "author": "나민애",
-   "publisher": "북다",
-   "price": 16920,
-   "cover": "https://image.yes24.com/goods/196781015/XL",
-   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EC%98%A4%EB%9E%98+%EA%B3%81%EC%97%90+%EB%91%90%EC%96%B4+%EC%A2%8B%EC%9D%80+%EB%A7%90",
-   "rank": 2,
-   "category": "에세이"
-  },
-  {
    "id": "y147276346",
    "title": "너를 아끼며 살아라 (15만 부 특별 한정판)",
    "author": "나태주",
@@ -98,6 +87,17 @@
    "price": 16650,
    "cover": "https://image.yes24.com/goods/147276346/XL",
    "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EB%84%88%EB%A5%BC+%EC%95%84%EB%81%BC%EB%A9%B0+%EC%82%B4%EC%95%84%EB%9D%BC+%2815%EB%A7%8C+%EB%B6%80+%ED%8A%B9%EB%B3%84+%ED%95%9C%EC%A0%95%ED%8C%90%29",
+   "rank": 2,
+   "category": "에세이"
+  },
+  {
+   "id": "y196261854",
+   "title": "박완서의 낱말들",
+   "author": "박완서",
+   "publisher": "웅진지식하우스",
+   "price": 17820,
+   "cover": "https://image.yes24.com/goods/196261854/XL",
+   "url": "https://www.aladin.co.kr/search/wsearchresult.aspx?SearchTarget=EBook&SearchWord=%EB%B0%95%EC%99%84%EC%84%9C%EC%9D%98+%EB%82%B1%EB%A7%90%EB%93%A4",
    "rank": 3,
    "category": "에세이"
   }
