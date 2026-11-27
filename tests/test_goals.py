@@ -93,7 +93,7 @@ def test_levels_against_current_goal():
 def test_minutes_estimate_uses_median_clamped():
     assert goals.seconds_per_page([]) == 60
     assert goals.seconds_per_page([30_000, 40_000, 500_000]) == 40  # 중앙값
-    assert goals.seconds_per_page([1_000, 2_000]) == 15  # 아래로 자름
+    assert goals.seconds_per_page([1_000, 2_000]) == 3  # 아래로 자름(쪽 최소 시간 3초)
     assert goals.seconds_per_page([900_000]) == 120  # 위로 자름
     assert goals.estimate_minutes(5, 60) == 5
     assert goals.estimate_minutes(3, 15) == 1

@@ -38,7 +38,7 @@
       <li>
         <span class="layer-n mono" aria-hidden="true">3</span>
         <div><h3>서비스</h3>
-        <p>{{ facts.page_s }}초 규칙, 스포일러 가드, AI, 커뮤니티, 마일리지가 여기 있어요.</p>
+        <p>쪽마다 {{ facts.page_range }} 읽기 시간 규칙, 스포일러 가드, AI, 커뮤니티, 마일리지가 여기 있어요.</p>
         <p class="where">{{ src('app/services/pace.py') }} {{ src('app/services/social.py') }} {{ src('app/services/rag.py') }}</p></div>
       </li>
       <li>
@@ -52,7 +52,7 @@
     <figure class="trace">
       <figcaption>예: ‘다 읽음’ 한 번이 지나가는 길</figcaption>
       <ol role="list">
-        <li><b>화면</b><span>리더가 {{ facts.page_s }}초를 채우면 <code>verified: true</code>만 보내요. 시간은 보내지 않아요.</span></li>
+        <li><b>화면</b><span>리더가 그 쪽의 시간({{ facts.page_range }})을 채우면 <code>verified: true</code>만 보내요. 시간은 보내지 않아요.</span></li>
         <li><b>API</b><span><code>PUT /api/v1/books/{id}/progress</code>가 로그인·CSRF를 확인해요.</span></li>
         <li><b>서비스</b><span><code>books.record_progress()</code>가 펼친 시각부터 지금까지를 재서 판정해요.</span></li>
         <li><b>DB</b><span>읽기 기록이 남고, 인정되면 진도와 마일리지가 올라가요.</span></li>
@@ -118,7 +118,7 @@
 uv venv .venv && uv pip install -e ".[dev]" --python .venv/bin/python
 export DATABASE_URL="sqlite+aiosqlite:///$PWD/scratch-dev.db" DWELL_SCALE=0.06 AI_PROVIDER=fake
 .venv/bin/uvicorn app.main:app --port 8011</code></pre>
-    <p><code>DWELL_SCALE=0.06</code>은 쪽마다 {{ facts.base_page_s }}초를 {{ "%g"|format(facts.base_page_s * 0.06) }}초로 줄여 시연하기 편해요. <code>AI_PROVIDER=fake</code>면 키 없이 AI 화면을 볼 수 있어요. API 문서는 <code>/api/docs</code>에 있어요.</p>
+    <p><code>DWELL_SCALE=0.06</code>은 쪽마다 {{ facts.base_min_s }}~{{ facts.base_max_s }}초를 {{ "%g"|format(facts.base_min_s * 0.06) }}~{{ "%g"|format(facts.base_max_s * 0.06) }}초로 줄여 시연하기 편해요. <code>AI_PROVIDER=fake</code>면 키 없이 AI 화면을 볼 수 있어요. API 문서는 <code>/api/docs</code>에 있어요.</p>
 
     <h3>테스트</h3>
     <pre class="code" translate="no" tabindex="0" aria-label="테스트 명령"><code>.venv/bin/pytest -q && .venv/bin/ruff check .</code></pre>

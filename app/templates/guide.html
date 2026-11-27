@@ -63,11 +63,11 @@
       <div class="step-text">
         <span class="step-n" aria-hidden="true">3</span>
         <h2><span class="sr-only">3단계. </span>읽고 ‘다 읽음’을 받아요</h2>
-        <p>한 쪽에 {{ facts.page_s }}초 머물면 아래 고리가 다 차고 그 쪽이 <b>다 읽음</b>이 돼요. 앞 쪽부터 차례대로만 인정돼요.</p>
+        <p>한 쪽에 그 쪽을 읽을 만큼({{ facts.page_rule }}) 머물면 아래 고리가 다 차고 그 쪽이 <b>다 읽음</b>이 돼요. 앞 쪽부터 차례대로만 인정돼요.</p>
         <ul class="step-tips">
           <li>친구 감상은 내가 그 쪽을 다 읽은 뒤에 열려요. 문단을 눌러 이모지나 한 줄을 남겨요.</li>
         </ul>
-        {{ clip('verify', "‘다 읽음’ 인정", facts.page_s ~ '초 고리가 다 차면 그 쪽이 인정돼요.') }}
+        {{ clip('verify', "‘다 읽음’ 인정", '고리가 다 차면 그 쪽이 인정돼요. 짧은 쪽은 몇 초, 긴 쪽은 더 오래 걸려요.') }}
       </div>
       <div class="step-shots">
         {{ shot('5-reader', '김유정의 동백꽃 본문이 펼쳐진 리더. 위에 친구 반응이 잠겨 있다는 알림, 아래에 읽는 중 13초 고리', '리더 — 아래에서 진도를 봐요') }}
